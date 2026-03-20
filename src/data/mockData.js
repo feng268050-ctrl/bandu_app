@@ -1,0 +1,231 @@
+export const sidebarMain = [
+  { id: 'home', label: '首页' },
+  { id: 'all-models', label: 'Laser & Cut Models' },
+  { id: 'makerlab', label: 'MakerLab' },
+  { id: 'contest', label: '竞赛' },
+]
+
+export const sidebarExplore = [
+  { id: 'parts', label: '创客宝库' },
+  { id: 'community', label: '社区' },
+]
+
+export const categories = [
+  '推荐',
+  '热门',
+  '家用',
+  '玩具和游戏',
+  '爱好和 DIY',
+  '3D打印机',
+  '艺术',
+  '微缩模型',
+  '生成器模型',
+  '激光&刀切',
+]
+
+export const heroSlide = {
+  title: 'Let Your Ideas Hatch!',
+  image: 'https://picsum.photos/seed/maker-world-hero/1280/760',
+}
+
+export const exploreCards = [
+  {
+    id: 'makerlab',
+    title: 'MakerLab',
+    desc: '轻松创造，随心定制',
+    iconText: 'ML',
+    iconBg: 'from-sky-100 via-cyan-100 to-blue-200',
+  },
+  {
+    id: 'parts',
+    title: '创客宝库',
+    desc: '精选零件、套件和耗材',
+    iconText: '配件',
+    iconBg: 'from-slate-100 via-zinc-100 to-stone-200',
+  },
+  {
+    id: 'crowdfunding',
+    title: '众筹',
+    desc: '让创意变成现实',
+    iconText: '众筹',
+    iconBg: 'from-lime-100 via-emerald-100 to-green-200',
+  },
+  {
+    id: 'cyberbrick',
+    title: 'CyberBrick',
+    desc: '智能搭建，全球共创',
+    iconText: 'CB',
+    iconBg: 'from-yellow-100 via-lime-100 to-green-200',
+  },
+]
+
+export const modelCards = [
+  {
+    id: 1,
+    title: '机甲人像耳机支架',
+    creator: 'MakerLab Studio',
+    category: '工具',
+    summary: '适用于桌面耳机和手办组合展示的模块化支架。',
+    description:
+      '这是一款偏产品站风格的假详情数据，用于演示从列表页进入详情页的交互流程。你可以在这里替换成真实模型介绍、打印参数、版本说明和使用教程。',
+    likes: 182,
+    views: 4200,
+    rating: 4.8,
+    publishedAt: '2026-03-12',
+    tags: ['支架', '桌面', '模块化', '打印友好'],
+    specs: {
+      printTime: '6.5 小时',
+      material: 'PLA / PETG',
+      difficulty: '中等',
+      size: '180 x 95 x 120 mm',
+    },
+    image: 'https://picsum.photos/seed/maker-card-01/800/520',
+  },
+  {
+    id: 2,
+    title: '收藏级刀刃展示道具',
+    creator: 'Model Forge',
+    category: '道具和角色扮演',
+    summary: '用于长柄武器与角色道具陈列的场景化展示底座。',
+    description:
+      '详情页中可以继续添加多图轮播、装配说明、兼容尺寸等模块。当前页面先用静态数据模拟真实产品站内容，满足交互演示。',
+    likes: 246,
+    views: 5380,
+    rating: 4.9,
+    publishedAt: '2026-03-08',
+    tags: ['展示底座', '角色道具', '收藏', '展台'],
+    specs: {
+      printTime: '4.2 小时',
+      material: 'PLA',
+      difficulty: '简单',
+      size: '220 x 80 x 60 mm',
+    },
+    image: 'https://picsum.photos/seed/maker-card-02/800/520',
+  },
+  {
+    id: 3,
+    title: '木工定位夹具套件',
+    creator: 'Craft Unit',
+    category: '工具',
+    summary: '提高重复加工精度的木工夹具和定位治具组合。',
+    description:
+      '这类模型常见于工具专区。你可以进一步扩展参数区，比如推荐喷嘴、层高、填充率和后处理建议。',
+    likes: 319,
+    views: 6120,
+    rating: 4.7,
+    publishedAt: '2026-03-10',
+    tags: ['木工', '夹具', '定位', '工装'],
+    specs: {
+      printTime: '3.8 小时',
+      material: 'PLA / ABS',
+      difficulty: '简单',
+      size: '160 x 140 x 90 mm',
+    },
+    image: 'https://picsum.photos/seed/maker-card-03/800/520',
+  },
+  {
+    id: 4,
+    title: '喷气引擎教学模型',
+    creator: 'Future Brick',
+    category: '教育',
+    summary: '课堂演示气流结构和叶轮关系的教学模型。',
+    description:
+      '教育向详情页通常会有课程目标、知识点和配套文档。当前假详情页保留了核心信息区，后续可继续拼装模块。',
+    likes: 141,
+    views: 2950,
+    rating: 4.6,
+    publishedAt: '2026-03-01',
+    tags: ['教育', '课堂', '引擎', '演示'],
+    specs: {
+      printTime: '5.1 小时',
+      material: 'PLA',
+      difficulty: '中等',
+      size: '200 x 160 x 70 mm',
+    },
+    image: 'https://picsum.photos/seed/maker-card-04/800/520',
+  },
+  {
+    id: 5,
+    title: '桌面收纳桥架系统',
+    creator: 'Desk Build',
+    category: '家用',
+    summary: '可堆叠的桌面收纳和线缆桥架一体化方案。',
+    description:
+      '适合做“多版本可选”的详情页结构，例如不同长度、不同孔位、不同配色。你可以在这里接入真实 SKU 数据。',
+    likes: 208,
+    views: 4870,
+    rating: 4.5,
+    publishedAt: '2026-02-25',
+    tags: ['收纳', '桌面', '桥架', '家用'],
+    specs: {
+      printTime: '2.9 小时',
+      material: 'PLA',
+      difficulty: '简单',
+      size: '120 x 120 x 55 mm',
+    },
+    image: 'https://picsum.photos/seed/maker-card-05/800/520',
+  },
+  {
+    id: 6,
+    title: '可拼装机械臂底座',
+    creator: 'Open Fab',
+    category: '玩具和游戏',
+    summary: '支持多关节扩展的机械臂底座，适合创客展示。',
+    description:
+      '该详情示例主要演示页面跳转和信息布局。你可以继续加入评论、收藏状态、相关推荐和版本迭代信息。',
+    likes: 267,
+    views: 5600,
+    rating: 4.8,
+    publishedAt: '2026-03-05',
+    tags: ['机械臂', '拼装', '创客', '展示'],
+    specs: {
+      printTime: '5.7 小时',
+      material: 'PETG',
+      difficulty: '中等',
+      size: '210 x 90 x 110 mm',
+    },
+    image: 'https://picsum.photos/seed/maker-card-06/800/520',
+  },
+  {
+    id: 7,
+    title: '模块化相机手柄',
+    creator: 'Vision Parts',
+    category: '工具',
+    summary: '用于轻量拍摄场景的快拆手柄组件。',
+    description:
+      '详情页可以扩展成真实产品站结构，包括兼容设备、零件表、下载区和常见问题。当前是可点击查看的假详情模板。',
+    likes: 194,
+    views: 3720,
+    rating: 4.7,
+    publishedAt: '2026-03-09',
+    tags: ['相机', '手柄', '快拆', '模块化'],
+    specs: {
+      printTime: '3.4 小时',
+      material: 'PETG',
+      difficulty: '简单',
+      size: '145 x 70 x 92 mm',
+    },
+    image: 'https://picsum.photos/seed/maker-card-07/800/520',
+  },
+  {
+    id: 8,
+    title: '掌机散热外壳',
+    creator: 'Playlab',
+    category: '玩具和游戏',
+    summary: '强调散热风道和握持体验的掌机配件外壳。',
+    description:
+      '你可以把这类卡片点进去做成完整商品详情，继续加价格、库存、套餐和购买按钮。现在先用假数据打通交互流程。',
+    likes: 225,
+    views: 4190,
+    rating: 4.6,
+    publishedAt: '2026-03-03',
+    tags: ['掌机', '散热', '外壳', '配件'],
+    specs: {
+      printTime: '4.6 小时',
+      material: 'PLA / ABS',
+      difficulty: '中等',
+      size: '170 x 86 x 34 mm',
+    },
+    image: 'https://picsum.photos/seed/maker-card-08/800/520',
+  },
+]
