@@ -90,8 +90,16 @@ class AesGcmFrameCodecTest {
     }
 
     @Test
-    fun `payload above two mebibytes is rejected`() {
-        val (sender, _) = codecs()
+    fun `complete frame is limited to two mebibytes`() {
+        val (sender, receiver) = codecs()
+        val largest = sender.encode(
+            MessageType.MESSAGE_TYPE_DATA_CHUNK,
+            ByteArray(AesGcmFrameCodec.MAX_CIPHERTEXT_BYTES),
+        )
+
+        assertThat(largest).hasLength(AesGcmFrameCodec.MAX_FRAME_BYTES)
+        assertThat(receiver.decode(largest).plaintext)
+            .hasLength(AesGcmFrameCodec.MAX_CIPHERTEXT_BYTES)
 
         assertCode(ProtocolErrorCode.PROTOCOL_ERROR_CODE_FRAME_TOO_LARGE) {
             sender.encode(

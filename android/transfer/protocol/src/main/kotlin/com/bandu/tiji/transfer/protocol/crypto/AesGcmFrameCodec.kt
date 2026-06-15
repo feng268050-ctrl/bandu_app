@@ -67,6 +67,9 @@ class AesGcmFrameCodec(
 
     fun decode(frame: ByteArray): DecodedFrame {
         requireOpen()
+        if (frame.size > MAX_FRAME_BYTES) {
+            throw FrameSecurityException(ProtocolErrorCode.PROTOCOL_ERROR_CODE_FRAME_TOO_LARGE)
+        }
         if (frame.size < HEADER_BYTES + GCM_TAG_BYTES) {
             throw FrameSecurityException(ProtocolErrorCode.PROTOCOL_ERROR_CODE_INVALID_MESSAGE)
         }
@@ -180,9 +183,10 @@ class AesGcmFrameCodec(
     )
 
     companion object {
-        const val MAX_CIPHERTEXT_BYTES = 2 * 1024 * 1024
+        const val MAX_FRAME_BYTES = 2 * 1024 * 1024
         const val HEADER_BYTES = 20
         const val GCM_TAG_BYTES = 16
+        const val MAX_CIPHERTEXT_BYTES = MAX_FRAME_BYTES - HEADER_BYTES - GCM_TAG_BYTES
         private const val KEY_BYTES = 32
         private const val NONCE_PREFIX_BYTES = 4
         private const val GCM_NONCE_BYTES = 12
