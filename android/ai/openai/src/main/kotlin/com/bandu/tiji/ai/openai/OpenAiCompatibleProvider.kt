@@ -14,9 +14,20 @@ import com.bandu.tiji.ai.api.provider.AiProvider
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.network.AiHttpOperation
 import com.bandu.tiji.core.network.HttpEngine
+import java.io.IOException
+import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.put
+import kotlinx.serialization.json.putJsonArray
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 
 fun interface OpenAiHttpEngineFactory {
     fun create(
@@ -35,7 +46,29 @@ class OpenAiCompatibleProvider(
 
     override suspend fun validate(
         configuration: ResolvedAiConfiguration,
-    ): ProviderValidation = unsupported()
+    ): ProviderValidation = withContext(ioDispatcher) {
+        try {
+            val request = Request.Builder()
+                .url(configuration.chatCompletionsEndpoint())
+                .header(AUTHORIZATION_HEADER, "Bearer ${configuration.apiKey}")
+                .post(validationBody(configuration.analysisModel).toRequestBody(JSON_MEDIA_TYPE))
+                .build()
+            httpEngineFactory
+                .create(configuration, AiHttpOperation.CONFIGURATION_VALIDATION)
+                .newCall(request)
+                .execute()
+                .use { response ->
+                    if (!response.isSuccessful) {
+                        throw OpenAiHttpException(response.code)
+                    }
+                    ProviderValidation.Success
+                }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (error: Throwable) {
+            ProviderValidation.Failure(validationFailureCode(error))
+        }
+    }
 
     override suspend fun analyzeImage(
         configuration: ResolvedAiConfiguration,
@@ -59,4 +92,47 @@ class OpenAiCompatibleProvider(
 
     private fun <T> unsupported(): T =
         throw UnsupportedOperationException("OpenAI-compatible operation is not implemented")
+
+    private fun validationBody(model: String): String = buildJsonObject {
+        put("model", model)
+        putJsonArray("messages") {
+            add(
+                buildJsonObject {
+                    put("role", "user")
+                    put("content", "ping")
+                },
+            )
+        }
+        put("max_tokens", 1)
+        put("stream", false)
+    }.toString()
+
+    private fun validationFailureCode(error: Throwable): String = when (error) {
+        is OpenAiHttpException -> when (error.statusCode) {
+            401, 403 -> "authentication"
+            408, 504 -> "timeout"
+            429 -> "rate_limited"
+            in 500..599 -> "network_error"
+            else -> "invalid_response"
+        }
+        is java.net.SocketTimeoutException -> "timeout"
+        is IOException -> "network_error"
+        else -> "invalid_response"
+    }
+
+    private fun ResolvedAiConfiguration.chatCompletionsEndpoint(): HttpUrl =
+        baseUrl.toHttpUrl()
+            .newBuilder()
+            .addPathSegment("chat")
+            .addPathSegment("completions")
+            .build()
+
+    private companion object {
+        const val AUTHORIZATION_HEADER = "Authorization"
+        val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+    }
 }
+
+internal class OpenAiHttpException(
+    val statusCode: Int,
+) : IOException("OpenAI-compatible request failed with HTTP $statusCode")

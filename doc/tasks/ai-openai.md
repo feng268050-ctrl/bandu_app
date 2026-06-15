@@ -9,7 +9,7 @@
 ## 任务
 
 - [x] `OPENAI-001` 创建模块和 `OpenAiCompatibleProvider` 骨架。验证：`:ai:openai:compileDebugKotlin`。
-- [ ] `OPENAI-002` 实现配置验证最小 Chat Completions 请求。验证：MockWebServer 请求测试。
+- [x] `OPENAI-002` 实现配置验证最小 Chat Completions 请求。验证：MockWebServer 请求测试。
 - [ ] `OPENAI-003` 实现非流式 `/chat/completions` 请求和兼容响应提取。验证：标准与缺少可选字段测试。
 - [ ] `OPENAI-004` 实现文本 part 与 `image_url` data URL 的图片分析请求。验证：JSON 结构测试。
 - [ ] `OPENAI-005` 实现 `stream=true` SSE delta 和 `[DONE]` 处理。验证：跨 buffer UTF-8、结束和取消测试。
