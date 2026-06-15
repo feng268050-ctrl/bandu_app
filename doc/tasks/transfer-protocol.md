@@ -26,5 +26,5 @@
 
 ## 模块完成条件
 
-- [ ] `:transfer:protocol:test` 全部通过。
-- [ ] RFC 向量、属性测试和协议安全审查项无阻塞问题。
+- [x] `:transfer:protocol:test` 全部通过。
+- [x] RFC 向量、属性测试和协议安全审查项无阻塞问题。
