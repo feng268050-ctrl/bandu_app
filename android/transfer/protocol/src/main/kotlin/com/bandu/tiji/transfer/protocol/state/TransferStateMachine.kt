@@ -31,6 +31,7 @@ enum class TransferEvent {
     ACCEPT_OFFER,
     REJECT_OFFER,
     TRANSFER_COMPLETE,
+    TRANSFER_INTERRUPTED,
     VERIFY_SUCCEEDED,
     VERIFY_FAILED,
     LOCAL_COMMIT_READY,
@@ -92,6 +93,13 @@ object TransferStateMachine {
                 return TransferProtocolState(TransferPhase.REJECTED, state.role)
             TransferPhase.TRANSFERRING to TransferEvent.TRANSFER_COMPLETE ->
                 TransferPhase.VERIFYING
+            TransferPhase.TRANSFERRING to TransferEvent.TRANSFER_INTERRUPTED ->
+                return TransferProtocolState(
+                    phase = TransferPhase.FAILED,
+                    role = state.role,
+                    failureCode = ProtocolErrorCode.PROTOCOL_ERROR_CODE_CONNECTION_LOST,
+                    resumable = true,
+                )
             TransferPhase.VERIFYING to TransferEvent.VERIFY_SUCCEEDED ->
                 TransferPhase.WAITING_COMMIT_READY
             TransferPhase.VERIFYING to TransferEvent.VERIFY_FAILED ->

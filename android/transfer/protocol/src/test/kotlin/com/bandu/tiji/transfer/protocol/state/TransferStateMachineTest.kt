@@ -86,6 +86,24 @@ class TransferStateMachineTest {
     }
 
     @Test
+    fun `transfer interruption is resumable before verification`() {
+        val transferring = transitionAll(
+            TransferStateMachine.initialState,
+            TransferEvent.SEND_OFFER,
+            TransferEvent.ACCEPT_OFFER,
+        )
+
+        val failed = TransferStateMachine.transition(
+            transferring,
+            TransferEvent.TRANSFER_INTERRUPTED,
+        )
+
+        assertThat(failed.failureCode)
+            .isEqualTo(ProtocolErrorCode.PROTOCOL_ERROR_CODE_CONNECTION_LOST)
+        assertThat(failed.resumable).isTrue()
+    }
+
+    @Test
     fun `duplicate messages and events outside transition table are rejected`() {
         representativeStates().forEach { state ->
             val allowed = LEGAL_EVENTS.getValue(state.phase)
@@ -160,6 +178,7 @@ class TransferStateMachineTest {
             ),
             TransferPhase.TRANSFERRING to setOf(
                 TransferEvent.TRANSFER_COMPLETE,
+                TransferEvent.TRANSFER_INTERRUPTED,
                 TransferEvent.CANCEL,
             ),
             TransferPhase.VERIFYING to setOf(
