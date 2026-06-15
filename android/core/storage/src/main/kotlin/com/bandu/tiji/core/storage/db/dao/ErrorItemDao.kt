@@ -34,4 +34,15 @@ interface ErrorItemDao {
 
     @Query("SELECT COUNT(*) FROM error_items")
     suspend fun count(): Int
+
+    @Query(
+        """
+        SELECT error_items.* FROM error_items
+        INNER JOIN error_item_fts
+            ON error_items.rowid = error_item_fts.rowid
+        WHERE error_item_fts MATCH :ftsQuery
+        ORDER BY error_items.updated_at DESC, error_items.id
+        """,
+    )
+    suspend fun search(ftsQuery: String): List<ErrorItemEntity>
 }

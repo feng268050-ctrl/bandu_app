@@ -9,6 +9,7 @@ import com.bandu.tiji.core.storage.db.dao.TutorDao
 import com.bandu.tiji.core.storage.db.entity.CollectionEntity
 import com.bandu.tiji.core.storage.db.entity.ErrorItemTagEntity
 import com.bandu.tiji.core.storage.db.entity.ErrorItemEntity
+import com.bandu.tiji.core.storage.db.entity.ErrorItemFtsEntity
 import com.bandu.tiji.core.storage.db.entity.ExerciseEntity
 import com.bandu.tiji.core.storage.db.entity.TagEntity
 import com.bandu.tiji.core.storage.db.entity.TutorMessageEntity
@@ -18,6 +19,7 @@ import com.bandu.tiji.core.storage.db.entity.TutorSessionEntity
     entities = [
         CollectionEntity::class,
         ErrorItemEntity::class,
+        ErrorItemFtsEntity::class,
         TagEntity::class,
         ErrorItemTagEntity::class,
         TutorSessionEntity::class,

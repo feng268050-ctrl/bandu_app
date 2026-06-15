@@ -13,7 +13,7 @@
 - [x] `STORAGE-003` 实现 `error_items` Entity、DAO、外键和组合索引。验证：CRUD 与级联删除测试。
 - [x] `STORAGE-004` 实现 `tags`、`error_item_tags` Entity、DAO 和重名约束。验证：标签关联测试。
 - [x] `STORAGE-005` 实现 `tutor_sessions`、`tutor_messages`、`exercises` Entity 和 DAO。验证：会话级联与错题置空测试。
-- [ ] `STORAGE-006` 实现 `error_item_fts` 与新增、更新、删除同步。验证：FTS 一致性测试。
+- [x] `STORAGE-006` 实现 `error_item_fts` 与新增、更新、删除同步。验证：FTS 一致性测试。
 - [ ] `STORAGE-007` 实现组合筛选 PagingSource 和只读摘要投影。验证：关键词与全部筛选组合测试。
 - [ ] `STORAGE-008` 实现错题和练习统计聚合 DAO。验证：`NEEDS_REVIEW` 不进入分母。
 - [ ] `STORAGE-009` 创建 schema v1、导出 schema 文件并禁止破坏性迁移。验证：MigrationTestHelper。
