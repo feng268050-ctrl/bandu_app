@@ -4,13 +4,20 @@ import com.bandu.tiji.ai.api.config.ProviderValidation
 import com.bandu.tiji.ai.api.config.ResolvedAiConfiguration
 import com.bandu.tiji.ai.api.error.AiError
 import com.bandu.tiji.ai.api.model.AnalyzeImageRequest
+import com.bandu.tiji.ai.api.model.AiStreamEvent
 import com.bandu.tiji.ai.api.provider.AiProvider
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.network.AiHttpOperation
 import com.bandu.tiji.core.network.HttpEngine
 import com.google.common.truth.Truth.assertThat
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -19,6 +26,7 @@ import kotlinx.serialization.json.jsonPrimitive
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okhttp3.mockwebserver.SocketPolicy
 import org.junit.Test
 
 class OpenAiCompatibleProviderTest {
@@ -230,6 +238,122 @@ class OpenAiCompatibleProviderTest {
                 parts[1].jsonObject["image_url"]!!.jsonObject["url"]!!.jsonPrimitive.content,
             ).isEqualTo("data:image/jpeg;base64,AQJ/")
             assertThat(recorded.getHeader("Authorization")).isEqualTo("Bearer test-secret")
+        }
+    }
+
+    @Test
+    fun `stream parses UTF-8 chunks and completes at done`() = runTest {
+        MockWebServer().use { server ->
+            val body = """
+                data: {"choices":[{"delta":{"content":"你"}}]}
+
+                data: {"choices":[{"delta":{"content":"好"}}]}
+
+                data: [DONE]
+
+            """.trimIndent()
+            server.enqueue(
+                MockResponse()
+                    .addHeader("Content-Type", "text/event-stream; charset=utf-8")
+                    .setBody(body)
+                    .throttleBody(1, 1, TimeUnit.MILLISECONDS),
+            )
+
+            val events = provider().streamText(
+                configuration(server),
+                "tutor-model",
+                "开始辅导",
+            ).toList()
+
+            assertThat(events).containsExactly(
+                AiStreamEvent.Delta("你"),
+                AiStreamEvent.Delta("好"),
+                AiStreamEvent.Completed,
+            ).inOrder()
+            val request = server.takeRequest()
+            assertThat(request.path).isEqualTo("/v1/chat/completions")
+            val root = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
+            assertThat(root["stream"]!!.jsonPrimitive.content).isEqualTo("true")
+            assertThat(root["stream_options"]!!.jsonObject["include_usage"]!!.jsonPrimitive.content)
+                .isEqualTo("true")
+        }
+    }
+
+    @Test
+    fun `stream completes at normal EOF without done marker`() = runTest {
+        MockWebServer().use { server ->
+            server.enqueue(
+                MockResponse().setBody(
+                    """
+                    data: {"choices":[{"delta":{"content":"完成"}}]}
+
+                    """.trimIndent(),
+                ),
+            )
+
+            val events = provider().streamText(
+                configuration(server),
+                "tutor-model",
+                "开始",
+            ).toList()
+
+            assertThat(events).containsExactly(
+                AiStreamEvent.Delta("完成"),
+                AiStreamEvent.Completed,
+            ).inOrder()
+        }
+    }
+
+    @Test
+    fun `stream ignores role only and usage only compatible events`() = runTest {
+        MockWebServer().use { server ->
+            server.enqueue(
+                MockResponse().setBody(
+                    """
+                    data: {"choices":[{"delta":{"role":"assistant"}}]}
+
+                    data: {"choices":[],"usage":{"prompt_tokens":1,"completion_tokens":2}}
+
+                    data: [DONE]
+
+                    """.trimIndent(),
+                ),
+            )
+
+            val events = provider().streamText(
+                configuration(server),
+                "tutor-model",
+                "开始",
+            ).toList()
+
+            assertThat(events).containsExactly(AiStreamEvent.Completed)
+        }
+    }
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    @Test
+    fun `cancelling stream cancels blocked HTTP call`() = runTest {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.NO_RESPONSE))
+            val provider = OpenAiCompatibleProvider(
+                httpEngineFactory = OpenAiHttpEngineFactory { _, _ ->
+                    HttpEngine(OkHttpClient())
+                },
+                ioDispatcher = Dispatchers.IO,
+            )
+            val collectJob = launch {
+                provider.streamText(
+                    configuration(server),
+                    "tutor-model",
+                    "等待",
+                ).toList()
+            }
+            runCurrent()
+            assertThat(server.takeRequest(5, TimeUnit.SECONDS)).isNotNull()
+
+            collectJob.cancelAndJoin()
+
+            assertThat(collectJob.isCancelled).isTrue()
         }
     }
 

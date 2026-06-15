@@ -14,12 +14,17 @@ import com.bandu.tiji.ai.api.provider.AiProvider
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.network.AiHttpOperation
 import com.bandu.tiji.core.network.HttpEngine
+import com.bandu.tiji.core.network.sse.SseEvent
+import com.bandu.tiji.core.network.sse.SseReader
 import java.io.IOException
 import java.util.Base64
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -34,9 +39,12 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
 
 fun interface OpenAiHttpEngineFactory {
     fun create(
@@ -123,6 +131,57 @@ class OpenAiCompatibleProvider(
             prompt = prompt,
         ),
     )
+
+    internal fun streamText(
+        configuration: ResolvedAiConfiguration,
+        model: String,
+        prompt: String,
+    ): Flow<AiStreamEvent> = callbackFlow {
+        val request = Request.Builder()
+            .url(configuration.chatCompletionsEndpoint())
+            .header(AUTHORIZATION_HEADER, "Bearer ${configuration.apiKey}")
+            .post(streamRequestBody(model, prompt).toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        val call = httpEngineFactory
+            .create(configuration, AiHttpOperation.TUTOR_STREAM)
+            .newCall(request)
+        call.enqueue(
+            object : Callback {
+                override fun onFailure(call: Call, e: IOException) {
+                    if (!call.isCanceled()) close(e)
+                }
+
+                override fun onResponse(call: Call, response: Response) {
+                    launch(ioDispatcher) {
+                        try {
+                            response.use {
+                                if (!response.isSuccessful) {
+                                    throw OpenAiHttpException(response.code)
+                                }
+                                SseReader().readEach(response.body.source()) { event ->
+                                    when (event) {
+                                        is SseEvent.Data -> {
+                                            extractStreamDelta(event.data)?.let { delta ->
+                                                send(AiStreamEvent.Delta(delta))
+                                            }
+                                        }
+                                        SseEvent.Done -> Unit
+                                    }
+                                }
+                            }
+                            send(AiStreamEvent.Completed)
+                            close()
+                        } catch (cancelled: CancellationException) {
+                            throw cancelled
+                        } catch (error: Throwable) {
+                            close(error)
+                        }
+                    }
+                }
+            },
+        )
+        awaitClose { call.cancel() }
+    }
 
     private suspend fun executeChatCompletion(
         configuration: ResolvedAiConfiguration,
@@ -215,6 +274,25 @@ class OpenAiCompatibleProvider(
         put("stream", false)
     }.toString()
 
+    private fun streamRequestBody(model: String, prompt: String): String = buildJsonObject {
+        put("model", model)
+        putJsonArray("messages") {
+            add(
+                buildJsonObject {
+                    put("role", "user")
+                    put("content", prompt)
+                },
+            )
+        }
+        put("stream", true)
+        put(
+            "stream_options",
+            buildJsonObject {
+                put("include_usage", true)
+            },
+        )
+    }.toString()
+
     private fun extractCompletionText(payload: String): String {
         val content = try {
             JSON.parseToJsonElement(payload)
@@ -243,6 +321,21 @@ class OpenAiCompatibleProvider(
             }.getOrNull()
         }.joinToString(separator = "")
         else -> null
+    }
+
+    private fun extractStreamDelta(payload: String): String? = try {
+        JSON.parseToJsonElement(payload)
+            .jsonObject["choices"]
+            ?.jsonArray
+            ?.firstOrNull()
+            ?.jsonObject
+            ?.get("delta")
+            ?.jsonObject
+            ?.get("content")
+            ?.asTextContent()
+            ?.takeIf { it.isNotEmpty() }
+    } catch (_: Exception) {
+        throw com.bandu.tiji.ai.api.error.AiError.InvalidResponse("openai.invalid_sse_json")
     }
 
     private fun validationFailureCode(error: Throwable): String = when (error) {
