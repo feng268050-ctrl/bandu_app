@@ -17,8 +17,8 @@
 | 指标 | 数量 |
 | --- | ---: |
 | 模块总数 | 22 |
-| 已完成 | 10 |
-| 进行中 | 4 |
+| 已完成 | 11 |
+| 进行中 | 3 |
 | 未开始 | 8 |
 
 ## 第 1 批：工程与稳定模型
@@ -58,12 +58,12 @@
 ## 第 4 批：AI Provider
 
 - [x] [`:ai:gemini`](./ai-gemini.md) - Gemini 适配
-- [ ] [`:ai:openai`](./ai-openai.md) - OpenAI-compatible 适配
+- [x] [`:ai:openai`](./ai-openai.md) - OpenAI-compatible 适配
 
 批次完成标准：
 
-- [ ] 两个 Provider 均通过配置验证、图片分析、流式辅导、练习和批改测试。
-- [ ] API Key、图片和正文未出现在日志。
+- [x] 两个 Provider 均通过配置验证、图片分析、流式辅导、练习和批改测试。
+- [x] API Key、图片和正文未出现在日志。
 
 ## 第 5 批：数据实现
 

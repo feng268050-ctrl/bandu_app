@@ -21,5 +21,5 @@
 
 ## 模块完成条件
 
-- [ ] `:ai:openai:testDebugUnitTest` 通过。
-- [ ] 至少一个标准 OpenAI-compatible Mock Server 完成验证、图片和流式测试。
+- [x] `:ai:openai:testDebugUnitTest` 通过。
+- [x] 至少一个标准 OpenAI-compatible Mock Server 完成验证、图片和流式测试。
