@@ -18,5 +18,5 @@
 
 ## 模块完成条件
 
-- [ ] `:feature:home:testDebugUnitTest` 通过。
-- [ ] 模块不依赖其他 Feature。
+- [x] `:feature:home:testDebugUnitTest` 通过。
+- [x] 模块不依赖其他 Feature。
