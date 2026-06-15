@@ -2,6 +2,7 @@ package com.bandu.tiji.ai.openai
 
 import com.bandu.tiji.ai.api.config.ProviderValidation
 import com.bandu.tiji.ai.api.config.ResolvedAiConfiguration
+import com.bandu.tiji.ai.api.error.AiError
 import com.bandu.tiji.ai.api.provider.AiProvider
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.network.AiHttpOperation
@@ -85,6 +86,112 @@ class OpenAiCompatibleProviderTest {
 
             assertThat(result).isEqualTo(ProviderValidation.Failure("authentication"))
             assertThat(result.toString()).doesNotContain("secret-provider-error")
+        }
+    }
+
+    @Test
+    fun `non streaming completion sends text and extracts standard content`() = runTest {
+        MockWebServer().use { server ->
+            server.enqueue(
+                MockResponse().setBody(
+                    """
+                    {
+                      "id": "chatcmpl-test",
+                      "choices": [
+                        {
+                          "index": 0,
+                          "message": {
+                            "role": "assistant",
+                            "content": "完整回答"
+                          },
+                          "finish_reason": "stop"
+                        }
+                      ],
+                      "usage": {"prompt_tokens": 3, "completion_tokens": 2}
+                    }
+                    """.trimIndent(),
+                ),
+            )
+
+            val result = provider().generateText(
+                configuration = configuration(server),
+                model = "tutor-model",
+                prompt = "请讲解",
+                operation = AiHttpOperation.EXERCISE,
+            )
+
+            assertThat(result).isEqualTo("完整回答")
+            val request = server.takeRequest()
+            assertThat(request.path).isEqualTo("/v1/chat/completions")
+            val body = Json.parseToJsonElement(request.body.readUtf8()).jsonObject
+            assertThat(body["model"]!!.jsonPrimitive.content).isEqualTo("tutor-model")
+            assertThat(body["stream"]!!.jsonPrimitive.content).isEqualTo("false")
+            assertThat(
+                body["messages"]!!.jsonArray[0].jsonObject["content"]!!.jsonPrimitive.content,
+            ).isEqualTo("请讲解")
+        }
+    }
+
+    @Test
+    fun `completion accepts response without optional metadata`() = runTest {
+        MockWebServer().use { server ->
+            server.enqueue(
+                MockResponse().setBody(
+                    """{"choices":[{"message":{"content":"兼容回答"}}]}""",
+                ),
+            )
+
+            val result = provider().generateText(
+                configuration(server),
+                "tutor-model",
+                "问题",
+                AiHttpOperation.EXERCISE,
+            )
+
+            assertThat(result).isEqualTo("兼容回答")
+        }
+    }
+
+    @Test
+    fun `completion joins text parts returned by compatible service`() = runTest {
+        MockWebServer().use { server ->
+            server.enqueue(
+                MockResponse().setBody(
+                    """
+                    {"choices":[{"message":{"content":[
+                      {"type":"text","text":"第一段"},
+                      {"type":"text","text":"第二段"}
+                    ]}}]}
+                    """.trimIndent(),
+                ),
+            )
+
+            val result = provider().generateText(
+                configuration(server),
+                "tutor-model",
+                "问题",
+                AiHttpOperation.EXERCISE,
+            )
+
+            assertThat(result).isEqualTo("第一段第二段")
+        }
+    }
+
+    @Test
+    fun `completion rejects missing content`() = runTest {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse().setBody("""{"choices":[{"message":{}}]}"""))
+
+            val error = runCatching {
+                provider().generateText(
+                    configuration(server),
+                    "tutor-model",
+                    "问题",
+                    AiHttpOperation.EXERCISE,
+                )
+            }.exceptionOrNull()
+
+            assertThat(error).isEqualTo(AiError.InvalidResponse("openai.empty_response"))
         }
     }
 

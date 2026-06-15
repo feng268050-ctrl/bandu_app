@@ -20,7 +20,15 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import okhttp3.HttpUrl
@@ -90,6 +98,38 @@ class OpenAiCompatibleProvider(
         request: GradeExerciseRequest,
     ): ExerciseGrade = unsupported()
 
+    internal suspend fun generateText(
+        configuration: ResolvedAiConfiguration,
+        model: String,
+        prompt: String,
+        operation: AiHttpOperation,
+    ): String = executeChatCompletion(
+        configuration = configuration,
+        operation = operation,
+        body = textRequestBody(model, prompt),
+    )
+
+    private suspend fun executeChatCompletion(
+        configuration: ResolvedAiConfiguration,
+        operation: AiHttpOperation,
+        body: String,
+    ): String = withContext(ioDispatcher) {
+        val request = Request.Builder()
+            .url(configuration.chatCompletionsEndpoint())
+            .header(AUTHORIZATION_HEADER, "Bearer ${configuration.apiKey}")
+            .post(body.toRequestBody(JSON_MEDIA_TYPE))
+            .build()
+        httpEngineFactory.create(configuration, operation)
+            .newCall(request)
+            .execute()
+            .use { response ->
+                if (!response.isSuccessful) {
+                    throw OpenAiHttpException(response.code)
+                }
+                extractCompletionText(response.body.string())
+            }
+    }
+
     private fun <T> unsupported(): T =
         throw UnsupportedOperationException("OpenAI-compatible operation is not implemented")
 
@@ -106,6 +146,49 @@ class OpenAiCompatibleProvider(
         put("max_tokens", 1)
         put("stream", false)
     }.toString()
+
+    private fun textRequestBody(model: String, prompt: String): String = buildJsonObject {
+        put("model", model)
+        putJsonArray("messages") {
+            add(
+                buildJsonObject {
+                    put("role", "user")
+                    put("content", prompt)
+                },
+            )
+        }
+        put("stream", false)
+    }.toString()
+
+    private fun extractCompletionText(payload: String): String {
+        val content = try {
+            JSON.parseToJsonElement(payload)
+                .jsonObject["choices"]
+                ?.jsonArray
+                ?.firstOrNull()
+                ?.jsonObject
+                ?.get("message")
+                ?.jsonObject
+                ?.get("content")
+                ?.asTextContent()
+        } catch (_: Exception) {
+            throw com.bandu.tiji.ai.api.error.AiError.InvalidResponse("openai.invalid_json")
+        }
+        if (content.isNullOrBlank()) {
+            throw com.bandu.tiji.ai.api.error.AiError.InvalidResponse("openai.empty_response")
+        }
+        return content
+    }
+
+    private fun JsonElement.asTextContent(): String? = when (this) {
+        is JsonPrimitive -> contentOrNull
+        is JsonArray -> mapNotNull { part ->
+            runCatching {
+                part.jsonObject["text"]?.jsonPrimitive?.contentOrNull
+            }.getOrNull()
+        }.joinToString(separator = "")
+        else -> null
+    }
 
     private fun validationFailureCode(error: Throwable): String = when (error) {
         is OpenAiHttpException -> when (error.statusCode) {
@@ -130,6 +213,9 @@ class OpenAiCompatibleProvider(
     private companion object {
         const val AUTHORIZATION_HEADER = "Authorization"
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
+        val JSON = Json {
+            ignoreUnknownKeys = true
+        }
     }
 }
 
