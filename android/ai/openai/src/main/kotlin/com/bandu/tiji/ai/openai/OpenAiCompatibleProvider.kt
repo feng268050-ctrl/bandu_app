@@ -12,9 +12,25 @@ import com.bandu.tiji.ai.api.model.GradeExerciseRequest
 import com.bandu.tiji.ai.api.model.TutorRequest
 import com.bandu.tiji.ai.api.provider.AiProvider
 import com.bandu.tiji.core.model.enums.AiProviderType
+import com.bandu.tiji.core.network.AiHttpOperation
+import com.bandu.tiji.core.network.HttpEngine
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 
-class OpenAiCompatibleProvider : AiProvider {
+fun interface OpenAiHttpEngineFactory {
+    fun create(
+        configuration: ResolvedAiConfiguration,
+        operation: AiHttpOperation,
+    ): HttpEngine
+}
+
+class OpenAiCompatibleProvider(
+    private val httpEngineFactory: OpenAiHttpEngineFactory = OpenAiHttpEngineFactory { _, _ ->
+        error("OpenAiHttpEngineFactory is not configured")
+    },
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+) : AiProvider {
     override val type: AiProviderType = AiProviderType.OPENAI_COMPATIBLE
 
     override suspend fun validate(
