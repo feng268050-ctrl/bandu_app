@@ -11,7 +11,7 @@
 - [x] `PROTOCOL-001` 创建纯 JVM 模块，接入 Protobuf Lite 和 Nimbus SRP 2.1.0。验证：`:transfer:protocol:test`。
 - [x] `PROTOCOL-002` 定义 `protocol_version=1`、消息类型和通用错误码。验证：未知版本拒绝测试。
 - [x] `PROTOCOL-003` 定义 Hello、Pairing、Identity、Transfer、Chunk、Verify、Commit Protobuf 消息。验证：代码生成和 round-trip 测试。
-- [ ] `PROTOCOL-004` 定义 Collection、ErrorItem、Tag、Session、Message、Exercise、PortablePreferences 记录消息。验证：round-trip 测试。
+- [x] `PROTOCOL-004` 定义 Collection、ErrorItem、Tag、Session、Message、Exercise、PortablePreferences 记录消息。验证：round-trip 测试。
 - [ ] `PROTOCOL-005` 实现 6 位码生成、5 分钟过期和失败计数策略。验证：时钟驱动测试。
 - [ ] `PROTOCOL-006` 实现 `SrpEngine` Nimbus 封装和 RFC 5054 固定参数。验证：RFC 测试向量。
 - [ ] `PROTOCOL-007` 实现 SRP M1/M2 验证和 HKDF 临时密钥派生。验证：错误码、过期码和篡改测试。
