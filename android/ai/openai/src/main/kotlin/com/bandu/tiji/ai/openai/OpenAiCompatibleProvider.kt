@@ -15,9 +15,15 @@ import com.bandu.tiji.ai.api.parser.ImageAnalysisResponseParser
 import com.bandu.tiji.ai.api.prompt.PromptRenderer
 import com.bandu.tiji.ai.api.prompt.PromptType
 import com.bandu.tiji.ai.api.provider.AiProvider
+import com.bandu.tiji.ai.api.retry.AiOperationType
+import com.bandu.tiji.ai.api.retry.RetryContext
+import com.bandu.tiji.ai.api.retry.RetryDecision
+import com.bandu.tiji.ai.api.retry.RetryPolicy
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.network.AiHttpOperation
 import com.bandu.tiji.core.network.HttpEngine
+import com.bandu.tiji.core.network.retry.ProviderRetryDecision
+import com.bandu.tiji.core.network.retry.ProviderRetryExecutor
 import com.bandu.tiji.core.network.sse.SseEvent
 import com.bandu.tiji.core.network.sse.SseReader
 import java.io.IOException
@@ -28,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -66,6 +73,8 @@ class OpenAiCompatibleProvider(
     private val promptRenderer: PromptRenderer = PromptRenderer(),
     private val imageAnalysisParser: ImageAnalysisResponseParser = ImageAnalysisResponseParser(),
     private val exerciseParser: ExerciseResponseParser = ExerciseResponseParser(),
+    private val retryPolicy: RetryPolicy = RetryPolicy(),
+    private val retryExecutor: ProviderRetryExecutor = ProviderRetryExecutor(),
 ) : AiProvider {
     override val type: AiProviderType = AiProviderType.OPENAI_COMPATIBLE
 
@@ -98,78 +107,93 @@ class OpenAiCompatibleProvider(
     override suspend fun analyzeImage(
         configuration: ResolvedAiConfiguration,
         request: AnalyzeImageRequest,
-    ): AnalyzedQuestion = imageAnalysisParser.parse(
-        generateImageAnalysisText(
-            configuration = configuration,
-            request = request,
-            prompt = renderPrompt(
-                PromptType.ANALYZE_IMAGE,
-                mapOf(
-                    "language_instruction" to request.languageInstruction,
-                    "knowledge_points_list" to request.knowledgePointsList,
-                    "grade_instruction" to request.gradeInstruction,
-                    "provider_hints" to request.providerHints,
-                ),
+    ): AnalyzedQuestion {
+        val prompt = renderPrompt(
+            PromptType.ANALYZE_IMAGE,
+            mapOf(
+                "language_instruction" to request.languageInstruction,
+                "knowledge_points_list" to request.knowledgePointsList,
+                "grade_instruction" to request.gradeInstruction,
+                "provider_hints" to request.providerHints,
             ),
-        ),
-    )
+        )
+        return executeWithRetry(AiOperationType.ANALYZE_IMAGE) {
+            imageAnalysisParser.parse(
+                generateImageAnalysisText(
+                    configuration = configuration,
+                    request = request,
+                    prompt = prompt,
+                ),
+            )
+        }
+    }
 
     override fun streamTutor(
         configuration: ResolvedAiConfiguration,
         request: TutorRequest,
-    ): Flow<AiStreamEvent> = streamText(
-        configuration = configuration,
-        model = configuration.tutorModel,
-        prompt = renderPrompt(
-            PromptType.TUTOR,
-            mapOf(
-                "question_context" to request.questionContext,
-                "conversation_context" to request.conversationContext,
-                "user_message" to request.userMessage,
-                "grade_instruction" to request.gradeInstruction,
-            ),
-        ),
+    ): Flow<AiStreamEvent> = retryingTutorStream(
+        source = {
+            streamText(
+                configuration = configuration,
+                model = configuration.tutorModel,
+                prompt = renderPrompt(
+                    PromptType.TUTOR,
+                    mapOf(
+                        "question_context" to request.questionContext,
+                        "conversation_context" to request.conversationContext,
+                        "user_message" to request.userMessage,
+                        "grade_instruction" to request.gradeInstruction,
+                    ),
+                ),
+            )
+        },
     )
 
     override suspend fun generateExercise(
         configuration: ResolvedAiConfiguration,
         request: ExerciseRequest,
-    ): GeneratedExercise = exerciseParser.parseGeneratedExercise(
-        generateText(
-            configuration = configuration,
-            model = configuration.tutorModel,
-            prompt = renderPrompt(
-                PromptType.GENERATE_EXERCISE,
-                mapOf(
-                    "original_question" to request.originalQuestion,
-                    "knowledge_points" to request.knowledgePoints,
-                    "difficulty_level" to request.difficulty.name.lowercase(),
-                    "grade_instruction" to request.gradeInstruction,
+    ): GeneratedExercise =
+        executeWithRetry(AiOperationType.GENERATE_EXERCISE) {
+            exerciseParser.parseGeneratedExercise(
+                generateText(
+                    configuration = configuration,
+                    model = configuration.tutorModel,
+                    prompt = renderPrompt(
+                        PromptType.GENERATE_EXERCISE,
+                        mapOf(
+                            "original_question" to request.originalQuestion,
+                            "knowledge_points" to request.knowledgePoints,
+                            "difficulty_level" to request.difficulty.name.lowercase(),
+                            "grade_instruction" to request.gradeInstruction,
+                        ),
+                    ),
+                    operation = AiHttpOperation.EXERCISE,
                 ),
-            ),
-            operation = AiHttpOperation.EXERCISE,
-        ),
-    )
+            )
+        }
 
     override suspend fun gradeExercise(
         configuration: ResolvedAiConfiguration,
         request: GradeExerciseRequest,
-    ): ExerciseGrade = exerciseParser.parseExerciseGrade(
-        generateText(
-            configuration = configuration,
-            model = configuration.tutorModel,
-            prompt = renderPrompt(
-                PromptType.GRADE_EXERCISE,
-                mapOf(
-                    "exercise_question" to request.exerciseQuestion,
-                    "expected_answer" to request.expectedAnswer,
-                    "user_answer" to request.userAnswer,
-                    "rubric_context" to request.rubricContext,
+    ): ExerciseGrade =
+        executeWithRetry(AiOperationType.GRADE_EXERCISE) {
+            exerciseParser.parseExerciseGrade(
+                generateText(
+                    configuration = configuration,
+                    model = configuration.tutorModel,
+                    prompt = renderPrompt(
+                        PromptType.GRADE_EXERCISE,
+                        mapOf(
+                            "exercise_question" to request.exerciseQuestion,
+                            "expected_answer" to request.expectedAnswer,
+                            "user_answer" to request.userAnswer,
+                            "rubric_context" to request.rubricContext,
+                        ),
+                    ),
+                    operation = AiHttpOperation.EXERCISE,
                 ),
-            ),
-            operation = AiHttpOperation.EXERCISE,
-        ),
-    )
+            )
+        }
 
     internal suspend fun generateText(
         configuration: ResolvedAiConfiguration,
@@ -278,6 +302,72 @@ class OpenAiCompatibleProvider(
                 }
                 extractCompletionText(response.body.string())
             }
+    }
+
+    private suspend fun <T> executeWithRetry(
+        operation: AiOperationType,
+        block: suspend () -> T,
+    ): T = try {
+        retryExecutor.execute(
+            decide = { failure, failedAttempt ->
+                retryPolicy.decide(
+                    RetryContext(
+                        operation = operation,
+                        attempt = failedAttempt,
+                        error = OpenAiErrorMapper.map(failure),
+                        httpStatus = (failure as? OpenAiHttpException)?.statusCode,
+                    ),
+                ).toProviderDecision()
+            },
+            block = { _ -> block() },
+        )
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Throwable) {
+        throw OpenAiErrorMapper.map(error)
+    }
+
+    private fun retryingTutorStream(
+        source: () -> Flow<AiStreamEvent>,
+    ): Flow<AiStreamEvent> = flow {
+        var attempt = 0
+        while (true) {
+            var receivedDelta = false
+            try {
+                source().collect { event ->
+                    if (event is AiStreamEvent.Delta) receivedDelta = true
+                    emit(event)
+                }
+                return@flow
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (failure: Throwable) {
+                when (
+                    val decision = retryPolicy.decide(
+                        RetryContext(
+                            operation = AiOperationType.STREAM_TUTOR_FIRST_BYTE,
+                            attempt = attempt,
+                            error = OpenAiErrorMapper.map(failure),
+                            httpStatus = (failure as? OpenAiHttpException)?.statusCode,
+                            receivedStreamDelta = receivedDelta,
+                        ),
+                    )
+                ) {
+                    RetryDecision.DoNotRetry -> throw OpenAiErrorMapper.map(failure)
+                    is RetryDecision.RetryAfter -> {
+                        if (decision.delayMillis > 0L) {
+                            kotlinx.coroutines.delay(decision.delayMillis)
+                        }
+                        attempt += 1
+                    }
+                }
+            }
+        }
+    }
+
+    private fun RetryDecision.toProviderDecision(): ProviderRetryDecision = when (this) {
+        RetryDecision.DoNotRetry -> ProviderRetryDecision.DoNotRetry
+        is RetryDecision.RetryAfter -> ProviderRetryDecision.RetryAfter(delayMillis)
     }
 
     private fun renderPrompt(
