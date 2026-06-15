@@ -8,7 +8,7 @@
 
 ## 任务
 
-- [ ] `PROTOCOL-001` 创建纯 JVM 模块，接入 Protobuf Lite 和 Nimbus SRP 2.1.0。验证：`:transfer:protocol:test`。
+- [x] `PROTOCOL-001` 创建纯 JVM 模块，接入 Protobuf Lite 和 Nimbus SRP 2.1.0。验证：`:transfer:protocol:test`。
 - [ ] `PROTOCOL-002` 定义 `protocol_version=1`、消息类型和通用错误码。验证：未知版本拒绝测试。
 - [ ] `PROTOCOL-003` 定义 Hello、Pairing、Identity、Transfer、Chunk、Verify、Commit Protobuf 消息。验证：代码生成和 round-trip 测试。
 - [ ] `PROTOCOL-004` 定义 Collection、ErrorItem、Tag、Session、Message、Exercise、PortablePreferences 记录消息。验证：round-trip 测试。
@@ -28,4 +28,3 @@
 
 - [ ] `:transfer:protocol:test` 全部通过。
 - [ ] RFC 向量、属性测试和协议安全审查项无阻塞问题。
-
