@@ -36,6 +36,17 @@ object HkdfSha256 {
         }
     }
 
+    fun deriveAndClearInput(
+        inputKeyMaterial: ByteArray,
+        salt: ByteArray,
+        info: ByteArray,
+        length: Int,
+    ): ByteArray = try {
+        derive(inputKeyMaterial, salt, info, length)
+    } finally {
+        inputKeyMaterial.fill(0)
+    }
+
     private fun hmac(key: ByteArray, data: ByteArray): ByteArray =
         Mac.getInstance("HmacSHA256").run {
             init(SecretKeySpec(key, "HmacSHA256"))

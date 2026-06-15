@@ -28,6 +28,7 @@ class PairingCodePolicy(
         val now = clock.nowEpochMillis()
         if (now < cooldownUntilEpochMillis) return null
 
+        clearActiveCode()
         val code = CharArray(CODE_LENGTH) {
             ('0'.code + secureRandom.nextInt(10)).toChar()
         }
@@ -38,31 +39,36 @@ class PairingCodePolicy(
     }
 
     fun validate(candidate: CharArray): PairingCodeValidation {
-        val now = clock.nowEpochMillis()
-        if (now < cooldownUntilEpochMillis) return PairingCodeValidation.LOCKED
+        return try {
+            val now = clock.nowEpochMillis()
+            if (now < cooldownUntilEpochMillis) return PairingCodeValidation.LOCKED
 
-        val expected = activeCode ?: return PairingCodeValidation.EXPIRED
-        if (now >= expiresAtEpochMillis) {
-            activeCode = null
-            return PairingCodeValidation.EXPIRED
-        }
+            val expected = activeCode ?: return PairingCodeValidation.EXPIRED
+            if (now >= expiresAtEpochMillis) {
+                clearActiveCode()
+                return PairingCodeValidation.EXPIRED
+            }
 
-        if (constantTimeEquals(expected, candidate)) {
-            failedAttempts = 0
-            return PairingCodeValidation.VALID
-        }
+            if (constantTimeEquals(expected, candidate)) {
+                failedAttempts = 0
+                clearActiveCode()
+                return PairingCodeValidation.VALID
+            }
 
-        failedAttempts += 1
-        if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
-            activeCode = null
-            cooldownUntilEpochMillis = now + COOLDOWN_MILLIS
-            return PairingCodeValidation.LOCKED
+            failedAttempts += 1
+            if (failedAttempts >= MAX_FAILED_ATTEMPTS) {
+                clearActiveCode()
+                cooldownUntilEpochMillis = now + COOLDOWN_MILLIS
+                return PairingCodeValidation.LOCKED
+            }
+            PairingCodeValidation.INVALID
+        } finally {
+            candidate.fill('\u0000')
         }
-        return PairingCodeValidation.INVALID
     }
 
     fun invalidate() {
-        activeCode = null
+        clearActiveCode()
         failedAttempts = 0
         expiresAtEpochMillis = 0
     }
@@ -77,6 +83,11 @@ class PairingCodePolicy(
             difference = difference or (expected[index].code xor candidateCode)
         }
         return difference == 0
+    }
+
+    private fun clearActiveCode() {
+        activeCode?.fill('\u0000')
+        activeCode = null
     }
 
     companion object {

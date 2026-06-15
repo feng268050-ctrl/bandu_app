@@ -19,11 +19,17 @@ class NimbusSrpEngine(
     private val secureRandom: SecureRandom = SecureRandom(),
     private val clock: Clock = SystemClock(),
 ) : SrpEngine {
-    override fun createServer(code: CharArray, identity: ByteArray): SrpServerSession =
-        NimbusServerSession(code.copyOf(), identity.copyOf(), secureRandom, clock)
+    override fun createServer(code: CharArray, identity: ByteArray): SrpServerSession {
+        val ownedCode = code.copyOf()
+        code.fill('\u0000')
+        return NimbusServerSession(ownedCode, identity.copyOf(), secureRandom, clock)
+    }
 
-    override fun createClient(code: CharArray, identity: ByteArray): SrpClientSession =
-        NimbusClientSession(code.copyOf(), identity.copyOf(), clock)
+    override fun createClient(code: CharArray, identity: ByteArray): SrpClientSession {
+        val ownedCode = code.copyOf()
+        code.fill('\u0000')
+        return NimbusClientSession(ownedCode, identity.copyOf(), clock)
+    }
 
     internal companion object {
         const val GROUP_BITS = 2048
@@ -47,9 +53,13 @@ private class NimbusClientSession(
     }
 
     override fun start(): SrpClientHello {
-        requireNotExpired()
-        delegate.step1(identity.decodeToString(), code.concatToString())
-        return SrpClientHello(identity.copyOf())
+        return try {
+            requireNotExpired()
+            delegate.step1(identity.decodeToString(), code.concatToString())
+            SrpClientHello(identity.copyOf())
+        } finally {
+            code.fill('\u0000')
+        }
     }
 
     override fun answer(challenge: SrpServerChallenge): SrpClientProof {
@@ -75,6 +85,10 @@ private class NimbusClientSession(
         }
     }
 
+    override fun close() {
+        code.fill('\u0000')
+    }
+
     private fun requireNotExpired() = requireSrpNotExpired(clock, expiresAt)
 }
 
@@ -88,19 +102,30 @@ private class NimbusServerSession(
     private val delegate = SRP6ServerSession(NimbusSrpEngine.PARAMS)
 
     override fun challenge(hello: SrpClientHello): SrpServerChallenge {
-        requireNotExpired()
-        require(hello.identity.contentEquals(identity)) { "SRP identity mismatch" }
-        val verifierGenerator = SRP6VerifierGenerator(NimbusSrpEngine.PARAMS).apply {
-            setXRoutine(NimbusSrpEngine.RFC_X_ROUTINE)
+        return try {
+            requireNotExpired()
+            require(hello.identity.contentEquals(identity)) { "SRP identity mismatch" }
+            val verifierGenerator = SRP6VerifierGenerator(NimbusSrpEngine.PARAMS).apply {
+                setXRoutine(NimbusSrpEngine.RFC_X_ROUTINE)
+            }
+            val salt = verifierGenerator.generateRandomSalt(
+                NimbusSrpEngine.SALT_BYTES,
+                secureRandom,
+            )
+            val verifier = verifierGenerator.generateVerifier(
+                salt,
+                identity,
+                code.concatToString().toByteArray(StandardCharsets.UTF_8),
+            )
+            val publicValue = delegate.step1(
+                identity.decodeToString(),
+                salt.toPositiveBigInteger(),
+                verifier,
+            )
+            SrpServerChallenge(salt, publicValue.toUnsignedBytes())
+        } finally {
+            code.fill('\u0000')
         }
-        val salt = verifierGenerator.generateRandomSalt(NimbusSrpEngine.SALT_BYTES, secureRandom)
-        val verifier = verifierGenerator.generateVerifier(
-            salt,
-            identity,
-            code.concatToString().toByteArray(StandardCharsets.UTF_8),
-        )
-        val publicValue = delegate.step1(identity.decodeToString(), salt.toPositiveBigInteger(), verifier)
-        return SrpServerChallenge(salt, publicValue.toUnsignedBytes())
     }
 
     override fun verify(proof: SrpClientProof): SrpServerProofAndSecret {
@@ -117,6 +142,10 @@ private class NimbusServerSession(
         }
     }
 
+    override fun close() {
+        code.fill('\u0000')
+    }
+
     private fun requireNotExpired() = requireSrpNotExpired(clock, expiresAt)
 }
 
@@ -126,16 +155,13 @@ internal fun ByteArray.toPositiveBigInteger(): BigInteger =
 internal fun BigInteger.toUnsignedBytes(): ByteArray =
     BigIntegerUtils.bigIntegerToBytes(this)
 
-private fun ByteArray.deriveTemporaryKey(identity: ByteArray): ByteArray = try {
-    HkdfSha256.derive(
+private fun ByteArray.deriveTemporaryKey(identity: ByteArray): ByteArray =
+    HkdfSha256.deriveAndClearInput(
         inputKeyMaterial = this,
         salt = MessageDigest.getInstance("SHA-256").digest("bandu-tiji-srp-v1".encodeToByteArray() + identity),
         info = "temporary-authenticated-channel".encodeToByteArray(),
         length = 32,
     )
-} finally {
-    fill(0)
-}
 
 private inline fun <T> mapSrpFailures(block: () -> T): T = try {
     block()

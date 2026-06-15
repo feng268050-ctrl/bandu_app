@@ -22,7 +22,7 @@
 - [x] `PROTOCOL-012` 实现 1 MiB chunk、bitmap、缺块请求和 Ack 状态。验证：40% 中断续传状态测试。
 - [x] `PROTOCOL-013` 实现配对状态机。验证：所有合法/非法转移测试。
 - [x] `PROTOCOL-014` 实现迁移 Offer、Transfer、Verify、Commit 状态机。验证：取消、拒绝、重复消息测试。
-- [ ] `PROTOCOL-015` 对配对码和共享 secret 在使用后执行数组清零。验证：可观察 buffer 测试。
+- [x] `PROTOCOL-015` 对配对码和共享 secret 在使用后执行数组清零。验证：可观察 buffer 测试。
 
 ## 模块完成条件
 

@@ -32,7 +32,7 @@ interface SrpEngine {
     fun createClient(code: CharArray, identity: ByteArray): SrpClientSession
 }
 
-interface SrpClientSession {
+interface SrpClientSession : AutoCloseable {
     fun start(): SrpClientHello
 
     fun answer(challenge: SrpServerChallenge): SrpClientProof
@@ -40,7 +40,7 @@ interface SrpClientSession {
     fun verify(serverEvidence: ByteArray): ByteArray
 }
 
-interface SrpServerSession {
+interface SrpServerSession : AutoCloseable {
     fun challenge(hello: SrpClientHello): SrpServerChallenge
 
     fun verify(proof: SrpClientProof): SrpServerProofAndSecret

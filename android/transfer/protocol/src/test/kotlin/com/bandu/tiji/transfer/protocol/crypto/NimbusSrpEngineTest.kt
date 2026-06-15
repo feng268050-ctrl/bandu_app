@@ -32,10 +32,9 @@ class NimbusSrpEngineTest {
     @Test
     fun `client and server derive the same shared secret`() {
         val engine = NimbusSrpEngine()
-        val code = "012345".toCharArray()
         val identity = "device-a|device-b".encodeToByteArray()
-        val client = engine.createClient(code, identity)
-        val server = engine.createServer(code, identity)
+        val client = engine.createClient("012345".toCharArray(), identity)
+        val server = engine.createServer("012345".toCharArray(), identity)
 
         val challenge = server.challenge(client.start())
         val clientProof = client.answer(challenge)
@@ -44,6 +43,19 @@ class NimbusSrpEngineTest {
 
         assertThat(clientSecret).isEqualTo(serverResult.temporaryKey)
         assertThat(clientSecret).isNotEmpty()
+    }
+
+    @Test
+    fun `engine consumes caller pairing code buffers`() {
+        val engine = NimbusSrpEngine()
+        val clientCode = "012345".toCharArray()
+        val serverCode = "012345".toCharArray()
+
+        engine.createClient(clientCode, "a|b".encodeToByteArray()).close()
+        engine.createServer(serverCode, "a|b".encodeToByteArray()).close()
+
+        assertThat(clientCode).isEqualTo(CharArray(6))
+        assertThat(serverCode).isEqualTo(CharArray(6))
     }
 
     @Test

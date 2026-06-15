@@ -17,5 +17,36 @@ class HkdfSha256Test {
             .isEqualTo("3cb25f25faacd57a90434f64d0362f2a2d2d0a90cf1a5a4c5db02d56ecc4c5bf34007208d5b887185865")
     }
 
+    @Test
+    fun `derive and clear input zeroes observable shared secret`() {
+        val sharedSecret = ByteArray(32) { (it + 1).toByte() }
+
+        val output = HkdfSha256.deriveAndClearInput(
+            inputKeyMaterial = sharedSecret,
+            salt = ByteArray(32) { 2 },
+            info = "session".encodeToByteArray(),
+            length = 32,
+        )
+
+        assertThat(output).isNotEqualTo(ByteArray(32))
+        assertThat(sharedSecret).isEqualTo(ByteArray(32))
+    }
+
+    @Test
+    fun `derive and clear input zeroes secret when derivation fails`() {
+        val sharedSecret = ByteArray(32) { 9 }
+
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            HkdfSha256.deriveAndClearInput(
+                inputKeyMaterial = sharedSecret,
+                salt = byteArrayOf(),
+                info = byteArrayOf(),
+                length = 0,
+            )
+        }
+
+        assertThat(sharedSecret).isEqualTo(ByteArray(32))
+    }
+
     private fun ByteArray.toHex(): String = joinToString("") { "%02x".format(it) }
 }

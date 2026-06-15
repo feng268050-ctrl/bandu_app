@@ -12,10 +12,14 @@ class PairingCodePolicyTest {
     @Test
     fun `issues exactly six digits including leading zero for five minutes`() {
         val issued = requireNotNull(policy.issue())
+        val candidate = "012345".toCharArray()
 
         assertThat(issued.value.concatToString()).isEqualTo("012345")
         assertThat(issued.expiresAtEpochMillis).isEqualTo(1_000 + PairingCodePolicy.VALIDITY_MILLIS)
-        assertThat(policy.validate("012345".toCharArray())).isEqualTo(PairingCodeValidation.VALID)
+        assertThat(policy.validate(candidate)).isEqualTo(PairingCodeValidation.VALID)
+        assertThat(candidate).isEqualTo(CharArray(6))
+        assertThat(policy.validate("012345".toCharArray()))
+            .isEqualTo(PairingCodeValidation.EXPIRED)
     }
 
     @Test
@@ -39,6 +43,26 @@ class PairingCodePolicyTest {
 
         clock.advance(PairingCodePolicy.COOLDOWN_MILLIS)
         assertThat(policy.issue()).isNotNull()
+    }
+
+    @Test
+    fun `invalid expired and locked candidate buffers are zeroed`() {
+        policy.issue()
+        val invalid = "999999".toCharArray()
+        assertThat(policy.validate(invalid)).isEqualTo(PairingCodeValidation.INVALID)
+        assertThat(invalid).isEqualTo(CharArray(6))
+
+        clock.advance(PairingCodePolicy.VALIDITY_MILLIS)
+        val expired = "012345".toCharArray()
+        assertThat(policy.validate(expired)).isEqualTo(PairingCodeValidation.EXPIRED)
+        assertThat(expired).isEqualTo(CharArray(6))
+
+        policy.issue()
+        repeat(4) { policy.validate("999999".toCharArray()) }
+        policy.validate("999999".toCharArray())
+        val locked = "123456".toCharArray()
+        assertThat(policy.validate(locked)).isEqualTo(PairingCodeValidation.LOCKED)
+        assertThat(locked).isEqualTo(CharArray(6))
     }
 
     private class MutableClock(private var now: Long) : Clock {
