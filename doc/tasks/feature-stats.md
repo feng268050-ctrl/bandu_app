@@ -19,5 +19,5 @@
 
 ## 模块完成条件
 
-- [ ] `:feature:stats:testDebugUnitTest` 和图表测试通过。
-- [ ] 页面不发起网络请求。
+- [x] `:feature:stats:testDebugUnitTest` 和图表测试通过。
+- [x] 页面不发起网络请求。
