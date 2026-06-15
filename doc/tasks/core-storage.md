@@ -9,7 +9,7 @@
 ## 任务
 
 - [x] `STORAGE-001` 创建模块并接入 Room、KSP、DataStore、Paging 和 AndroidX Security 基础能力。验证：`:core:storage:compileDebugKotlin`。
-- [ ] `STORAGE-002` 实现 `collections` Entity、DAO、唯一名称约束和索引。验证：CRUD 仪器测试。
+- [x] `STORAGE-002` 实现 `collections` Entity、DAO、唯一名称约束和索引。验证：CRUD 仪器测试。
 - [ ] `STORAGE-003` 实现 `error_items` Entity、DAO、外键和组合索引。验证：CRUD 与级联删除测试。
 - [ ] `STORAGE-004` 实现 `tags`、`error_item_tags` Entity、DAO 和重名约束。验证：标签关联测试。
 - [ ] `STORAGE-005` 实现 `tutor_sessions`、`tutor_messages`、`exercises` Entity 和 DAO。验证：会话级联与错题置空测试。
