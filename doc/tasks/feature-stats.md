@@ -15,7 +15,7 @@
 - [x] `STATS-005` 展示练习学科、难度和月度趋势。验证：图表截图测试。
 - [x] `STATS-006` 在 UI 明确“待复核不计入正确率”。验证：`AC-STAT-001`。
 - [x] `STATS-007` Repository Flow 变化时局部刷新，不持久化远程统计。验证：ViewModel Flow 测试。
-- [ ] `STATS-008` 添加无网络状态下完整展示测试。验证：Fake Repository 独立测试。
+- [x] `STATS-008` 添加无网络状态下完整展示测试。验证：Fake Repository 独立测试。
 
 ## 模块完成条件
 
