@@ -102,6 +102,7 @@ fun StatsScreen(
                 StatMetricCard(
                     label = "正确率",
                     value = formatPercentage(uiState.exerciseStats.accuracyRate),
+                    description = "待复核不计入正确率",
                 )
             }
             item {
@@ -172,6 +173,7 @@ private fun StatMetricCard(
     label: String,
     value: String,
     modifier: Modifier = Modifier,
+    description: String? = null,
 ) {
     BanduCard(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -183,6 +185,13 @@ private fun StatMetricCard(
             text = value,
             style = MaterialTheme.typography.headlineMedium,
         )
+        description?.let {
+            Text(
+                text = it,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
     }
 }
 

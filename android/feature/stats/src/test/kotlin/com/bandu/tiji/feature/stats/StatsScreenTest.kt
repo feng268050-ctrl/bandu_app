@@ -9,6 +9,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
 import com.bandu.tiji.core.model.enums.ExerciseDifficulty
+import com.bandu.tiji.core.model.enums.GradeResult
 import com.bandu.tiji.core.model.stats.ExerciseStats
 import com.bandu.tiji.core.model.stats.MonthlyCount
 import com.bandu.tiji.core.model.stats.WrongItemStats
@@ -149,6 +150,26 @@ class StatsScreenTest {
             "趋势图：2026年1月 1，2026年2月 0，2026年3月 3，" +
                 "2026年4月 0，2026年5月 0，2026年6月 6",
         ).assertIsDisplayed()
+    }
+
+    @Test
+    fun `AC-STAT-001 needs review is excluded from displayed accuracy denominator`() {
+        setStatsContent(
+            StatsUiState(
+                exerciseStats = ExerciseStats.fromResults(
+                    listOf(
+                        GradeResult.CORRECT,
+                        GradeResult.INCORRECT,
+                        GradeResult.NEEDS_REVIEW,
+                    ),
+                ),
+                isLoading = false,
+            ),
+        )
+
+        composeRule.onNodeWithTag("stats-list").performScrollToIndex(10)
+        composeRule.onNodeWithText("50%").assertIsDisplayed()
+        composeRule.onNodeWithText("待复核不计入正确率").assertIsDisplayed()
     }
 
     private fun setStatsContent(state: StatsUiState) {
