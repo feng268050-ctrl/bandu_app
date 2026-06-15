@@ -24,9 +24,12 @@ class LearningDatabaseMigrationInstrumentedTest {
         helper.createDatabase(databaseName, 1).close()
 
         val databaseFile = context.getDatabasePath(databaseName)
-        LearningDatabaseFactory.open(context, databaseFile).use { database ->
+        val database = LearningDatabaseFactory.open(context, databaseFile)
+        try {
             assertThat(database.openHelper.readableDatabase.version).isEqualTo(1)
             assertThat(database.collectionDao().observeAll().first()).isEmpty()
+        } finally {
+            database.close()
         }
 
         deleteDatabaseFiles(databaseFile)
