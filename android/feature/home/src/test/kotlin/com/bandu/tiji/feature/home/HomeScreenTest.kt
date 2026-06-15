@@ -1,10 +1,18 @@
 package com.bandu.tiji.feature.home
 
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
 import com.bandu.tiji.core.model.navigation.NavigationIntent
 import com.google.common.truth.Truth.assertThat
@@ -109,6 +117,66 @@ class HomeScreenTest {
                 HomeAction.OpenDestination(NavigationIntent.OpenTags),
                 HomeAction.OpenDestination(NavigationIntent.OpenStats),
             ).inOrder()
+        }
+    }
+
+    @Test
+    fun `two hundred percent font on narrow screen keeps all card content visible`() {
+        val cardTags = listOf(
+            "home-card-capture",
+            "home-card-library",
+            "home-card-tags",
+            "home-card-stats",
+        )
+        val visibleTexts = listOf(
+            "上传/拍摄错题",
+            "通过拍照或相册整理新错题",
+            "查看题集",
+            "浏览题集和已保存错题",
+            "标签",
+            "管理错题分类标签",
+            "统计",
+            "查看学习与复习进度",
+        )
+        composeRule.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(
+                    density = density.density,
+                    fontScale = 2f,
+                ),
+            ) {
+                BanduTijiTheme {
+                    HomeScreen(
+                        uiState = HomeUiState(
+                            nickname = "小明",
+                            isLoading = false,
+                        ),
+                        onAction = {},
+                        modifier = Modifier
+                            .width(320.dp)
+                            .testTag("home-narrow-root"),
+                    )
+                }
+            }
+        }
+
+        val rootBounds = composeRule.onNodeWithTag("home-narrow-root")
+            .fetchSemanticsNode()
+            .boundsInRoot
+        cardTags.forEach { tag ->
+            val card = composeRule.onNodeWithTag(tag)
+                .performScrollTo()
+                .assertIsDisplayed()
+                .fetchSemanticsNode()
+                .boundsInRoot
+            assertThat(card.left).isAtLeast(rootBounds.left)
+            assertThat(card.right).isAtMost(rootBounds.right)
+        }
+        visibleTexts.forEach { text ->
+            composeRule.onNodeWithText(text)
+                .performScrollTo()
+                .assertIsDisplayed()
         }
     }
 
