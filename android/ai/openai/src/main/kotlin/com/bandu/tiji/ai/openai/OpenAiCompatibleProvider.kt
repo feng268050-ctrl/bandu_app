@@ -81,17 +81,17 @@ class OpenAiCompatibleProvider(
             httpEngineFactory
                 .create(configuration, AiHttpOperation.CONFIGURATION_VALIDATION)
                 .newCall(request)
-                .execute()
-                .use { response ->
-                    if (!response.isSuccessful) {
-                        throw OpenAiHttpException(response.code)
+                    .execute()
+                    .use { response ->
+                        if (!response.isSuccessful) {
+                            throw response.toOpenAiHttpException()
+                        }
+                        ProviderValidation.Success
                     }
-                    ProviderValidation.Success
-                }
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Throwable) {
-            ProviderValidation.Failure(validationFailureCode(error))
+            ProviderValidation.Failure(OpenAiErrorMapper.validationCode(error))
         }
     }
 
@@ -176,25 +176,37 @@ class OpenAiCompatibleProvider(
         model: String,
         prompt: String,
         operation: AiHttpOperation,
-    ): String = executeChatCompletion(
-        configuration = configuration,
-        operation = operation,
-        body = textRequestBody(model, prompt),
-    )
+    ): String = try {
+        executeChatCompletion(
+            configuration = configuration,
+            operation = operation,
+            body = textRequestBody(model, prompt),
+        )
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Throwable) {
+        throw OpenAiErrorMapper.map(error)
+    }
 
     internal suspend fun generateImageAnalysisText(
         configuration: ResolvedAiConfiguration,
         request: AnalyzeImageRequest,
         prompt: String,
-    ): String = executeChatCompletion(
-        configuration = configuration,
-        operation = AiHttpOperation.IMAGE_ANALYSIS,
-        body = imageRequestBody(
-            model = configuration.analysisModel,
-            request = request,
-            prompt = prompt,
-        ),
-    )
+    ): String = try {
+        executeChatCompletion(
+            configuration = configuration,
+            operation = AiHttpOperation.IMAGE_ANALYSIS,
+            body = imageRequestBody(
+                model = configuration.analysisModel,
+                request = request,
+                prompt = prompt,
+            ),
+        )
+    } catch (cancelled: CancellationException) {
+        throw cancelled
+    } catch (error: Throwable) {
+        throw OpenAiErrorMapper.map(error)
+    }
 
     internal fun streamText(
         configuration: ResolvedAiConfiguration,
@@ -212,7 +224,7 @@ class OpenAiCompatibleProvider(
         call.enqueue(
             object : Callback {
                 override fun onFailure(call: Call, e: IOException) {
-                    if (!call.isCanceled()) close(e)
+                    if (!call.isCanceled()) close(OpenAiErrorMapper.map(e))
                 }
 
                 override fun onResponse(call: Call, response: Response) {
@@ -220,7 +232,7 @@ class OpenAiCompatibleProvider(
                         try {
                             response.use {
                                 if (!response.isSuccessful) {
-                                    throw OpenAiHttpException(response.code)
+                                    throw response.toOpenAiHttpException()
                                 }
                                 SseReader().readEach(response.body.source()) { event ->
                                     when (event) {
@@ -238,7 +250,7 @@ class OpenAiCompatibleProvider(
                         } catch (cancelled: CancellationException) {
                             throw cancelled
                         } catch (error: Throwable) {
-                            close(error)
+                            close(OpenAiErrorMapper.map(error))
                         }
                     }
                 }
@@ -262,7 +274,7 @@ class OpenAiCompatibleProvider(
             .execute()
             .use { response ->
                 if (!response.isSuccessful) {
-                    throw OpenAiHttpException(response.code)
+                    throw response.toOpenAiHttpException()
                 }
                 extractCompletionText(response.body.string())
             }
@@ -404,19 +416,6 @@ class OpenAiCompatibleProvider(
         throw com.bandu.tiji.ai.api.error.AiError.InvalidResponse("openai.invalid_sse_json")
     }
 
-    private fun validationFailureCode(error: Throwable): String = when (error) {
-        is OpenAiHttpException -> when (error.statusCode) {
-            401, 403 -> "authentication"
-            408, 504 -> "timeout"
-            429 -> "rate_limited"
-            in 500..599 -> "network_error"
-            else -> "invalid_response"
-        }
-        is java.net.SocketTimeoutException -> "timeout"
-        is IOException -> "network_error"
-        else -> "invalid_response"
-    }
-
     private fun ResolvedAiConfiguration.chatCompletionsEndpoint(): HttpUrl =
         baseUrl.toHttpUrl()
             .newBuilder()
@@ -435,4 +434,18 @@ class OpenAiCompatibleProvider(
 
 internal class OpenAiHttpException(
     val statusCode: Int,
+    val responseBody: String? = null,
 ) : IOException("OpenAI-compatible request failed with HTTP $statusCode")
+
+private fun Response.toOpenAiHttpException(): OpenAiHttpException =
+    OpenAiHttpException(
+        statusCode = code,
+        responseBody = body.source().let { source ->
+            source.request(MAX_ERROR_BODY_BYTES + 1L)
+            source.buffer.clone().readUtf8(
+                minOf(source.buffer.size, MAX_ERROR_BODY_BYTES.toLong()),
+            )
+        },
+    )
+
+private const val MAX_ERROR_BODY_BYTES = 16 * 1024
