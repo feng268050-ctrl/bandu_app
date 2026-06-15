@@ -6,6 +6,7 @@ import com.bandu.tiji.core.storage.db.dao.CollectionDao
 import com.bandu.tiji.core.storage.db.dao.ErrorItemDao
 import com.bandu.tiji.core.storage.db.dao.ErrorItemPagingDao
 import com.bandu.tiji.core.storage.db.dao.TagDao
+import com.bandu.tiji.core.storage.db.dao.StatsDao
 import com.bandu.tiji.core.storage.db.dao.TutorDao
 import com.bandu.tiji.core.storage.db.entity.CollectionEntity
 import com.bandu.tiji.core.storage.db.entity.ErrorItemTagEntity
@@ -40,4 +41,6 @@ abstract class LearningDatabase : RoomDatabase() {
     abstract fun tagDao(): TagDao
 
     abstract fun tutorDao(): TutorDao
+
+    abstract fun statsDao(): StatsDao
 }

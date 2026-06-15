@@ -15,7 +15,7 @@
 - [x] `STORAGE-005` 实现 `tutor_sessions`、`tutor_messages`、`exercises` Entity 和 DAO。验证：会话级联与错题置空测试。
 - [x] `STORAGE-006` 实现 `error_item_fts` 与新增、更新、删除同步。验证：FTS 一致性测试。
 - [x] `STORAGE-007` 实现组合筛选 PagingSource 和只读摘要投影。验证：关键词与全部筛选组合测试。
-- [ ] `STORAGE-008` 实现错题和练习统计聚合 DAO。验证：`NEEDS_REVIEW` 不进入分母。
+- [x] `STORAGE-008` 实现错题和练习统计聚合 DAO。验证：`NEEDS_REVIEW` 不进入分母。
 - [ ] `STORAGE-009` 创建 schema v1、导出 schema 文件并禁止破坏性迁移。验证：MigrationTestHelper。
 - [ ] `STORAGE-010` 实现标准标签资产读取和稳定 ID upsert。验证：重复启动不产生重复标签。
 - [ ] `STORAGE-011` 实现 PortablePreferences 与 DevicePreferences 两套 DataStore。验证：迁移字段隔离测试。
