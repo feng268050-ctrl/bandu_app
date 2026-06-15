@@ -21,6 +21,8 @@ import com.bandu.tiji.transfer.protocol.proto.SrpServerProof
 import com.bandu.tiji.transfer.protocol.proto.TransferComplete
 import com.bandu.tiji.transfer.protocol.proto.TransferDecision
 import com.bandu.tiji.transfer.protocol.proto.TransferOffer
+import com.bandu.tiji.transfer.protocol.proto.TrustedSessionHello
+import com.bandu.tiji.transfer.protocol.proto.TrustedSessionProof
 import com.bandu.tiji.transfer.protocol.proto.VerifyResult
 import com.google.common.truth.Truth.assertThat
 import com.google.protobuf.ByteString
@@ -45,6 +47,12 @@ class TransferMessagesRoundTripTest {
                 .setProofSignature(hash)
                 .build(),
             IdentityConfirmation.newBuilder().setAccepted(true).setFingerprint("001122").build(),
+            TrustedSessionHello.newBuilder()
+                .setDeviceId("device")
+                .setNonce(hash)
+                .setEphemeralPublicKey(hash)
+                .build(),
+            TrustedSessionProof.newBuilder().setTranscriptSignature(hash).build(),
             TransferOffer.newBuilder()
                 .setSessionId("session")
                 .setSourceDeviceId("device")
