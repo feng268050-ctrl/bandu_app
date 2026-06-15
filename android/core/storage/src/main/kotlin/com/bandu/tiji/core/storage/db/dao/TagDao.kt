@@ -7,6 +7,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
+import androidx.room.Upsert
 import com.bandu.tiji.core.storage.db.entity.ErrorItemTagEntity
 import com.bandu.tiji.core.storage.db.entity.TagEntity
 
@@ -39,6 +40,17 @@ abstract class TagDao {
 
     @Update
     abstract suspend fun update(tag: TagEntity): Int
+
+    @Upsert
+    protected abstract suspend fun upsertEntities(tags: List<TagEntity>)
+
+    @Transaction
+    open suspend fun upsertSystemTags(tags: List<TagEntity>) {
+        require(tags.all(TagEntity::isSystem)) {
+            "Only system tags may be loaded from the standard tag asset"
+        }
+        upsertEntities(tags)
+    }
 
     @Delete
     abstract suspend fun delete(tag: TagEntity): Int
@@ -78,4 +90,10 @@ abstract class TagDao {
 
     @Query("SELECT COUNT(*) FROM error_item_tags")
     abstract suspend fun linkCount(): Int
+
+    @Query("SELECT * FROM tags WHERE is_system = 1 ORDER BY subject, sort_order, code")
+    abstract suspend fun getSystemTags(): List<TagEntity>
+
+    @Query("SELECT COUNT(*) FROM tags WHERE is_system = 1")
+    abstract suspend fun systemTagCount(): Int
 }
