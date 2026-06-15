@@ -101,13 +101,54 @@ class StatsScreenTest {
             ),
         )
 
-        composeRule.onNodeWithTag("stats-list").performScrollToIndex(11)
+        composeRule.onNodeWithTag("stats-list").performScrollToIndex(9)
         composeRule.onNodeWithText("练习总数").assertIsDisplayed()
         composeRule.onNodeWithText("12").assertIsDisplayed()
+        composeRule.onNodeWithTag("stats-list").performScrollToIndex(10)
         composeRule.onNodeWithText("正确率").assertIsDisplayed()
         composeRule.onNodeWithText("75%").assertIsDisplayed()
+        composeRule.onNodeWithTag("stats-list").performScrollToIndex(11)
         composeRule.onNodeWithText("最近 6 个月活跃天数").assertIsDisplayed()
         composeRule.onNodeWithText("9 天").assertIsDisplayed()
+    }
+
+    @Test
+    fun `exercise chart layout snapshot shows subject difficulty and monthly trend`() {
+        setStatsContent(
+            StatsUiState(
+                exerciseStats = ExerciseStats(
+                    totalCount = 10,
+                    gradedCount = 8,
+                    correctCount = 6,
+                    subjectCounts = mapOf("物理" to 4, "数学" to 6),
+                    difficultyCounts = mapOf(
+                        ExerciseDifficulty.EASY to 2,
+                        ExerciseDifficulty.MEDIUM to 3,
+                        ExerciseDifficulty.HARD to 4,
+                        ExerciseDifficulty.CHALLENGE to 1,
+                    ),
+                    monthlyPracticeCounts = listOf(
+                        MonthlyCount(2026, 1, 1),
+                        MonthlyCount(2026, 3, 3),
+                        MonthlyCount(2026, 6, 6),
+                    ),
+                    activeDaysLastSixMonths = 4,
+                ),
+                isLoading = false,
+            ),
+        )
+
+        composeRule.onNodeWithTag("stats-list").performScrollToIndex(13)
+        composeRule.onNodeWithContentDescription("饼图：数学 6，物理 4")
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag("stats-list").performScrollToIndex(15)
+        composeRule.onNodeWithContentDescription("柱状图：简单 2，中等 3，困难 4，挑战 1")
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag("stats-list").performScrollToIndex(17)
+        composeRule.onNodeWithContentDescription(
+            "趋势图：2026年1月 1，2026年2月 0，2026年3月 3，" +
+                "2026年4月 0，2026年5月 0，2026年6月 6",
+        ).assertIsDisplayed()
     }
 
     private fun setStatsContent(state: StatsUiState) {

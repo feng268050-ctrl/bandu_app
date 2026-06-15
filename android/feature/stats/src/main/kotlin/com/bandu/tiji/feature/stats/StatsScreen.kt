@@ -10,12 +10,14 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import com.bandu.tiji.core.designsystem.chart.BanduBarChart
 import com.bandu.tiji.core.designsystem.component.BanduCard
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
 import com.bandu.tiji.core.designsystem.chart.BanduChartDatum
 import com.bandu.tiji.core.designsystem.chart.BanduPieChart
 import com.bandu.tiji.core.designsystem.chart.BanduTrendChart
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
+import com.bandu.tiji.core.model.enums.ExerciseDifficulty
 import com.bandu.tiji.core.model.stats.MonthlyCount
 import java.math.RoundingMode
 import java.time.YearMonth
@@ -108,6 +110,51 @@ fun StatsScreen(
                     value = "${uiState.exerciseStats.activeDaysLastSixMonths} 天",
                 )
             }
+            item {
+                StatsSectionTitle("练习学科分布")
+            }
+            item {
+                BanduPieChart(
+                    data = uiState.exerciseStats.subjectCounts
+                        .toSortedMap()
+                        .map { (subject, count) ->
+                            BanduChartDatum(subject, count.toFloat())
+                        },
+                    emptyMessage = "暂无练习学科数据",
+                )
+            }
+            item {
+                StatsSectionTitle("练习难度分布")
+            }
+            item {
+                BanduBarChart(
+                    data = uiState.exerciseStats.difficultyCounts
+                        .entries
+                        .sortedBy { it.key.ordinal }
+                        .map { (difficulty, count) ->
+                            BanduChartDatum(
+                                label = difficultyLabel(difficulty),
+                                value = count.toFloat(),
+                            )
+                        },
+                    emptyMessage = "暂无练习难度数据",
+                )
+            }
+            item {
+                StatsSectionTitle("最近 6 个月练习趋势")
+            }
+            item {
+                BanduTrendChart(
+                    data = fillLastSixMonths(uiState.exerciseStats.monthlyPracticeCounts)
+                        .map { month ->
+                            BanduChartDatum(
+                                label = formatMonthLabel(month),
+                                value = month.count.toFloat(),
+                            )
+                        },
+                    emptyMessage = "暂无练习趋势",
+                )
+            }
         }
     }
 }
@@ -166,3 +213,11 @@ internal fun fillLastSixMonths(counts: List<MonthlyCount>): List<MonthlyCount> {
 
 internal fun formatMonthLabel(month: MonthlyCount): String =
     "${month.year}年${month.month}月"
+
+internal fun difficultyLabel(difficulty: ExerciseDifficulty): String =
+    when (difficulty) {
+        ExerciseDifficulty.EASY -> "简单"
+        ExerciseDifficulty.MEDIUM -> "中等"
+        ExerciseDifficulty.HARD -> "困难"
+        ExerciseDifficulty.CHALLENGE -> "挑战"
+    }
