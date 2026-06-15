@@ -90,6 +90,24 @@ fun StatsScreen(
             item {
                 StatsSectionTitle("AI 练习统计")
             }
+            item {
+                StatMetricCard(
+                    label = "练习总数",
+                    value = uiState.exerciseStats.totalCount.toString(),
+                )
+            }
+            item {
+                StatMetricCard(
+                    label = "正确率",
+                    value = formatPercentage(uiState.exerciseStats.accuracyRate),
+                )
+            }
+            item {
+                StatMetricCard(
+                    label = "最近 6 个月活跃天数",
+                    value = "${uiState.exerciseStats.activeDaysLastSixMonths} 天",
+                )
+            }
         }
     }
 }

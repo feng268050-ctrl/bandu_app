@@ -8,6 +8,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
+import com.bandu.tiji.core.model.enums.ExerciseDifficulty
+import com.bandu.tiji.core.model.stats.ExerciseStats
 import com.bandu.tiji.core.model.stats.MonthlyCount
 import com.bandu.tiji.core.model.stats.WrongItemStats
 import org.junit.Rule
@@ -80,6 +82,32 @@ class StatsScreenTest {
             "趋势图：2025年11月 2，2025年12月 0，2026年1月 3，" +
                 "2026年2月 0，2026年3月 0，2026年4月 5",
         ).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun `exercise stats show total accuracy and active days`() {
+        setStatsContent(
+            StatsUiState(
+                exerciseStats = ExerciseStats(
+                    totalCount = 12,
+                    gradedCount = 8,
+                    correctCount = 6,
+                    subjectCounts = emptyMap(),
+                    difficultyCounts = emptyMap<ExerciseDifficulty, Int>(),
+                    monthlyPracticeCounts = emptyList(),
+                    activeDaysLastSixMonths = 9,
+                ),
+                isLoading = false,
+            ),
+        )
+
+        composeRule.onNodeWithTag("stats-list").performScrollToIndex(11)
+        composeRule.onNodeWithText("练习总数").assertIsDisplayed()
+        composeRule.onNodeWithText("12").assertIsDisplayed()
+        composeRule.onNodeWithText("正确率").assertIsDisplayed()
+        composeRule.onNodeWithText("75%").assertIsDisplayed()
+        composeRule.onNodeWithText("最近 6 个月活跃天数").assertIsDisplayed()
+        composeRule.onNodeWithText("9 天").assertIsDisplayed()
     }
 
     private fun setStatsContent(state: StatsUiState) {
