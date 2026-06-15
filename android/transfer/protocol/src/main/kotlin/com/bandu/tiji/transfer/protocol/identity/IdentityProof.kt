@@ -5,14 +5,18 @@ import com.bandu.tiji.transfer.protocol.proto.ProtocolErrorCode
 import com.google.protobuf.ByteString
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
+import java.security.AlgorithmParameters
 import java.security.GeneralSecurityException
 import java.security.KeyFactory
 import java.security.PrivateKey
 import java.security.PublicKey
 import java.security.Signature
 import java.security.interfaces.ECPublicKey
+import java.security.spec.ECFieldFp
+import java.security.spec.ECParameterSpec
 import java.security.spec.X509EncodedKeySpec
 import java.security.MessageDigest
+import java.security.spec.ECGenParameterSpec
 
 data class VerifiedDeviceIdentity(
     val deviceId: String,
@@ -29,6 +33,11 @@ class IdentityVerificationException(
 object IdentityProof {
     private const val SIGNATURE_ALGORITHM = "SHA256withECDSA"
     private val DOMAIN = "bandu-tiji-identity-proof-v1".encodeToByteArray()
+    private val P256_PARAMETERS: ECParameterSpec =
+        AlgorithmParameters.getInstance("EC").run {
+            init(ECGenParameterSpec("secp256r1"))
+            getParameterSpec(ECParameterSpec::class.java)
+        }
 
     fun createExchange(
         deviceId: String,
@@ -108,7 +117,17 @@ object IdentityProof {
 
     private fun validateP256PublicKey(publicKey: PublicKey) {
         val ecKey = publicKey as? ECPublicKey ?: throw IdentityVerificationException()
-        if (ecKey.params.curve.field.fieldSize != 256 || ecKey.params.order.bitLength() != 256) {
+        val actual = ecKey.params
+        val expected = P256_PARAMETERS
+        val actualField = actual.curve.field as? ECFieldFp
+        val expectedField = expected.curve.field as ECFieldFp
+        if (actualField?.p != expectedField.p ||
+            actual.curve.a != expected.curve.a ||
+            actual.curve.b != expected.curve.b ||
+            actual.generator != expected.generator ||
+            actual.order != expected.order ||
+            actual.cofactor != expected.cofactor
+        ) {
             throw IdentityVerificationException()
         }
     }

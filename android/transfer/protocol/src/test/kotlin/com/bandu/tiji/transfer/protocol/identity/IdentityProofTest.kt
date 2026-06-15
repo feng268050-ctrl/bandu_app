@@ -82,9 +82,25 @@ class IdentityProofTest {
         }
     }
 
-    private fun generateIdentity(): KeyPair =
+    @Test
+    fun `identity proof rejects signing keys outside P-256`() {
+        val p384 = generateIdentity("secp384r1")
+        val p256 = generateIdentity()
+
+        assertThrows(IdentityVerificationException::class.java) {
+            IdentityProof.createExchange(
+                deviceId = "device-a",
+                displayName = "Phone A",
+                signingPublicKey = p384.public,
+                signingPrivateKey = p256.private,
+                authenticatedChannelContext = channelContext,
+            )
+        }
+    }
+
+    private fun generateIdentity(curve: String = "secp256r1"): KeyPair =
         KeyPairGenerator.getInstance("EC").run {
-            initialize(ECGenParameterSpec("secp256r1"))
+            initialize(ECGenParameterSpec(curve))
             generateKeyPair()
         }
 }
