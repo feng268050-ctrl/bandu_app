@@ -125,6 +125,14 @@ message ChunkAck {
   ChunkAckStatus status = 3;
 }
 
+message ChunkResumeState {
+  string session_id = 1;
+  string relative_path = 2;
+  uint32 chunk_count = 3;
+  bytes received_bitmap = 4;
+  bytes file_sha256 = 5;
+}
+
 message VerifyResult {
   string session_id = 1;
   bool valid = 2;

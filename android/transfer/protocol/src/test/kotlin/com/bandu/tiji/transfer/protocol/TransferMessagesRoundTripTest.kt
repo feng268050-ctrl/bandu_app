@@ -3,6 +3,7 @@ package com.bandu.tiji.transfer.protocol
 import com.bandu.tiji.transfer.protocol.proto.ChunkAck
 import com.bandu.tiji.transfer.protocol.proto.ChunkAckStatus
 import com.bandu.tiji.transfer.protocol.proto.ChunkRequest
+import com.bandu.tiji.transfer.protocol.proto.ChunkResumeState
 import com.bandu.tiji.transfer.protocol.proto.CommitDecision
 import com.bandu.tiji.transfer.protocol.proto.CommitReady
 import com.bandu.tiji.transfer.protocol.proto.DataChunk
@@ -83,6 +84,13 @@ class TransferMessagesRoundTripTest {
                 .setRelativePath("images/a.jpg")
                 .setIndex(1)
                 .setStatus(ChunkAckStatus.CHUNK_ACK_STATUS_ACCEPTED)
+                .build(),
+            ChunkResumeState.newBuilder()
+                .setSessionId("session")
+                .setRelativePath("images/a.jpg")
+                .setChunkCount(2)
+                .setReceivedBitmap(ByteString.copyFrom(byteArrayOf(1)))
+                .setFileSha256(hash)
                 .build(),
             VerifyResult.newBuilder().setSessionId("session").setValid(false).addFailureCodes("HASH").build(),
             CommitReady.newBuilder().setSessionId("session").setVerifiedManifestSha256(hash).build(),
