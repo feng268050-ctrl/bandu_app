@@ -15,7 +15,7 @@
 - [x] `OPENAI-005` 实现 `stream=true` SSE delta 和 `[DONE]` 处理。验证：跨 buffer UTF-8、结束和取消测试。
 - [x] `OPENAI-006` 接入图片模型与辅导模型的独立选择。验证：四类操作使用正确模型。
 - [x] `OPENAI-007` 将常见兼容服务的错误形状归一化为 `AiError`。验证：字符串、JSON 和空正文测试。
-- [ ] `OPENAI-008` 接入 EndpointPolicy，覆盖初始 URL、DNS 和重定向。验证：`AC-AI-004`。
+- [x] `OPENAI-008` 接入 EndpointPolicy，覆盖初始 URL、DNS 和重定向。验证：`AC-AI-004`。
 - [ ] `OPENAI-009` 实现规定的单次安全重试，流开始后不重试。验证：请求次数测试。
 - [ ] `OPENAI-010` 添加 Key、Authorization、图片和正文脱敏测试。验证：`AC-AI-005`。
 
