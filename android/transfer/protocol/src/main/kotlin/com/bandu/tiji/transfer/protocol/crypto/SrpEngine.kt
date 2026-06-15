@@ -1,5 +1,7 @@
 package com.bandu.tiji.transfer.protocol.crypto
 
+import com.bandu.tiji.transfer.protocol.proto.ProtocolErrorCode
+
 data class SrpClientHello(
     val identity: ByteArray,
 )
@@ -16,8 +18,13 @@ data class SrpClientProof(
 
 data class SrpServerProofAndSecret(
     val serverEvidence: ByteArray,
-    val sharedSecret: ByteArray,
+    val temporaryKey: ByteArray,
 )
+
+class SrpFailureException(
+    val code: ProtocolErrorCode,
+    cause: Throwable? = null,
+) : SecurityException(code.name, cause)
 
 interface SrpEngine {
     fun createServer(code: CharArray, identity: ByteArray): SrpServerSession

@@ -14,7 +14,7 @@
 - [x] `PROTOCOL-004` 定义 Collection、ErrorItem、Tag、Session、Message、Exercise、PortablePreferences 记录消息。验证：round-trip 测试。
 - [x] `PROTOCOL-005` 实现 6 位码生成、5 分钟过期和失败计数策略。验证：时钟驱动测试。
 - [x] `PROTOCOL-006` 实现 `SrpEngine` Nimbus 封装和 RFC 5054 固定参数。验证：RFC 测试向量。
-- [ ] `PROTOCOL-007` 实现 SRP M1/M2 验证和 HKDF 临时密钥派生。验证：错误码、过期码和篡改测试。
+- [x] `PROTOCOL-007` 实现 SRP M1/M2 验证和 HKDF 临时密钥派生。验证：错误码、过期码和篡改测试。
 - [ ] `PROTOCOL-008` 实现身份交换、签名持有证明和指纹生成。验证：身份替换测试。
 - [ ] `PROTOCOL-009` 实现已配对 ECDH、transcript 签名和方向密钥派生。验证：双方密钥一致测试。
 - [ ] `PROTOCOL-010` 实现 AES-256-GCM 帧编码、AAD、sequence 和 2 MiB 上限。验证：篡改、重放、乱序、重复 nonce 测试。
