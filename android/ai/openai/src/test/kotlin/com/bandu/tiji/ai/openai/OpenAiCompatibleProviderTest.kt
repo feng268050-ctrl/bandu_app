@@ -3,6 +3,7 @@ package com.bandu.tiji.ai.openai
 import com.bandu.tiji.ai.api.config.ProviderValidation
 import com.bandu.tiji.ai.api.config.ResolvedAiConfiguration
 import com.bandu.tiji.ai.api.error.AiError
+import com.bandu.tiji.ai.api.model.AnalyzeImageRequest
 import com.bandu.tiji.ai.api.provider.AiProvider
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.network.AiHttpOperation
@@ -192,6 +193,43 @@ class OpenAiCompatibleProviderTest {
             }.exceptionOrNull()
 
             assertThat(error).isEqualTo(AiError.InvalidResponse("openai.empty_response"))
+        }
+    }
+
+    @Test
+    fun `image analysis sends text and image_url data URL parts`() = runTest {
+        MockWebServer().use { server ->
+            server.enqueue(
+                MockResponse().setBody(
+                    """{"choices":[{"message":{"content":"分析结果"}}]}""",
+                ),
+            )
+            val imageBytes = byteArrayOf(0x01, 0x02, 0x7f)
+
+            val result = provider().generateImageAnalysisText(
+                configuration = configuration(server),
+                request = AnalyzeImageRequest(
+                    imageBytes = imageBytes,
+                    mimeType = "image/jpeg",
+                ),
+                prompt = "分析这道题",
+            )
+
+            assertThat(result).isEqualTo("分析结果")
+            val recorded = server.takeRequest()
+            val root = Json.parseToJsonElement(recorded.body.readUtf8()).jsonObject
+            assertThat(root["model"]!!.jsonPrimitive.content).isEqualTo("vision-model")
+            val parts = root["messages"]!!.jsonArray[0]
+                .jsonObject["content"]!!.jsonArray
+            assertThat(parts[0].jsonObject["type"]!!.jsonPrimitive.content).isEqualTo("text")
+            assertThat(parts[0].jsonObject["text"]!!.jsonPrimitive.content)
+                .isEqualTo("分析这道题")
+            assertThat(parts[1].jsonObject["type"]!!.jsonPrimitive.content)
+                .isEqualTo("image_url")
+            assertThat(
+                parts[1].jsonObject["image_url"]!!.jsonObject["url"]!!.jsonPrimitive.content,
+            ).isEqualTo("data:image/jpeg;base64,AQJ/")
+            assertThat(recorded.getHeader("Authorization")).isEqualTo("Bearer test-secret")
         }
     }
 

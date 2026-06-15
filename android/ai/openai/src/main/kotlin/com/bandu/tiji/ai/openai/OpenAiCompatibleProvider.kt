@@ -15,6 +15,7 @@ import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.network.AiHttpOperation
 import com.bandu.tiji.core.network.HttpEngine
 import java.io.IOException
+import java.util.Base64
 import kotlin.coroutines.cancellation.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -109,6 +110,20 @@ class OpenAiCompatibleProvider(
         body = textRequestBody(model, prompt),
     )
 
+    internal suspend fun generateImageAnalysisText(
+        configuration: ResolvedAiConfiguration,
+        request: AnalyzeImageRequest,
+        prompt: String,
+    ): String = executeChatCompletion(
+        configuration = configuration,
+        operation = AiHttpOperation.IMAGE_ANALYSIS,
+        body = imageRequestBody(
+            model = configuration.analysisModel,
+            request = request,
+            prompt = prompt,
+        ),
+    )
+
     private suspend fun executeChatCompletion(
         configuration: ResolvedAiConfiguration,
         operation: AiHttpOperation,
@@ -154,6 +169,46 @@ class OpenAiCompatibleProvider(
                 buildJsonObject {
                     put("role", "user")
                     put("content", prompt)
+                },
+            )
+        }
+        put("stream", false)
+    }.toString()
+
+    private fun imageRequestBody(
+        model: String,
+        request: AnalyzeImageRequest,
+        prompt: String,
+    ): String = buildJsonObject {
+        put("model", model)
+        putJsonArray("messages") {
+            add(
+                buildJsonObject {
+                    put("role", "user")
+                    putJsonArray("content") {
+                        add(
+                            buildJsonObject {
+                                put("type", "text")
+                                put("text", prompt)
+                            },
+                        )
+                        add(
+                            buildJsonObject {
+                                put("type", "image_url")
+                                put(
+                                    "image_url",
+                                    buildJsonObject {
+                                        put(
+                                            "url",
+                                            "data:${request.mimeType};base64," +
+                                                Base64.getEncoder()
+                                                    .encodeToString(request.imageBytes),
+                                        )
+                                    },
+                                )
+                            },
+                        )
+                    }
                 },
             )
         }
