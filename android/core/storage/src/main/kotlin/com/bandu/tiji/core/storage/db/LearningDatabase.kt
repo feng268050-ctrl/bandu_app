@@ -4,6 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.bandu.tiji.core.storage.db.dao.CollectionDao
 import com.bandu.tiji.core.storage.db.dao.ErrorItemDao
+import com.bandu.tiji.core.storage.db.dao.ErrorItemPagingDao
 import com.bandu.tiji.core.storage.db.dao.TagDao
 import com.bandu.tiji.core.storage.db.dao.TutorDao
 import com.bandu.tiji.core.storage.db.entity.CollectionEntity
@@ -33,6 +34,8 @@ abstract class LearningDatabase : RoomDatabase() {
     abstract fun collectionDao(): CollectionDao
 
     abstract fun errorItemDao(): ErrorItemDao
+
+    abstract fun errorItemPagingDao(): ErrorItemPagingDao
 
     abstract fun tagDao(): TagDao
 
