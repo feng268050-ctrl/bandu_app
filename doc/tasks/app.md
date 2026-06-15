@@ -21,7 +21,7 @@
 - [x] `APP-009` 接入全局 Snackbar、未处理错误展示和迁移进行中状态栏。验证：Fake 状态下的 Compose 测试。
 - [x] `APP-010` 接入 App 图标、应用名称和浅色启动主题。验证：安装 Debug APK 后冷启动无白屏闪烁。
 - [ ] `APP-011` 添加 Hilt 绑定，将 Repository、AI Provider 和 Transfer Runtime 注入 Domain 接口。验证：`:app:hiltJavaCompileDebug`。
-- [ ] `APP-012` 添加 App 导航端到端测试：全新启动进入首页，五个一级入口顺序正确。验证：`:app:connectedDebugAndroidTest`。
+- [x] `APP-012` 添加 App 导航端到端测试：全新启动进入首页，五个一级入口顺序正确。验证：`:app:connectedDebugAndroidTest`。
 
 ## 模块完成条件
 
