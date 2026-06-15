@@ -10,6 +10,10 @@ import com.bandu.tiji.ai.api.model.ExerciseRequest
 import com.bandu.tiji.ai.api.model.GeneratedExercise
 import com.bandu.tiji.ai.api.model.GradeExerciseRequest
 import com.bandu.tiji.ai.api.model.TutorRequest
+import com.bandu.tiji.ai.api.parser.ExerciseResponseParser
+import com.bandu.tiji.ai.api.parser.ImageAnalysisResponseParser
+import com.bandu.tiji.ai.api.prompt.PromptRenderer
+import com.bandu.tiji.ai.api.prompt.PromptType
 import com.bandu.tiji.ai.api.provider.AiProvider
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.network.AiHttpOperation
@@ -58,6 +62,10 @@ class OpenAiCompatibleProvider(
         error("OpenAiHttpEngineFactory is not configured")
     },
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val promptTemplates: OpenAiPromptTemplateSource = DefaultOpenAiPromptTemplates,
+    private val promptRenderer: PromptRenderer = PromptRenderer(),
+    private val imageAnalysisParser: ImageAnalysisResponseParser = ImageAnalysisResponseParser(),
+    private val exerciseParser: ExerciseResponseParser = ExerciseResponseParser(),
 ) : AiProvider {
     override val type: AiProviderType = AiProviderType.OPENAI_COMPATIBLE
 
@@ -90,22 +98,78 @@ class OpenAiCompatibleProvider(
     override suspend fun analyzeImage(
         configuration: ResolvedAiConfiguration,
         request: AnalyzeImageRequest,
-    ): AnalyzedQuestion = unsupported()
+    ): AnalyzedQuestion = imageAnalysisParser.parse(
+        generateImageAnalysisText(
+            configuration = configuration,
+            request = request,
+            prompt = renderPrompt(
+                PromptType.ANALYZE_IMAGE,
+                mapOf(
+                    "language_instruction" to request.languageInstruction,
+                    "knowledge_points_list" to request.knowledgePointsList,
+                    "grade_instruction" to request.gradeInstruction,
+                    "provider_hints" to request.providerHints,
+                ),
+            ),
+        ),
+    )
 
     override fun streamTutor(
         configuration: ResolvedAiConfiguration,
         request: TutorRequest,
-    ): Flow<AiStreamEvent> = unsupported()
+    ): Flow<AiStreamEvent> = streamText(
+        configuration = configuration,
+        model = configuration.tutorModel,
+        prompt = renderPrompt(
+            PromptType.TUTOR,
+            mapOf(
+                "question_context" to request.questionContext,
+                "conversation_context" to request.conversationContext,
+                "user_message" to request.userMessage,
+                "grade_instruction" to request.gradeInstruction,
+            ),
+        ),
+    )
 
     override suspend fun generateExercise(
         configuration: ResolvedAiConfiguration,
         request: ExerciseRequest,
-    ): GeneratedExercise = unsupported()
+    ): GeneratedExercise = exerciseParser.parseGeneratedExercise(
+        generateText(
+            configuration = configuration,
+            model = configuration.tutorModel,
+            prompt = renderPrompt(
+                PromptType.GENERATE_EXERCISE,
+                mapOf(
+                    "original_question" to request.originalQuestion,
+                    "knowledge_points" to request.knowledgePoints,
+                    "difficulty_level" to request.difficulty.name.lowercase(),
+                    "grade_instruction" to request.gradeInstruction,
+                ),
+            ),
+            operation = AiHttpOperation.EXERCISE,
+        ),
+    )
 
     override suspend fun gradeExercise(
         configuration: ResolvedAiConfiguration,
         request: GradeExerciseRequest,
-    ): ExerciseGrade = unsupported()
+    ): ExerciseGrade = exerciseParser.parseExerciseGrade(
+        generateText(
+            configuration = configuration,
+            model = configuration.tutorModel,
+            prompt = renderPrompt(
+                PromptType.GRADE_EXERCISE,
+                mapOf(
+                    "exercise_question" to request.exerciseQuestion,
+                    "expected_answer" to request.expectedAnswer,
+                    "user_answer" to request.userAnswer,
+                    "rubric_context" to request.rubricContext,
+                ),
+            ),
+            operation = AiHttpOperation.EXERCISE,
+        ),
+    )
 
     internal suspend fun generateText(
         configuration: ResolvedAiConfiguration,
@@ -204,8 +268,10 @@ class OpenAiCompatibleProvider(
             }
     }
 
-    private fun <T> unsupported(): T =
-        throw UnsupportedOperationException("OpenAI-compatible operation is not implemented")
+    private fun renderPrompt(
+        type: PromptType,
+        values: Map<String, String>,
+    ): String = promptRenderer.render(promptTemplates.template(type), values)
 
     private fun validationBody(model: String): String = buildJsonObject {
         put("model", model)
