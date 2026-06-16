@@ -80,6 +80,63 @@ class ImageStorageInstrumentedTest {
     }
 
     @Test
+    fun writeJpegCreates480PxThumbnailWithoutUpscalingOriginal() {
+        val source = File(root, "source.jpg")
+        createJpeg(source, width = 960, height = 540, color = Color.CYAN)
+
+        val stored = storage.writeJpeg(
+            sourceFile = source,
+            relativePath = "items/a.jpg",
+            thumbnailRelativePath = "thumbnails/a.jpg",
+        )
+
+        val output = File(root, "images/items/a.jpg")
+        val thumbnail = File(root, "images/thumbnails/a.jpg")
+        val decodedOutput = BitmapFactory.decodeFile(output.absolutePath)
+        val decodedThumbnail = BitmapFactory.decodeFile(thumbnail.absolutePath)
+        assertThat(stored.width).isEqualTo(960)
+        assertThat(stored.height).isEqualTo(540)
+        assertThat(stored.thumbnailRelativePath).isEqualTo("thumbnails/a.jpg")
+        assertThat(decodedOutput.width).isEqualTo(960)
+        assertThat(decodedOutput.height).isEqualTo(540)
+        assertThat(decodedThumbnail.width).isEqualTo(480)
+        assertThat(decodedThumbnail.height).isEqualTo(270)
+    }
+
+    @Test
+    fun cleanupQueueKeepsFailedDeletesAndRetriesLater() {
+        val imageRoot = File(root, "images")
+        val queue = ImageOrphanCleanupQueue(
+            imageRoot = imageRoot,
+            queueFile = File(root, "orphan-queue.txt"),
+        )
+        val deletedImage = File(imageRoot, "items/delete.jpg")
+        val blockedTarget = File(imageRoot, "items/stuck.jpg")
+        createJpeg(deletedImage, width = 8, height = 8, color = Color.YELLOW)
+        require(blockedTarget.mkdirs())
+        File(blockedTarget, "child").writeText("not empty")
+
+        queue.enqueue("items/delete.jpg")
+        queue.enqueue("items/stuck.jpg")
+        queue.enqueue("items/stuck.jpg")
+        val firstDrain = queue.drain()
+
+        assertThat(firstDrain.deletedRelativePaths).containsExactly("items/delete.jpg")
+        assertThat(firstDrain.pendingRelativePaths).containsExactly("items/stuck.jpg")
+        assertThat(queue.pendingRelativePaths()).containsExactly("items/stuck.jpg")
+        assertThat(deletedImage.exists()).isFalse()
+        assertThat(blockedTarget.exists()).isTrue()
+
+        assertThat(File(blockedTarget, "child").delete()).isTrue()
+        val secondDrain = queue.drain()
+
+        assertThat(secondDrain.deletedRelativePaths).containsExactly("items/stuck.jpg")
+        assertThat(secondDrain.pendingRelativePaths).isEmpty()
+        assertThat(queue.pendingRelativePaths()).isEmpty()
+        assertThat(blockedTarget.exists()).isFalse()
+    }
+
+    @Test
     fun writeJpegRejectsUnsafePathsAndInvalidCrop() {
         val source = File(root, "source.jpg")
         createJpeg(source, width = 10, height = 10, color = Color.RED)
