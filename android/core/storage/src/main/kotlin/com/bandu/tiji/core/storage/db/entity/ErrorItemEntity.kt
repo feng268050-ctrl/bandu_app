@@ -17,6 +17,7 @@ import androidx.room.PrimaryKey
         ),
     ],
     indices = [
+        Index(value = ["updated_at", "id"]),
         Index(value = ["collection_id", "updated_at"]),
         Index(value = ["mastery_level", "updated_at"]),
         Index(value = ["grade_semester", "paper_level"]),

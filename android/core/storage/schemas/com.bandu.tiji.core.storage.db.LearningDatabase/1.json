@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "b3ecca705d34c516af354eb2f88f09a6",
+    "identityHash": "461746d309062c11066cb823545cdf05",
     "entities": [
       {
         "tableName": "collections",
@@ -46,10 +46,8 @@
             "columnNames": [
               "name"
             ],
-            "orders": [
-              "ASC"
-            ],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`name`)"
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_collections_name` ON `${TABLE_NAME}` (`name`)"
           }
         ]
       },
@@ -177,17 +175,24 @@
         },
         "indices": [
           {
+            "name": "index_error_items_updated_at_id",
+            "unique": false,
+            "columnNames": [
+              "updated_at",
+              "id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_error_items_updated_at_id` ON `${TABLE_NAME}` (`updated_at`, `id`)"
+          },
+          {
             "name": "index_error_items_collection_id_updated_at",
             "unique": false,
             "columnNames": [
               "collection_id",
               "updated_at"
             ],
-            "orders": [
-              "ASC",
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`collection_id`, `updated_at`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_error_items_collection_id_updated_at` ON `${TABLE_NAME}` (`collection_id`, `updated_at`)"
           },
           {
             "name": "index_error_items_mastery_level_updated_at",
@@ -196,11 +201,8 @@
               "mastery_level",
               "updated_at"
             ],
-            "orders": [
-              "ASC",
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`mastery_level`, `updated_at`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_error_items_mastery_level_updated_at` ON `${TABLE_NAME}` (`mastery_level`, `updated_at`)"
           },
           {
             "name": "index_error_items_grade_semester_paper_level",
@@ -209,11 +211,8 @@
               "grade_semester",
               "paper_level"
             ],
-            "orders": [
-              "ASC",
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`grade_semester`, `paper_level`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_error_items_grade_semester_paper_level` ON `${TABLE_NAME}` (`grade_semester`, `paper_level`)"
           },
           {
             "name": "index_error_items_created_at",
@@ -221,10 +220,8 @@
             "columnNames": [
               "created_at"
             ],
-            "orders": [
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`created_at`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_error_items_created_at` ON `${TABLE_NAME}` (`created_at`)"
           }
         ],
         "foreignKeys": [
@@ -376,12 +373,8 @@
               "parent_id",
               "name"
             ],
-            "orders": [
-              "ASC",
-              "ASC",
-              "ASC"
-            ],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`subject`, `parent_id`, `name`)"
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tags_subject_parent_id_name` ON `${TABLE_NAME}` (`subject`, `parent_id`, `name`)"
           },
           {
             "name": "index_tags_parent_id",
@@ -389,10 +382,8 @@
             "columnNames": [
               "parent_id"
             ],
-            "orders": [
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`parent_id`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tags_parent_id` ON `${TABLE_NAME}` (`parent_id`)"
           }
         ],
         "foreignKeys": [
@@ -441,11 +432,8 @@
               "tag_id",
               "error_item_id"
             ],
-            "orders": [
-              "ASC",
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`tag_id`, `error_item_id`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_error_item_tags_tag_id_error_item_id` ON `${TABLE_NAME}` (`tag_id`, `error_item_id`)"
           }
         ],
         "foreignKeys": [
@@ -520,10 +508,8 @@
             "columnNames": [
               "error_item_id"
             ],
-            "orders": [
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`error_item_id`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tutor_sessions_error_item_id` ON `${TABLE_NAME}` (`error_item_id`)"
           },
           {
             "name": "index_tutor_sessions_updated_at",
@@ -531,10 +517,8 @@
             "columnNames": [
               "updated_at"
             ],
-            "orders": [
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`updated_at`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tutor_sessions_updated_at` ON `${TABLE_NAME}` (`updated_at`)"
           }
         ],
         "foreignKeys": [
@@ -612,11 +596,8 @@
               "session_id",
               "sequence"
             ],
-            "orders": [
-              "ASC",
-              "ASC"
-            ],
-            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`session_id`, `sequence`)"
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tutor_messages_session_id_sequence` ON `${TABLE_NAME}` (`session_id`, `sequence`)"
           }
         ],
         "foreignKeys": [
@@ -734,10 +715,8 @@
             "columnNames": [
               "session_id"
             ],
-            "orders": [
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`session_id`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_exercises_session_id` ON `${TABLE_NAME}` (`session_id`)"
           },
           {
             "name": "index_exercises_source_error_item_id",
@@ -745,10 +724,8 @@
             "columnNames": [
               "source_error_item_id"
             ],
-            "orders": [
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`source_error_item_id`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_exercises_source_error_item_id` ON `${TABLE_NAME}` (`source_error_item_id`)"
           },
           {
             "name": "index_exercises_created_at",
@@ -756,10 +733,8 @@
             "columnNames": [
               "created_at"
             ],
-            "orders": [
-              "ASC"
-            ],
-            "createSql": "CREATE INDEX IF NOT EXISTS `${INDEX_NAME}` ON `${TABLE_NAME}` (`created_at`)"
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_exercises_created_at` ON `${TABLE_NAME}` (`created_at`)"
           }
         ],
         "foreignKeys": [
@@ -790,7 +765,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b3ecca705d34c516af354eb2f88f09a6')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '461746d309062c11066cb823545cdf05')"
     ]
   }
 }
