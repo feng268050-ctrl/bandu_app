@@ -18,7 +18,7 @@
 - [x] `STORAGE-008` 实现错题和练习统计聚合 DAO。验证：`NEEDS_REVIEW` 不进入分母。
 - [x] `STORAGE-009` 创建 schema v1、导出 schema 文件并禁止破坏性迁移。验证：MigrationTestHelper。
 - [x] `STORAGE-010` 实现标准标签资产读取和稳定 ID upsert。验证：重复启动不产生重复标签。
-- [ ] `STORAGE-011` 实现 PortablePreferences 与 DevicePreferences 两套 DataStore。验证：迁移字段隔离测试。
+- [x] `STORAGE-011` 实现 PortablePreferences 与 DevicePreferences 两套 DataStore。验证：迁移字段隔离测试。
 - [ ] `STORAGE-012` 实现 Android Keystore AES-256-GCM API Key 存取和清除。验证：密文落盘、明文不落盘测试。
 - [ ] `STORAGE-013` 实现图片旋正、裁剪结果压缩、去 EXIF、SHA-256 和原子写入。验证：尺寸、大小和元数据测试。
 - [ ] `STORAGE-014` 实现 480 px 缩略图和图片孤儿清理队列。验证：删除失败后重试测试。
