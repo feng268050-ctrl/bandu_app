@@ -20,6 +20,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:model"))
     implementation(project(":core:storage"))
+    implementation(libs.androidx.paging.runtime)
     implementation(project(":ai:api"))
     implementation(project(":transfer:runtime"))
     implementation(libs.hilt.android)

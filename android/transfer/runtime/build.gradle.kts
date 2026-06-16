@@ -17,5 +17,6 @@ dependencies {
     implementation(project(":transfer:protocol"))
     implementation(project(":core:common"))
     implementation(project(":core:storage"))
+    implementation(project(":domain"))
     implementation(libs.kotlinx.coroutines.android)
 }
