@@ -51,6 +51,77 @@ class StorageSlotManager(
 
     suspend fun healthCheckActive(): StorageSlotHealth = healthCheck(openActive())
 
+    suspend fun markPendingCommit(slotName: String) {
+        val targetSlot = slotName.requireValidSlotName()
+        val preferences = devicePreferences.data.first()
+        devicePreferences.replace(preferences.copy(pendingCommitSlot = targetSlot))
+    }
+
+    suspend fun recoverPendingCommit(
+        finalizedAtEpochMillis: Long = System.currentTimeMillis(),
+    ): PendingCommitRecoveryResult {
+        val preferences = devicePreferences.data.first()
+        val pendingSlot = preferences.pendingCommitSlot?.requireValidSlotName()
+            ?: return PendingCommitRecoveryResult.NoPending
+        val rollbackSlot = pendingSlot.otherSlotName()
+
+        activeHandle?.close()
+        activeHandle = null
+
+        val pendingHandle = runCatching { openSlot(pendingSlot) }.getOrNull()
+        val pendingHealth = pendingHandle?.let { handle ->
+            runCatching { healthCheck(handle) }.getOrNull()
+        }
+
+        if (pendingHandle != null && pendingHealth?.ok == true) {
+            devicePreferences.replace(
+                preferences.copy(
+                    activeSlot = pendingSlot,
+                    pendingCommitSlot = null,
+                    commitFinalizedAtEpochMillis = finalizedAtEpochMillis,
+                ),
+            )
+            activeHandle = pendingHandle
+            deleteSlotDirectory(rollbackSlot)
+            return PendingCommitRecoveryResult.Finalized(
+                activeSlot = pendingSlot,
+                deletedSlot = rollbackSlot,
+            )
+        }
+
+        pendingHandle?.close()
+        deleteSlotDirectory(pendingSlot)
+
+        return runCatching {
+            openSlot(rollbackSlot).also { handle ->
+                val health = healthCheck(handle)
+                check(health.ok) { "Rollback slot $rollbackSlot is not healthy: ${health.integrityCheck}" }
+            }
+        }.fold(
+            onSuccess = { rollbackHandle ->
+                devicePreferences.replace(
+                    preferences.copy(
+                        activeSlot = rollbackSlot,
+                        pendingCommitSlot = null,
+                    ),
+                )
+                activeHandle = rollbackHandle
+                PendingCommitRecoveryResult.RolledBack(
+                    activeSlot = rollbackSlot,
+                    failedSlot = pendingSlot,
+                    reason = pendingHealth?.integrityCheck ?: "pending slot open failed",
+                )
+            },
+            onFailure = { error ->
+                PendingCommitRecoveryResult.Failed(
+                    activeSlot = preferences.activeSlot,
+                    pendingSlot = pendingSlot,
+                    reason = error.message.orEmpty(),
+                )
+            },
+        )
+    }
+
     override fun close() {
         activeHandle?.close()
         activeHandle = null
@@ -77,6 +148,8 @@ class StorageSlotManager(
             database = databaseOpener(context, slot.databaseFile),
         )
     }
+
+    private fun deleteSlotDirectory(slotName: String): Boolean = slot(slotName).directory.deleteRecursively()
 
     private fun healthCheck(handle: StorageSlotHandle): StorageSlotHealth {
         val sqlite = handle.database.openHelper.writableDatabase
@@ -136,4 +209,31 @@ internal fun String.requireValidSlotName(): String {
         "Unsupported storage slot: $this"
     }
     return this
+}
+
+internal fun String.otherSlotName(): String = when (requireValidSlotName()) {
+    StorageSlotManager.SLOT_A -> StorageSlotManager.SLOT_B
+    StorageSlotManager.SLOT_B -> StorageSlotManager.SLOT_A
+    else -> error("Unsupported storage slot: $this")
+}
+
+sealed interface PendingCommitRecoveryResult {
+    data object NoPending : PendingCommitRecoveryResult
+
+    data class Finalized(
+        val activeSlot: String,
+        val deletedSlot: String,
+    ) : PendingCommitRecoveryResult
+
+    data class RolledBack(
+        val activeSlot: String,
+        val failedSlot: String,
+        val reason: String,
+    ) : PendingCommitRecoveryResult
+
+    data class Failed(
+        val activeSlot: String,
+        val pendingSlot: String,
+        val reason: String,
+    ) : PendingCommitRecoveryResult
 }
