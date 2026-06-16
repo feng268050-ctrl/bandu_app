@@ -20,7 +20,7 @@
 - [x] `STORAGE-010` 实现标准标签资产读取和稳定 ID upsert。验证：重复启动不产生重复标签。
 - [x] `STORAGE-011` 实现 PortablePreferences 与 DevicePreferences 两套 DataStore。验证：迁移字段隔离测试。
 - [x] `STORAGE-012` 实现 Android Keystore AES-256-GCM API Key 存取和清除。验证：密文落盘、明文不落盘测试。
-- [ ] `STORAGE-013` 实现图片旋正、裁剪结果压缩、去 EXIF、SHA-256 和原子写入。验证：尺寸、大小和元数据测试。
+- [x] `STORAGE-013` 实现图片旋正、裁剪结果压缩、去 EXIF、SHA-256 和原子写入。验证：尺寸、大小和元数据测试。
 - [ ] `STORAGE-014` 实现 480 px 缩略图和图片孤儿清理队列。验证：删除失败后重试测试。
 - [ ] `STORAGE-015` 实现 `slot_a/slot_b`、活动槽指针、数据库关闭/重开和健康检查。验证：槽切换仪器测试。
 - [ ] `STORAGE-016` 实现 `pending_commit` 崩溃恢复和新槽失败回滚。验证：强杀恢复测试。
