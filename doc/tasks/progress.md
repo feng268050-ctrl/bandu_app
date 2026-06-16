@@ -17,8 +17,8 @@
 | 指标 | 数量 |
 | --- | ---: |
 | 模块总数 | 22 |
-| 已完成 | 12 |
-| 进行中 | 2 |
+| 已完成 | 13 |
+| 进行中 | 1 |
 | 未开始 | 8 |
 
 ## 第 1 批：工程与稳定模型
@@ -46,12 +46,12 @@
 ## 第 3 批：本地基础设施
 
 - [x] [`:core:designsystem`](./core-designsystem.md) - 主题和通用 UI
-- [ ] [`:core:storage`](./core-storage.md) - Room、DataStore、图片、Keystore、存储槽
+- [x] [`:core:storage`](./core-storage.md) - Room、DataStore、图片、Keystore、存储槽
 - [x] [`:core:network`](./core-network.md) - HTTP、SSE 和端点安全
 
 批次完成标准：
 
-- [ ] Room schema v1、迁移测试、FTS 和双槽切换通过。
+- [x] Room schema v1、迁移测试、FTS 和双槽切换通过。
 - [x] Markdown/LaTeX 可离线安全渲染。
 - [x] HTTP 私网策略和日志脱敏测试通过。
 
