@@ -8,7 +8,7 @@
 
 ## 任务
 
-- [ ] `DATA-001` 创建模块和 Hilt Repository Binding 骨架。验证：`:data:compileDebugKotlin`。
+- [x] `DATA-001` 创建模块和 Hilt Repository Binding 骨架。验证：`:data:compileDebugKotlin`。
 - [ ] `DATA-002` 实现 Room Entity 与 Domain Collection/ErrorItem Mapper。验证：双向映射测试。
 - [ ] `DATA-003` 实现 Tag、Tutor、Exercise 和统计 Mapper。验证：枚举兼容测试。
 - [ ] `DATA-004` 实现 `CollectionRepository`，保证删除题集事务一致。验证：Repository 集成测试。
@@ -29,4 +29,3 @@
 
 - [ ] `:data:testDebugUnitTest` 和 Repository 仪器测试通过。
 - [ ] Feature 无需感知 Entity、DTO、Provider 或 Socket。
-
