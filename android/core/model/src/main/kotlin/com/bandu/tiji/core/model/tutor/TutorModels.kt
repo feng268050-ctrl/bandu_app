@@ -64,3 +64,20 @@ data class Exercise(
 ) {
     val effectiveResult: GradeResult? = finalResult ?: aiResult
 }
+
+data class ExerciseDraft(
+    val sessionId: TutorSessionId,
+    val sourceErrorItemId: ErrorItemId?,
+    val subject: String,
+    val difficulty: ExerciseDifficulty,
+    val questionText: String,
+    val expectedAnswer: String,
+    val analysis: String,
+) {
+    init {
+        require(subject.isNotBlank()) { "subject must not be blank" }
+        require(questionText.isNotBlank()) { "questionText must not be blank" }
+        require(expectedAnswer.isNotBlank()) { "expectedAnswer must not be blank" }
+        require(analysis.isNotBlank()) { "analysis must not be blank" }
+    }
+}

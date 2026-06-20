@@ -49,6 +49,7 @@ import com.bandu.tiji.data.image.FilePendingImageCommitter
 import com.bandu.tiji.data.image.PendingImageCommitter
 import com.bandu.tiji.data.repository.RoomCollectionRepository
 import com.bandu.tiji.data.repository.RoomErrorItemRepository
+import com.bandu.tiji.data.repository.RoomExerciseRepository
 import com.bandu.tiji.data.repository.RoomTagRepository
 import com.bandu.tiji.data.repository.RoomTutorRepository
 import com.bandu.tiji.domain.ai.AiStreamEvent
@@ -68,6 +69,7 @@ import com.bandu.tiji.domain.repository.AiTutorGateway
 import com.bandu.tiji.domain.repository.CollectionRepository
 import com.bandu.tiji.domain.repository.DeviceTransferRepository
 import com.bandu.tiji.domain.repository.ErrorItemRepository
+import com.bandu.tiji.domain.repository.ExerciseRepository
 import com.bandu.tiji.domain.repository.ProfileRepository
 import com.bandu.tiji.domain.repository.StatsRepository
 import com.bandu.tiji.domain.repository.TagRepository
@@ -105,6 +107,7 @@ import kotlinx.coroutines.flow.map
 abstract class DataBindingsModule {
     @Binds abstract fun bindCollectionRepository(impl: RoomCollectionRepository): CollectionRepository
     @Binds abstract fun bindErrorItemRepository(impl: RoomErrorItemRepository): ErrorItemRepository
+    @Binds abstract fun bindExerciseRepository(impl: RoomExerciseRepository): ExerciseRepository
     @Binds abstract fun bindTagRepository(impl: RoomTagRepository): TagRepository
     @Binds abstract fun bindTutorRepository(impl: RoomTutorRepository): TutorRepository
     @Binds abstract fun bindStatsRepository(impl: InMemoryStatsRepository): StatsRepository
