@@ -12,14 +12,19 @@ import com.bandu.tiji.core.model.navigation.NavigationIntent
 import com.bandu.tiji.domain.repository.ErrorItemRepository
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 
-@OptIn(ExperimentalCoroutinesApi::class)
+@OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 class ErrorItemListViewModel(
     private val repository: ErrorItemRepository,
     initialQuery: ErrorItemQuery = ErrorItemQuery(),
@@ -28,7 +33,15 @@ class ErrorItemListViewModel(
     val uiState: StateFlow<ErrorItemListUiState> = mutableUiState.asStateFlow()
 
     private val query = MutableStateFlow(initialQuery)
-    val pagingData: Flow<PagingData<ErrorItemSummary>> = query
+    internal val debouncedQuery: StateFlow<ErrorItemQuery> = query
+        .debounce(SEARCH_DEBOUNCE_MILLIS)
+        .distinctUntilChanged()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.Eagerly,
+            initialValue = initialQuery,
+        )
+    val pagingData: Flow<PagingData<ErrorItemSummary>> = debouncedQuery
         .flatMapLatest { currentQuery ->
             Pager(PagingConfig(pageSize = PAGE_SIZE, prefetchDistance = PREFETCH_DISTANCE)) {
                 repository.page(currentQuery)
@@ -41,6 +54,11 @@ class ErrorItemListViewModel(
 
     fun onAction(action: ErrorItemListAction) {
         when (action) {
+            is ErrorItemListAction.UpdateKeyword -> {
+                val updatedQuery = query.value.copy(keyword = action.keyword)
+                query.value = updatedQuery
+                mutableUiState.value = mutableUiState.value.copy(query = updatedQuery)
+            }
             is ErrorItemListAction.OpenErrorItem -> {
                 mutableEffects.trySend(
                     ErrorItemListEffect.Navigate(
@@ -54,5 +72,6 @@ class ErrorItemListViewModel(
     companion object {
         const val PAGE_SIZE = 30
         const val PREFETCH_DISTANCE = 10
+        const val SEARCH_DEBOUNCE_MILLIS = 300L
     }
 }

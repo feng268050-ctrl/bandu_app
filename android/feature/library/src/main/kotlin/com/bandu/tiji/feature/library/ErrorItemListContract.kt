@@ -11,6 +11,10 @@ data class ErrorItemListUiState(
 )
 
 sealed interface ErrorItemListAction {
+    data class UpdateKeyword(
+        val keyword: String,
+    ) : ErrorItemListAction
+
     data class OpenErrorItem(
         val id: ErrorItemId,
     ) : ErrorItemListAction

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -49,47 +50,66 @@ fun ErrorItemListScreen(
         title = "错题",
         modifier = modifier,
     ) { contentPadding ->
-        when (val refresh = items.loadState.refresh) {
-            is LoadState.Error -> BanduErrorState(
-                message = "无法加载错题",
-                onRetry = items::retry,
-                modifier = Modifier.padding(contentPadding),
-            )
-            LoadState.Loading -> BanduPagingLoadingItem(
-                message = "正在加载错题",
-                modifier = Modifier.padding(contentPadding),
-            )
-            is LoadState.NotLoading -> {
-                if (items.itemCount == 0) {
-                    BanduEmptyState(
-                        title = "没有符合条件的错题",
-                        modifier = Modifier.padding(contentPadding),
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(contentPadding),
+        ) {
+            OutlinedTextField(
+                value = uiState.query.keyword,
+                onValueChange = { onAction(ErrorItemListAction.UpdateKeyword(it)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = BanduSpacing.PageHorizontal,
+                        vertical = BanduSpacing.Small,
                     )
-                } else {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(contentPadding)
-                            .padding(BanduSpacing.PageHorizontal)
-                            .testTag("error-item-list"),
-                        verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
-                    ) {
-                        items(
-                            count = items.itemCount,
-                            key = items.itemKey { it.id.value },
-                        ) { index ->
-                            items[index]?.let { item ->
-                                ErrorItemCard(
-                                    item = item,
-                                    onClick = {
-                                        onAction(ErrorItemListAction.OpenErrorItem(item.id))
-                                    },
-                                    thumbnailModel = thumbnailModel,
-                                )
+                    .testTag("error-item-search"),
+                label = { Text("搜索题目或解析") },
+                singleLine = true,
+            )
+            when (val refresh = items.loadState.refresh) {
+                is LoadState.Error -> BanduErrorState(
+                    message = "无法加载错题",
+                    onRetry = items::retry,
+                    modifier = Modifier.weight(1f),
+                )
+                LoadState.Loading -> BanduPagingLoadingItem(
+                    message = "正在加载错题",
+                    modifier = Modifier.weight(1f),
+                )
+                is LoadState.NotLoading -> {
+                    if (items.itemCount == 0) {
+                        BanduEmptyState(
+                            title = "没有符合条件的错题",
+                            modifier = Modifier.weight(1f),
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .padding(horizontal = BanduSpacing.PageHorizontal)
+                                .testTag("error-item-list"),
+                            verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
+                        ) {
+                            items(
+                                count = items.itemCount,
+                                key = items.itemKey { it.id.value },
+                            ) { index ->
+                                items[index]?.let { item ->
+                                    ErrorItemCard(
+                                        item = item,
+                                        onClick = {
+                                            onAction(ErrorItemListAction.OpenErrorItem(item.id))
+                                        },
+                                        thumbnailModel = thumbnailModel,
+                                    )
+                                }
                             }
-                        }
-                        if (items.loadState.append == LoadState.Loading) {
-                            item { BanduPagingLoadingItem() }
+                            if (items.loadState.append == LoadState.Loading) {
+                                item { BanduPagingLoadingItem() }
+                            }
                         }
                     }
                 }
