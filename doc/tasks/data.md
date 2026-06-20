@@ -27,5 +27,5 @@
 
 ## 模块完成条件
 
-- [ ] `:data:testDebugUnitTest` 和 Repository 仪器测试通过。
-- [ ] Feature 无需感知 Entity、DTO、Provider 或 Socket。
+- [x] `:data:testDebugUnitTest` 和 Repository 仪器测试通过。
+- [x] Feature 无需感知 Entity、DTO、Provider 或 Socket。
