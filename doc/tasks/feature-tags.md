@@ -20,5 +20,5 @@
 
 ## 模块完成条件
 
-- [ ] `:feature:tags:testDebugUnitTest` 通过。
-- [ ] 标准标签只读，自定义标签行为符合 `PRD-TAG-*`。
+- [x] `:feature:tags:testDebugUnitTest` 通过。
+- [x] 标准标签只读，自定义标签行为符合 `PRD-TAG-*`。

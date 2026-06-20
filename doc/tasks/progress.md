@@ -17,9 +17,9 @@
 | 指标 | 数量 |
 | --- | ---: |
 | 模块总数 | 22 |
-| 已完成 | 15 |
-| 进行中 | 0 |
-| 未开始 | 7 |
+| 已完成 | 16 |
+| 进行中 | 1 |
+| 未开始 | 5 |
 
 ## 第 1 批：工程与稳定模型
 
@@ -78,7 +78,7 @@
 
 - [x] [`:feature:home`](./feature-home.md) - 首页
 - [ ] [`:feature:library`](./feature-library.md) - 题集与错题
-- [ ] [`:feature:tags`](./feature-tags.md) - 标签
+- [x] [`:feature:tags`](./feature-tags.md) - 标签
 - [x] [`:feature:stats`](./feature-stats.md) - 统计
 
 批次完成标准：
