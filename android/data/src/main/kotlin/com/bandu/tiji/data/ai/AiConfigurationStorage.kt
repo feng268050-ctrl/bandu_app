@@ -3,6 +3,7 @@ package com.bandu.tiji.data.ai
 import com.bandu.tiji.core.storage.keystore.ApiKeyStore
 import com.bandu.tiji.domain.ai.AiConfigurationDraft
 import com.bandu.tiji.domain.ai.ValidationResult
+import javax.inject.Inject
 
 interface ApiKeyCipherStore {
     fun read(): CharArray?
@@ -12,7 +13,7 @@ interface ApiKeyCipherStore {
     fun clear()
 }
 
-class AndroidApiKeyCipherStore(
+class AndroidApiKeyCipherStore @Inject constructor(
     private val delegate: ApiKeyStore,
 ) : ApiKeyCipherStore {
     override fun read(): CharArray? = delegate.read()

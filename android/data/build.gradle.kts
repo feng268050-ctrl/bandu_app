@@ -9,7 +9,7 @@ android {
     compileSdk = libs.versions.compileSdk.get().toInt()
     defaultConfig {
         minSdk = libs.versions.minSdk.get().toInt()
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner = "com.bandu.tiji.data.DataHiltTestRunner"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -26,8 +26,11 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:model"))
     implementation(project(":core:storage"))
+    implementation(project(":core:network"))
     implementation(libs.androidx.paging.runtime)
     implementation(project(":ai:api"))
+    implementation(project(":ai:gemini"))
+    implementation(project(":ai:openai"))
     implementation(project(":transfer:runtime"))
     implementation(libs.androidx.room.ktx)
     implementation(libs.hilt.android)
@@ -46,4 +49,6 @@ dependencies {
     androidTestImplementation(libs.androidx.test.runner)
     androidTestImplementation(libs.truth)
     androidTestImplementation("androidx.room:room-testing:${libs.versions.room.get()}")
+    androidTestImplementation("com.google.dagger:hilt-android-testing:${libs.versions.hilt.get()}")
+    kspAndroidTest(libs.hilt.compiler)
 }

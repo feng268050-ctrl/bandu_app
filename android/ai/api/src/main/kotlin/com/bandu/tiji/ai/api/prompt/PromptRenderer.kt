@@ -56,7 +56,7 @@ class PromptRenderer {
         const val MAX_TEMPLATE_BYTES = 64 * 1024
         private const val SAMPLE_VALUE = "sample"
 
-        private val PLACEHOLDER_REGEX = Regex("""\{\{([a-z_]+)}}""")
-        private val UNRENDERED_PLACEHOLDER_REGEX = Regex("""\{\{[^}]+\}}""")
+        private val PLACEHOLDER_REGEX = Regex("""\{\{([a-z_]+)\}\}""")
+        private val UNRENDERED_PLACEHOLDER_REGEX = Regex("""\{\{[^}]+\}\}""")
     }
 }
