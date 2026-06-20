@@ -38,6 +38,14 @@ fun TagsScreen(
     BanduPageScaffold(
         title = "标签",
         modifier = modifier,
+        actions = {
+            TextButton(
+                onClick = { onAction(TagsAction.OpenCreate(parentId = null)) },
+                modifier = Modifier.testTag("tags-create-root"),
+            ) {
+                Text("新建标签")
+            }
+        },
     ) { contentPadding ->
         Column(
             modifier = Modifier
@@ -68,6 +76,14 @@ fun TagsScreen(
                 )
             }
         }
+    }
+    uiState.editor?.let { editor ->
+        TagEditorDialog(
+            state = editor,
+            onNameChange = { onAction(TagsAction.EditorNameChanged(it)) },
+            onConfirm = { onAction(TagsAction.SubmitEditor) },
+            onDismiss = { onAction(TagsAction.DismissEditor) },
+        )
     }
 }
 
@@ -119,6 +135,9 @@ private fun TagTree(
                 onToggle = {
                     onAction(TagsAction.ToggleExpanded(visibleNode.node.tag.id))
                 },
+                onCreate = {
+                    onAction(TagsAction.OpenCreate(visibleNode.node.tag.id))
+                },
                 onRename = {
                     onAction(TagsAction.OpenRename(visibleNode.node))
                 },
@@ -134,6 +153,7 @@ private fun TagTree(
 private fun TagTreeRow(
     visibleNode: VisibleTagNode,
     onToggle: () -> Unit,
+    onCreate: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -185,6 +205,19 @@ private fun TagTreeRow(
                 ) {
                     Text(if (visibleNode.isExpanded) "收起" else "展开")
                 }
+            }
+        }
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(
+                onClick = onCreate,
+                modifier = Modifier.testTag(
+                    "tags-create-child-${visibleNode.node.tag.id.value}",
+                ),
+            ) {
+                Text("新建子标签")
             }
         }
         if (!visibleNode.node.tag.isSystem) {

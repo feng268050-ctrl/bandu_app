@@ -2,7 +2,11 @@ package com.bandu.tiji.feature.tags
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bandu.tiji.core.common.result.AppError
+import com.bandu.tiji.core.common.result.AppResult
+import com.bandu.tiji.domain.tag.CreateTagInput
 import com.bandu.tiji.domain.repository.TagRepository
+import com.bandu.tiji.domain.usecase.tag.CreateCustomTagUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +19,8 @@ import kotlinx.coroutines.launch
 
 class TagsViewModel(
     private val tagRepository: TagRepository,
+    private val createCustomTag: CreateCustomTagUseCase =
+        CreateCustomTagUseCase(tagRepository),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(TagsUiState())
     val uiState: StateFlow<TagsUiState> = mutableUiState.asStateFlow()
@@ -23,6 +29,7 @@ class TagsViewModel(
     val effects = mutableEffects.receiveAsFlow()
 
     private var observationJob: Job? = null
+    private var mutationJob: Job? = null
 
     init {
         observeSelectedSubject()
@@ -36,15 +43,73 @@ class TagsViewModel(
             is TagsAction.OpenTag -> mutableEffects.trySend(
                 TagsEffect.OpenFilteredErrorItems(action.tagId),
             )
-            is TagsAction.OpenCreate,
+            is TagsAction.OpenCreate -> openCreate(action.parentId)
+            is TagsAction.EditorNameChanged -> updateEditorName(action.name)
+            TagsAction.DismissEditor -> dismissEditor()
+            TagsAction.SubmitEditor -> submitEditor()
             is TagsAction.OpenDelete,
             is TagsAction.OpenRename,
-            is TagsAction.EditorNameChanged,
             TagsAction.ConfirmDelete,
             TagsAction.DismissDelete,
-            TagsAction.DismissEditor,
-            TagsAction.SubmitEditor,
             -> Unit
+        }
+    }
+
+    private fun openCreate(parentId: com.bandu.tiji.core.model.id.TagId?) {
+        mutationJob?.cancel()
+        mutableUiState.update {
+            it.copy(
+                editor = TagEditorState(
+                    mode = TagEditorMode.Create(parentId),
+                ),
+            )
+        }
+    }
+
+    private fun updateEditorName(name: String) {
+        mutableUiState.update { state ->
+            state.copy(
+                editor = state.editor?.copy(
+                    name = name,
+                    errorMessage = null,
+                ),
+            )
+        }
+    }
+
+    private fun dismissEditor() {
+        mutationJob?.cancel()
+        mutationJob = null
+        mutableUiState.update { it.copy(editor = null) }
+    }
+
+    private fun submitEditor() {
+        val editor = mutableUiState.value.editor ?: return
+        if (editor.isSubmitting) return
+        val createMode = editor.mode as? TagEditorMode.Create ?: return
+        mutableUiState.update {
+            it.copy(editor = editor.copy(isSubmitting = true, errorMessage = null))
+        }
+        mutationJob = viewModelScope.launch {
+            when (
+                val result = createCustomTag(
+                    CreateTagInput(
+                        name = editor.name,
+                        subject = mutableUiState.value.selectedSubject,
+                        parentId = createMode.parentId,
+                    ),
+                )
+            ) {
+                is AppResult.Success -> mutableUiState.update { it.copy(editor = null) }
+                is AppResult.Failure -> mutableUiState.update { state ->
+                    state.copy(
+                        editor = state.editor?.copy(
+                            isSubmitting = false,
+                            errorMessage = createErrorMessage(result.error),
+                        ),
+                    )
+                }
+            }
         }
     }
 
@@ -109,5 +174,24 @@ class TagsViewModel(
 
     private companion object {
         const val LOAD_ERROR_MESSAGE = "无法加载标签"
+
+        fun createErrorMessage(error: AppError): String =
+            when {
+                error is AppError.Validation && error.code == "tag.name.blank" ->
+                    "请输入标签名称"
+                error.isDuplicateTagName() -> "同一位置已存在同名标签"
+                else -> "无法创建标签"
+            }
+
+        fun AppError.isDuplicateTagName(): Boolean {
+            val message = (this as? AppError.Unexpected)
+                ?.cause
+                ?.message
+                ?.lowercase()
+                ?: return false
+            return "already exists" in message ||
+                "unique" in message ||
+                "constraint" in message
+        }
     }
 }
