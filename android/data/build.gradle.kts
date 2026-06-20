@@ -13,6 +13,9 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
 }
 
 dependencies {
@@ -23,6 +26,7 @@ dependencies {
     implementation(libs.androidx.paging.runtime)
     implementation(project(":ai:api"))
     implementation(project(":transfer:runtime"))
+    implementation(libs.androidx.room.ktx)
     implementation(libs.hilt.android)
     implementation(libs.kotlinx.coroutines.android)
     ksp(libs.hilt.compiler)
@@ -31,4 +35,7 @@ dependencies {
     testImplementation(libs.junit)
     testImplementation(libs.truth)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.robolectric)
+    testImplementation("androidx.test:core:${libs.versions.androidxTestRunner.get()}")
+    testImplementation("androidx.room:room-testing:${libs.versions.room.get()}")
 }

@@ -1,9 +1,14 @@
 package com.bandu.tiji.data
 
+import android.content.Context
 import androidx.paging.PagingSource
 import androidx.paging.PagingState
 import com.bandu.tiji.core.common.result.AppError
 import com.bandu.tiji.core.common.result.AppResult
+import com.bandu.tiji.core.common.id.RandomUuidGenerator
+import com.bandu.tiji.core.common.id.UuidGenerator
+import com.bandu.tiji.core.common.time.Clock
+import com.bandu.tiji.core.common.time.SystemClock
 import com.bandu.tiji.core.model.collection.CollectionSummary
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.model.enums.ExerciseDifficulty
@@ -37,6 +42,9 @@ import com.bandu.tiji.core.model.tutor.TutorMessageRole
 import com.bandu.tiji.core.model.tutor.TutorMessageStatus
 import com.bandu.tiji.core.model.tutor.TutorSession
 import com.bandu.tiji.core.model.tutor.TutorSessionSummary
+import com.bandu.tiji.core.storage.db.LearningDatabase
+import com.bandu.tiji.core.storage.db.LearningDatabaseFactory
+import com.bandu.tiji.data.repository.RoomCollectionRepository
 import com.bandu.tiji.domain.ai.AiStreamEvent
 import com.bandu.tiji.domain.ai.AnalyzeImageRequest
 import com.bandu.tiji.domain.ai.AnalyzedQuestion
@@ -72,7 +80,9 @@ import dagger.Binds
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -87,7 +97,7 @@ import kotlinx.coroutines.flow.map
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class DataBindingsModule {
-    @Binds abstract fun bindCollectionRepository(impl: InMemoryCollectionRepository): CollectionRepository
+    @Binds abstract fun bindCollectionRepository(impl: RoomCollectionRepository): CollectionRepository
     @Binds abstract fun bindErrorItemRepository(impl: InMemoryErrorItemRepository): ErrorItemRepository
     @Binds abstract fun bindTagRepository(impl: InMemoryTagRepository): TagRepository
     @Binds abstract fun bindTutorRepository(impl: InMemoryTutorRepository): TutorRepository
@@ -101,6 +111,24 @@ abstract class DataBindingsModule {
         @Provides
         @Singleton
         fun provideTransferRuntime(): TransferRuntime = TransferRuntime()
+
+        @Provides
+        @Singleton
+        fun provideClock(): Clock = SystemClock()
+
+        @Provides
+        @Singleton
+        fun provideUuidGenerator(): UuidGenerator = RandomUuidGenerator()
+
+        @Provides
+        @Singleton
+        fun provideLearningDatabase(
+            @ApplicationContext context: Context,
+        ): LearningDatabase =
+            LearningDatabaseFactory.open(
+                context = context,
+                databaseFile = File(context.filesDir, "slots/slot_a/learning.db"),
+            )
     }
 }
 
