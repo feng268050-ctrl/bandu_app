@@ -7,7 +7,10 @@ plugins {
 android {
     namespace = "com.bandu.tiji.data"
     compileSdk = libs.versions.compileSdk.get().toInt()
-    defaultConfig { minSdk = libs.versions.minSdk.get().toInt() }
+    defaultConfig {
+        minSdk = libs.versions.minSdk.get().toInt()
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -38,4 +41,9 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation("androidx.test:core:${libs.versions.androidxTestRunner.get()}")
     testImplementation("androidx.room:room-testing:${libs.versions.room.get()}")
+
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.truth)
+    androidTestImplementation("androidx.room:room-testing:${libs.versions.room.get()}")
 }
