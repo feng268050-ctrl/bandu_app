@@ -121,3 +121,19 @@ data class ExerciseGrade(
     val feedback: String,
     val confidence: Double,
 )
+
+sealed class AiGatewayException : Exception() {
+    data object ConfigurationRequired : AiGatewayException()
+
+    data object Authentication : AiGatewayException()
+
+    data object RateLimited : AiGatewayException()
+
+    data object Timeout : AiGatewayException()
+
+    data object NetworkUnavailable : AiGatewayException()
+
+    data class InvalidResponse(val diagnosticCode: String) : AiGatewayException()
+
+    data class EndpointRejected(val reason: String) : AiGatewayException()
+}
