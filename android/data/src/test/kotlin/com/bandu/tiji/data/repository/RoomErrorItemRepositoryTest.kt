@@ -9,6 +9,7 @@ import com.bandu.tiji.core.model.enums.MasteryLevel
 import com.bandu.tiji.core.model.erroritem.ErrorItemDraft
 import com.bandu.tiji.core.model.erroritem.ErrorItemPatch
 import com.bandu.tiji.core.model.erroritem.ErrorItemQuery
+import com.bandu.tiji.core.model.erroritem.StoredImage
 import com.bandu.tiji.core.model.id.CollectionId
 import com.bandu.tiji.core.model.id.ErrorItemId
 import com.bandu.tiji.core.model.id.TagId
@@ -17,6 +18,8 @@ import com.bandu.tiji.core.storage.db.entity.CollectionEntity
 import com.bandu.tiji.core.storage.db.entity.TagEntity
 import com.bandu.tiji.core.testing.id.FixedUuidGenerator
 import com.bandu.tiji.core.testing.time.TestClock
+import com.bandu.tiji.data.image.ImageCommit
+import com.bandu.tiji.data.image.PendingImageCommitter
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -32,6 +35,7 @@ class RoomErrorItemRepositoryTest {
     private lateinit var database: LearningDatabase
     private lateinit var clock: TestClock
     private lateinit var repository: RoomErrorItemRepository
+    private lateinit var imageCommitter: RecordingImageCommitter
 
     @Before
     fun setUp() = runTest {
@@ -46,10 +50,12 @@ class RoomErrorItemRepositoryTest {
             TagEntity("tag-1", "代数", "数学", null, 0, null, false, 100L, 100L),
         )
         clock = TestClock(1_000L)
+        imageCommitter = RecordingImageCommitter()
         repository = RoomErrorItemRepository(
             database = database,
             uuidGenerator = FixedUuidGenerator("error-1"),
             clock = clock,
+            imageCommitter = imageCommitter,
         )
     }
 
@@ -128,6 +134,32 @@ class RoomErrorItemRepositoryTest {
         assertThat(database.tagDao().linkCount()).isEqualTo(0)
     }
 
+    @Test
+    fun `database failure rolls back an image committed before the transaction`() = runTest {
+        val pendingImage = StoredImage(
+            relativePath = "temp/capture/draft.jpg",
+            sha256Hex = "abc",
+            width = 100,
+            height = 80,
+        )
+        imageCommitter.nextImage = pendingImage.copy(relativePath = "images/error-1.jpg")
+
+        val error = runCatching {
+            repository.create(
+                draft().copy(
+                    collectionId = CollectionId("missing-collection"),
+                    image = pendingImage,
+                ),
+            )
+        }.exceptionOrNull()
+
+        assertThat(error).isNotNull()
+        assertThat(imageCommitter.committedImages).containsExactly(pendingImage)
+        assertThat(imageCommitter.rolledBackImages)
+            .containsExactly(pendingImage.copy(relativePath = "images/error-1.jpg"))
+        assertThat(database.errorItemDao().count()).isEqualTo(0)
+    }
+
     private fun draft(): ErrorItemDraft =
         ErrorItemDraft(
             collectionId = CollectionId("collection-1"),
@@ -138,4 +170,22 @@ class RoomErrorItemRepositoryTest {
             subject = "数学",
             tagIds = listOf(TagId("tag-1")),
         )
+
+    private class RecordingImageCommitter : PendingImageCommitter {
+        val committedImages = mutableListOf<StoredImage?>()
+        val rolledBackImages = mutableListOf<StoredImage?>()
+        var nextImage: StoredImage? = null
+
+        override fun commit(
+            image: StoredImage?,
+            errorItemId: ErrorItemId,
+        ): ImageCommit {
+            committedImages += image
+            return ImageCommit(nextImage ?: image)
+        }
+
+        override fun rollback(commit: ImageCommit) {
+            rolledBackImages += commit.image
+        }
+    }
 }

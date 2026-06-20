@@ -13,7 +13,7 @@
 - [x] `DATA-003` 实现 Tag、Tutor、Exercise 和统计 Mapper。验证：枚举兼容测试。
 - [x] `DATA-004` 实现 `CollectionRepository`，保证删除题集事务一致。验证：Repository 集成测试。
 - [x] `DATA-005` 实现 `ErrorItemRepository` 的分页、详情、创建、Patch 和批删。验证：Fake/Room 集成测试。
-- [ ] `DATA-006` 协调图片正式写入与数据库事务；失败时不留下孤立记录。验证：故障注入测试。
+- [x] `DATA-006` 协调图片正式写入与数据库事务；失败时不留下孤立记录。验证：故障注入测试。
 - [ ] `DATA-007` 实现 `TagRepository`，标准标签只读、自定义标签可写。验证：约束测试。
 - [ ] `DATA-008` 实现 `TutorRepository` 和会话 sequence 分配。验证：并发追加消息测试。
 - [ ] `DATA-009` 实现练习创建、批改、人工覆盖和最终结果读取。验证：覆盖后统计测试。

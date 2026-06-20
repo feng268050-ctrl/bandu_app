@@ -15,6 +15,7 @@ import com.bandu.tiji.core.storage.db.LearningDatabase
 import com.bandu.tiji.core.storage.db.entity.ErrorItemEntity
 import com.bandu.tiji.core.storage.db.entity.ErrorItemTagEntity
 import com.bandu.tiji.core.storage.db.projection.ErrorItemSummaryProjection
+import com.bandu.tiji.data.image.PendingImageCommitter
 import com.bandu.tiji.data.mapper.toDomain
 import com.bandu.tiji.data.mapper.toDomainSummary
 import com.bandu.tiji.data.mapper.toEntity
@@ -29,6 +30,7 @@ class RoomErrorItemRepository @Inject constructor(
     private val database: LearningDatabase,
     private val uuidGenerator: UuidGenerator,
     private val clock: Clock,
+    private val imageCommitter: PendingImageCommitter,
 ) : ErrorItemRepository {
     private val errorItemDao = database.errorItemDao()
     private val pagingDao = database.errorItemPagingDao()
@@ -61,11 +63,19 @@ class RoomErrorItemRepository @Inject constructor(
 
     override suspend fun create(draft: ErrorItemDraft): ErrorItemId {
         val id = ErrorItemId(uuidGenerator.newUuid())
-        database.withTransaction {
-            errorItemDao.insert(draft.toEntity(id, clock.nowEpochMillis()))
-            draft.tagIds.distinct().forEach { tagId ->
-                tagDao.link(ErrorItemTagEntity(id.value, tagId.value))
+        val imageCommit = imageCommitter.commit(draft.image, id)
+        try {
+            database.withTransaction {
+                errorItemDao.insert(
+                    draft.copy(image = imageCommit.image).toEntity(id, clock.nowEpochMillis()),
+                )
+                draft.tagIds.distinct().forEach { tagId ->
+                    tagDao.link(ErrorItemTagEntity(id.value, tagId.value))
+                }
             }
+        } catch (error: Throwable) {
+            imageCommitter.rollback(imageCommit)
+            throw error
         }
         return id
     }

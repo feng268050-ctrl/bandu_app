@@ -44,6 +44,9 @@ import com.bandu.tiji.core.model.tutor.TutorSession
 import com.bandu.tiji.core.model.tutor.TutorSessionSummary
 import com.bandu.tiji.core.storage.db.LearningDatabase
 import com.bandu.tiji.core.storage.db.LearningDatabaseFactory
+import com.bandu.tiji.core.storage.image.ImageOrphanCleanupQueue
+import com.bandu.tiji.data.image.FilePendingImageCommitter
+import com.bandu.tiji.data.image.PendingImageCommitter
 import com.bandu.tiji.data.repository.RoomCollectionRepository
 import com.bandu.tiji.data.repository.RoomErrorItemRepository
 import com.bandu.tiji.domain.ai.AiStreamEvent
@@ -130,6 +133,20 @@ abstract class DataBindingsModule {
                 context = context,
                 databaseFile = File(context.filesDir, "slots/slot_a/learning.db"),
             )
+
+        @Provides
+        @Singleton
+        fun providePendingImageCommitter(
+            @ApplicationContext context: Context,
+        ): PendingImageCommitter {
+            val slotDirectory = File(context.filesDir, "slots/slot_a")
+            val imageDirectory = File(slotDirectory, "images")
+            return FilePendingImageCommitter(
+                filesRoot = context.filesDir,
+                imageRoot = imageDirectory,
+                cleanupQueue = ImageOrphanCleanupQueue(imageDirectory),
+            )
+        }
     }
 }
 
