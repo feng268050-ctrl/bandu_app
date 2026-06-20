@@ -12,6 +12,7 @@ class LibraryContractTest {
                 collections = emptyList(),
                 isLoading = true,
                 errorMessage = null,
+                editor = null,
             ),
         )
         assertThat(ErrorItemListUiState()).isEqualTo(

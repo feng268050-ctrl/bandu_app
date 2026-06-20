@@ -8,6 +8,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -32,6 +36,11 @@ fun CollectionListScreen(
     BanduPageScaffold(
         title = "题集",
         modifier = modifier,
+        actions = {
+            TextButton(onClick = { onAction(CollectionListAction.RequestCreate) }) {
+                Text("新建题集")
+            }
+        },
     ) { contentPadding ->
         when {
             uiState.isLoading -> BanduLoadingState(
@@ -85,11 +94,74 @@ fun CollectionListScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             style = MaterialTheme.typography.bodySmall,
                         )
+                        TextButton(
+                            onClick = {
+                                onAction(CollectionListAction.RequestRename(collection.id))
+                            },
+                        ) {
+                            Text("重命名")
+                        }
                     }
                 }
             }
         }
     }
+
+    uiState.editor?.let { editor ->
+        CollectionEditorDialog(
+            editor = editor,
+            onAction = onAction,
+        )
+    }
+}
+
+@Composable
+private fun CollectionEditorDialog(
+    editor: CollectionEditorUiState,
+    onAction: (CollectionListAction) -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { onAction(CollectionListAction.DismissEditor) },
+        title = {
+            Text(
+                when (editor.mode) {
+                    CollectionEditorMode.Create -> "新建题集"
+                    is CollectionEditorMode.Rename -> "重命名题集"
+                },
+            )
+        },
+        text = {
+            OutlinedTextField(
+                value = editor.name,
+                onValueChange = {
+                    onAction(CollectionListAction.UpdateEditorName(it))
+                },
+                label = { Text("题集名称") },
+                supportingText = editor.errorMessage?.let { message ->
+                    { Text(message) }
+                },
+                isError = editor.errorMessage != null,
+                enabled = !editor.isSaving,
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = { onAction(CollectionListAction.SubmitEditor) },
+                enabled = !editor.isSaving,
+            ) {
+                Text(if (editor.isSaving) "保存中" else "保存")
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = { onAction(CollectionListAction.DismissEditor) },
+                enabled = !editor.isSaving,
+            ) {
+                Text("取消")
+            }
+        },
+    )
 }
 
 internal fun formatCollectionUpdatedAt(
