@@ -45,6 +45,7 @@ import com.bandu.tiji.core.model.tutor.TutorSessionSummary
 import com.bandu.tiji.core.storage.db.LearningDatabase
 import com.bandu.tiji.core.storage.db.LearningDatabaseFactory
 import com.bandu.tiji.data.repository.RoomCollectionRepository
+import com.bandu.tiji.data.repository.RoomErrorItemRepository
 import com.bandu.tiji.domain.ai.AiStreamEvent
 import com.bandu.tiji.domain.ai.AnalyzeImageRequest
 import com.bandu.tiji.domain.ai.AnalyzedQuestion
@@ -98,7 +99,7 @@ import kotlinx.coroutines.flow.map
 @InstallIn(SingletonComponent::class)
 abstract class DataBindingsModule {
     @Binds abstract fun bindCollectionRepository(impl: RoomCollectionRepository): CollectionRepository
-    @Binds abstract fun bindErrorItemRepository(impl: InMemoryErrorItemRepository): ErrorItemRepository
+    @Binds abstract fun bindErrorItemRepository(impl: RoomErrorItemRepository): ErrorItemRepository
     @Binds abstract fun bindTagRepository(impl: InMemoryTagRepository): TagRepository
     @Binds abstract fun bindTutorRepository(impl: InMemoryTutorRepository): TutorRepository
     @Binds abstract fun bindStatsRepository(impl: InMemoryStatsRepository): StatsRepository
