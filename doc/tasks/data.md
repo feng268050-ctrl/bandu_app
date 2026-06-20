@@ -15,7 +15,7 @@
 - [x] `DATA-005` 实现 `ErrorItemRepository` 的分页、详情、创建、Patch 和批删。验证：Fake/Room 集成测试。
 - [x] `DATA-006` 协调图片正式写入与数据库事务；失败时不留下孤立记录。验证：故障注入测试。
 - [x] `DATA-007` 实现 `TagRepository`，标准标签只读、自定义标签可写。验证：约束测试。
-- [ ] `DATA-008` 实现 `TutorRepository` 和会话 sequence 分配。验证：并发追加消息测试。
+- [x] `DATA-008` 实现 `TutorRepository` 和会话 sequence 分配。验证：并发追加消息测试。
 - [ ] `DATA-009` 实现练习创建、批改、人工覆盖和最终结果读取。验证：覆盖后统计测试。
 - [ ] `DATA-010` 实现 `StatsRepository`，直接暴露 Room 聚合 Flow。验证：数据变化自动更新。
 - [ ] `DATA-011` 实现 `AiConfigurationRepository`，协调 DataStore 与 Keystore。验证：验证失败不激活配置。
