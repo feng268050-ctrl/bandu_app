@@ -64,6 +64,7 @@ class ErrorItemListViewModel(
     val effects = mutableEffects.receiveAsFlow()
     private var collectionOptionsJob: Job? = null
     private var tagOptionsJob: Job? = null
+    private var bulkDeleteJob: Job? = null
 
     init {
         observeFilterOptions()
@@ -110,6 +111,32 @@ class ErrorItemListViewModel(
                     filterDraft = ErrorItemFilterCriteria(),
                 )
             }
+            is ErrorItemListAction.ToggleSelection -> {
+                mutableUiState.value = mutableUiState.value.copy(
+                    selectedIds = mutableUiState.value.selectedIds.toggle(action.id),
+                )
+            }
+            is ErrorItemListAction.SelectAllLoaded -> {
+                mutableUiState.value = mutableUiState.value.copy(
+                    selectedIds = action.ids,
+                )
+            }
+            ErrorItemListAction.ClearSelection -> {
+                mutableUiState.value = mutableUiState.value.copy(selectedIds = emptySet())
+            }
+            ErrorItemListAction.RequestBulkDelete -> {
+                val selected = mutableUiState.value.selectedIds
+                if (selected.isNotEmpty()) {
+                    mutableUiState.value = mutableUiState.value.copy(
+                        bulkDelete = ErrorItemBulkDeleteState(selected),
+                    )
+                }
+            }
+            ErrorItemListAction.ConfirmBulkDelete -> confirmBulkDelete()
+            ErrorItemListAction.DismissBulkDelete -> {
+                bulkDeleteJob?.cancel()
+                mutableUiState.value = mutableUiState.value.copy(bulkDelete = null)
+            }
             is ErrorItemListAction.OpenErrorItem -> {
                 mutableEffects.trySend(
                     ErrorItemListEffect.Navigate(
@@ -117,6 +144,31 @@ class ErrorItemListViewModel(
                     ),
                 )
             }
+        }
+    }
+
+    private fun confirmBulkDelete() {
+        val pending = mutableUiState.value.bulkDelete ?: return
+        if (pending.isDeleting) return
+        mutableUiState.value = mutableUiState.value.copy(
+            bulkDelete = pending.copy(isDeleting = true, errorMessage = null),
+        )
+        bulkDeleteJob = viewModelScope.launch {
+            runCatching { repository.delete(pending.ids) }
+                .onSuccess {
+                    mutableUiState.value = mutableUiState.value.copy(
+                        selectedIds = emptySet(),
+                        bulkDelete = null,
+                    )
+                }
+                .onFailure {
+                    mutableUiState.value = mutableUiState.value.copy(
+                        bulkDelete = mutableUiState.value.bulkDelete?.copy(
+                            isDeleting = false,
+                            errorMessage = "无法删除选中的错题",
+                        ),
+                    )
+                }
         }
     }
 

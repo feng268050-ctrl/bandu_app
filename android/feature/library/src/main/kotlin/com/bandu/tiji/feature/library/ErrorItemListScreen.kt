@@ -1,6 +1,6 @@
 package com.bandu.tiji.feature.library
 
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.Checkbox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -29,6 +30,7 @@ import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
 import com.bandu.tiji.core.designsystem.component.BanduCard
+import com.bandu.tiji.core.designsystem.component.BanduDangerConfirmationDialog
 import com.bandu.tiji.core.designsystem.component.BanduEmptyState
 import com.bandu.tiji.core.designsystem.component.BanduErrorState
 import com.bandu.tiji.core.designsystem.component.BanduMasteryBadge
@@ -76,6 +78,34 @@ fun ErrorItemListScreen(
                     Text(if (uiState.activeFilters.isEmpty) "筛选" else "筛选（已启用）")
                 }
             }
+            if (uiState.selectedIds.isNotEmpty()) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = BanduSpacing.PageHorizontal),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("已选择 ${uiState.selectedIds.size} 项")
+                    TextButton(
+                        onClick = {
+                            onAction(
+                                ErrorItemListAction.SelectAllLoaded(
+                                    items.itemSnapshotList.items.map { it.id }.toSet(),
+                                ),
+                            )
+                        },
+                    ) {
+                        Text("全选已加载")
+                    }
+                    TextButton(onClick = { onAction(ErrorItemListAction.ClearSelection) }) {
+                        Text("全不选")
+                    }
+                    TextButton(onClick = { onAction(ErrorItemListAction.RequestBulkDelete) }) {
+                        Text("批量删除")
+                    }
+                }
+            }
             when (val refresh = items.loadState.refresh) {
                 is LoadState.Error -> BanduErrorState(
                     message = "无法加载错题",
@@ -108,8 +138,17 @@ fun ErrorItemListScreen(
                                 items[index]?.let { item ->
                                     ErrorItemCard(
                                         item = item,
+                                        selected = item.id in uiState.selectedIds,
+                                        selectionMode = uiState.selectedIds.isNotEmpty(),
                                         onClick = {
-                                            onAction(ErrorItemListAction.OpenErrorItem(item.id))
+                                            if (uiState.selectedIds.isEmpty()) {
+                                                onAction(ErrorItemListAction.OpenErrorItem(item.id))
+                                            } else {
+                                                onAction(ErrorItemListAction.ToggleSelection(item.id))
+                                            }
+                                        },
+                                        onLongClick = {
+                                            onAction(ErrorItemListAction.ToggleSelection(item.id))
                                         },
                                         thumbnailModel = thumbnailModel,
                                     )
@@ -128,20 +167,45 @@ fun ErrorItemListScreen(
         state = uiState,
         onAction = onAction,
     )
+    uiState.bulkDelete?.let { pending ->
+        BanduDangerConfirmationDialog(
+            title = "批量删除错题",
+            message = listOfNotNull(
+                "确定永久删除选中的 ${pending.ids.size} 道错题吗？",
+                pending.errorMessage,
+            ).joinToString("\n"),
+            confirmLabel = if (pending.isDeleting) "删除中" else "确认删除",
+            onConfirm = { onAction(ErrorItemListAction.ConfirmBulkDelete) },
+            onDismiss = { onAction(ErrorItemListAction.DismissBulkDelete) },
+        )
+    }
 }
 
 @Composable
 internal fun ErrorItemCard(
     item: ErrorItemSummary,
+    selected: Boolean = false,
+    selectionMode: Boolean = false,
     onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
     thumbnailModel: (String) -> Any?,
 ) {
     BanduCard(
         modifier = Modifier
             .fillMaxWidth()
             .testTag("error-item-${item.id.value}")
-            .clickable(role = Role.Button, onClick = onClick),
+            .combinedClickable(
+                role = Role.Button,
+                onClick = onClick,
+                onLongClick = onLongClick,
+            ),
     ) {
+        if (selectionMode || selected) {
+            Checkbox(
+                checked = selected,
+                onCheckedChange = { onLongClick() },
+            )
+        }
         item.thumbnailPath?.let { path ->
             val context = LocalContext.current
             AsyncImage(

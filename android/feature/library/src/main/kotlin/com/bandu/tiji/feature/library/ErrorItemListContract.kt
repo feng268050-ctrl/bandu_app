@@ -17,6 +17,13 @@ data class ErrorItemListUiState(
     val availableCollections: List<CollectionSummary> = emptyList(),
     val availableTags: List<TagSummary> = emptyList(),
     val selectedIds: Set<ErrorItemId> = emptySet(),
+    val bulkDelete: ErrorItemBulkDeleteState? = null,
+    val errorMessage: String? = null,
+)
+
+data class ErrorItemBulkDeleteState(
+    val ids: Set<ErrorItemId>,
+    val isDeleting: Boolean = false,
     val errorMessage: String? = null,
 )
 
@@ -67,6 +74,18 @@ sealed interface ErrorItemListAction {
     data object ApplyFilters : ErrorItemListAction
 
     data object ClearFilters : ErrorItemListAction
+
+    data class ToggleSelection(val id: ErrorItemId) : ErrorItemListAction
+
+    data class SelectAllLoaded(val ids: Set<ErrorItemId>) : ErrorItemListAction
+
+    data object ClearSelection : ErrorItemListAction
+
+    data object RequestBulkDelete : ErrorItemListAction
+
+    data object ConfirmBulkDelete : ErrorItemListAction
+
+    data object DismissBulkDelete : ErrorItemListAction
 
     data class OpenErrorItem(
         val id: ErrorItemId,
