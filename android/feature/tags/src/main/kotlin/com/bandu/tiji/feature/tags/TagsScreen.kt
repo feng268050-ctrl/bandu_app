@@ -119,6 +119,12 @@ private fun TagTree(
                 onToggle = {
                     onAction(TagsAction.ToggleExpanded(visibleNode.node.tag.id))
                 },
+                onRename = {
+                    onAction(TagsAction.OpenRename(visibleNode.node))
+                },
+                onDelete = {
+                    onAction(TagsAction.OpenDelete(visibleNode.node))
+                },
             )
         }
     }
@@ -128,6 +134,8 @@ private fun TagTree(
 private fun TagTreeRow(
     visibleNode: VisibleTagNode,
     onToggle: () -> Unit,
+    onRename: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     BanduCard(
         modifier = Modifier
@@ -176,6 +184,29 @@ private fun TagTreeRow(
                     ),
                 ) {
                     Text(if (visibleNode.isExpanded) "收起" else "展开")
+                }
+            }
+        }
+        if (!visibleNode.node.tag.isSystem) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(
+                    onClick = onRename,
+                    modifier = Modifier.testTag(
+                        "tags-rename-${visibleNode.node.tag.id.value}",
+                    ),
+                ) {
+                    Text("改名")
+                }
+                TextButton(
+                    onClick = onDelete,
+                    modifier = Modifier.testTag(
+                        "tags-delete-${visibleNode.node.tag.id.value}",
+                    ),
+                ) {
+                    Text("删除")
                 }
             }
         }
