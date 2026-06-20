@@ -1,14 +1,28 @@
 package com.bandu.tiji.feature.library
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import com.bandu.tiji.core.model.navigation.NavigationIntent
 
 @Composable
 fun CollectionListRoute(
-    uiState: CollectionListUiState,
-    onAction: (CollectionListAction) -> Unit,
-    content: @Composable (CollectionListUiState, (CollectionListAction) -> Unit) -> Unit,
+    viewModel: CollectionListViewModel,
+    onNavigate: (NavigationIntent) -> Unit,
 ) {
-    content(uiState, onAction)
+    val uiState by viewModel.uiState.collectAsState()
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is CollectionListEffect.Navigate -> onNavigate(effect.intent)
+            }
+        }
+    }
+    CollectionListScreen(
+        uiState = uiState,
+        onAction = viewModel::onAction,
+    )
 }
 
 @Composable
