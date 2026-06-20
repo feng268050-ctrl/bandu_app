@@ -53,6 +53,7 @@ import com.bandu.tiji.data.repository.RoomExerciseRepository
 import com.bandu.tiji.data.repository.RoomStatsRepository
 import com.bandu.tiji.data.repository.RoomTagRepository
 import com.bandu.tiji.data.repository.RoomTutorRepository
+import com.bandu.tiji.data.repository.RuntimeDeviceTransferRepository
 import com.bandu.tiji.domain.ai.AiStreamEvent
 import com.bandu.tiji.domain.ai.AnalyzeImageRequest
 import com.bandu.tiji.domain.ai.AnalyzedQuestion
@@ -115,7 +116,7 @@ abstract class DataBindingsModule {
     @Binds abstract fun bindProfileRepository(impl: InMemoryProfileRepository): ProfileRepository
     @Binds abstract fun bindAiConfigurationRepository(impl: InMemoryAiConfigurationRepository): AiConfigurationRepository
     @Binds abstract fun bindAiTutorGateway(impl: InMemoryAiTutorGateway): AiTutorGateway
-    @Binds abstract fun bindDeviceTransferRepository(impl: InMemoryDeviceTransferRepository): DeviceTransferRepository
+    @Binds abstract fun bindDeviceTransferRepository(impl: RuntimeDeviceTransferRepository): DeviceTransferRepository
 
     companion object {
         @Provides

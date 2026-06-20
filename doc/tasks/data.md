@@ -22,7 +22,7 @@
 - [x] `DATA-012` 实现 `AiTutorGateway` Provider 路由和错误归一化。验证：Gemini/OpenAI Fake 路由测试。
 - [x] `DATA-013` 实现 `ProfileRepository` 及学生资料更新。验证：入学年份校验测试。
 - [x] `DATA-014` 实现清除学习数据和恢复出厂设置协调器。验证：保留范围仪器测试。
-- [ ] `DATA-015` 将 Transfer Runtime 映射为 `DeviceTransferRepository`。验证：状态和命令映射测试。
+- [x] `DATA-015` 将 Transfer Runtime 映射为 `DeviceTransferRepository`。验证：状态和命令映射测试。
 - [ ] `DATA-016` 添加所有 Repository 的 Hilt Binding 和替换测试模块。验证：Hilt 测试注入。
 
 ## 模块完成条件
