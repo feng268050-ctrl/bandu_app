@@ -38,6 +38,18 @@ class TagUseCaseTest {
     }
 
     @Test
+    fun renameCustomTag_normalizesLookupFailure() = runTest {
+        repository.findFailure = IllegalStateException("UNIQUE constraint failed")
+
+        val result = RenameCustomTagUseCase(repository).invoke(TagId("custom-1"), "新名称")
+
+        assertThat(result).isInstanceOf(com.bandu.tiji.core.common.result.AppResult.Failure::class.java)
+        val error = (result as com.bandu.tiji.core.common.result.AppResult.Failure).error
+        assertThat((error as AppError.Unexpected).cause.message)
+            .contains("UNIQUE constraint failed")
+    }
+
+    @Test
     fun deleteCustomTag_rejectsSystemTag() = runTest {
         val id = TagId("sys-1")
         repository.seedSystemTag(id, "数学", "数学")
@@ -57,5 +69,17 @@ class TagUseCaseTest {
 
         assertThat(result.isSuccess).isTrue()
         assertThat(repository.deleted).containsExactly(id)
+    }
+
+    @Test
+    fun deleteCustomTag_normalizesLookupFailure() = runTest {
+        repository.findFailure = IllegalStateException("database unavailable")
+
+        val result = DeleteCustomTagUseCase(repository).invoke(TagId("custom-1"))
+
+        assertThat(result).isInstanceOf(com.bandu.tiji.core.common.result.AppResult.Failure::class.java)
+        val error = (result as com.bandu.tiji.core.common.result.AppResult.Failure).error
+        assertThat((error as AppError.Unexpected).cause.message)
+            .isEqualTo("database unavailable")
     }
 }

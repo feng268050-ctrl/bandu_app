@@ -113,11 +113,15 @@ class FakeTagRepository : TagRepository {
     val created = mutableListOf<CreateTagInput>()
     val renamed = mutableListOf<Pair<TagId, String>>()
     val deleted = mutableListOf<TagId>()
+    var findFailure: Throwable? = null
     private var nextId = 1
 
     override fun observeTree(subject: String?) = flowOf(emptyList<com.bandu.tiji.core.model.tag.TagNode>())
 
-    override suspend fun findTag(id: TagId): TagSummary? = tags[id]
+    override suspend fun findTag(id: TagId): TagSummary? {
+        findFailure?.let { throw it }
+        return tags[id]
+    }
 
     override suspend fun createCustom(input: CreateTagInput): TagId {
         created += input
