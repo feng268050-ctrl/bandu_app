@@ -6,6 +6,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
 import com.bandu.tiji.core.testing.fake.FakeCollectionRepository
+import com.bandu.tiji.core.testing.fake.FakeErrorItemRepository
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -22,16 +23,12 @@ class LibraryRoutesTest {
     fun `all routes expose their state to independent screen content`() {
         composeRule.setContent {
             BanduTijiTheme {
-                ErrorItemListRoute(ErrorItemListUiState(), {}) { _, _ ->
-                    Text("错题路由")
-                }
                 ErrorItemDetailRoute(ErrorItemDetailUiState(), {}) { _, _ ->
                     Text("详情路由")
                 }
             }
         }
 
-        composeRule.onNodeWithText("错题路由").assertIsDisplayed()
         composeRule.onNodeWithText("详情路由").assertIsDisplayed()
     }
 
@@ -45,5 +42,17 @@ class LibraryRoutesTest {
         }
 
         composeRule.onNodeWithText("还没有题集").assertIsDisplayed()
+    }
+
+    @Test
+    fun `error item route binds paging data`() {
+        val viewModel = ErrorItemListViewModel(FakeErrorItemRepository())
+        composeRule.setContent {
+            BanduTijiTheme {
+                ErrorItemListRoute(viewModel = viewModel, onNavigate = {})
+            }
+        }
+
+        composeRule.onNodeWithText("没有符合条件的错题").assertIsDisplayed()
     }
 }

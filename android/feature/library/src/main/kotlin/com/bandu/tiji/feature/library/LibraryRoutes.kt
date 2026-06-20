@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.bandu.tiji.core.model.navigation.NavigationIntent
 
 @Composable
@@ -27,11 +28,25 @@ fun CollectionListRoute(
 
 @Composable
 fun ErrorItemListRoute(
-    uiState: ErrorItemListUiState,
-    onAction: (ErrorItemListAction) -> Unit,
-    content: @Composable (ErrorItemListUiState, (ErrorItemListAction) -> Unit) -> Unit,
+    viewModel: ErrorItemListViewModel,
+    onNavigate: (NavigationIntent) -> Unit,
+    thumbnailModel: (String) -> Any? = { it },
 ) {
-    content(uiState, onAction)
+    val uiState by viewModel.uiState.collectAsState()
+    val items = viewModel.pagingData.collectAsLazyPagingItems()
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                is ErrorItemListEffect.Navigate -> onNavigate(effect.intent)
+            }
+        }
+    }
+    ErrorItemListScreen(
+        uiState = uiState,
+        items = items,
+        onAction = viewModel::onAction,
+        thumbnailModel = thumbnailModel,
+    )
 }
 
 @Composable
