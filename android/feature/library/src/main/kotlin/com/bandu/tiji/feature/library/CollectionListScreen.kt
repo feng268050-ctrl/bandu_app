@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
 import com.bandu.tiji.core.designsystem.component.BanduCard
+import com.bandu.tiji.core.designsystem.component.BanduDangerConfirmationDialog
 import com.bandu.tiji.core.designsystem.component.BanduEmptyState
 import com.bandu.tiji.core.designsystem.component.BanduErrorState
 import com.bandu.tiji.core.designsystem.component.BanduLoadingState
@@ -101,6 +102,13 @@ fun CollectionListScreen(
                         ) {
                             Text("重命名")
                         }
+                        TextButton(
+                            onClick = {
+                                onAction(CollectionListAction.RequestDelete(collection.id))
+                            },
+                        ) {
+                            Text("删除题集")
+                        }
                     }
                 }
             }
@@ -111,6 +119,21 @@ fun CollectionListScreen(
         CollectionEditorDialog(
             editor = editor,
             onAction = onAction,
+        )
+    }
+    uiState.pendingDelete?.let { pendingDelete ->
+        val impact = if (pendingDelete.collection.errorItemCount > 0) {
+            "删除“${pendingDelete.collection.name}”将同时永久删除其中的" +
+                " ${pendingDelete.collection.errorItemCount} 道错题。"
+        } else {
+            "确定永久删除空题集“${pendingDelete.collection.name}”吗？"
+        }
+        BanduDangerConfirmationDialog(
+            title = "删除题集",
+            message = listOfNotNull(impact, pendingDelete.errorMessage).joinToString("\n"),
+            confirmLabel = if (pendingDelete.isDeleting) "删除中" else "确认删除",
+            onConfirm = { onAction(CollectionListAction.ConfirmDelete) },
+            onDismiss = { onAction(CollectionListAction.DismissDelete) },
         )
     }
 }

@@ -13,6 +13,7 @@ class LibraryContractTest {
                 isLoading = true,
                 errorMessage = null,
                 editor = null,
+                pendingDelete = null,
             ),
         )
         assertThat(ErrorItemListUiState()).isEqualTo(

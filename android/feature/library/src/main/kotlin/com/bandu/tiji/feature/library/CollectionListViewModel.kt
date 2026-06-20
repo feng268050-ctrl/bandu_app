@@ -7,6 +7,7 @@ import com.bandu.tiji.core.common.result.AppResult
 import com.bandu.tiji.core.model.navigation.NavigationIntent
 import com.bandu.tiji.domain.repository.CollectionRepository
 import com.bandu.tiji.domain.usecase.collection.CreateCollectionUseCase
+import com.bandu.tiji.domain.usecase.collection.DeleteCollectionUseCase
 import com.bandu.tiji.domain.usecase.collection.RenameCollectionUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -28,8 +29,10 @@ class CollectionListViewModel(
 
     private var collectionJob: Job? = null
     private var editorJob: Job? = null
+    private var deleteJob: Job? = null
     private val createCollection = CreateCollectionUseCase(repository)
     private val renameCollection = RenameCollectionUseCase(repository)
+    private val deleteCollection = DeleteCollectionUseCase(repository)
 
     init {
         loadCollections()
@@ -71,6 +74,20 @@ class CollectionListViewModel(
             CollectionListAction.DismissEditor -> {
                 editorJob?.cancel()
                 mutableUiState.value = mutableUiState.value.copy(editor = null)
+            }
+            is CollectionListAction.RequestDelete -> {
+                val collection = mutableUiState.value.collections
+                    .firstOrNull { it.id == action.id }
+                    ?: return
+                deleteJob?.cancel()
+                mutableUiState.value = mutableUiState.value.copy(
+                    pendingDelete = CollectionDeleteUiState(collection),
+                )
+            }
+            CollectionListAction.ConfirmDelete -> confirmDelete()
+            CollectionListAction.DismissDelete -> {
+                deleteJob?.cancel()
+                mutableUiState.value = mutableUiState.value.copy(pendingDelete = null)
             }
             is CollectionListAction.OpenCollection -> {
                 mutableEffects.trySend(
@@ -142,6 +159,29 @@ class CollectionListViewModel(
                 isSaving = false,
             ),
         )
+    }
+
+    private fun confirmDelete() {
+        val pending = mutableUiState.value.pendingDelete ?: return
+        deleteJob?.cancel()
+        mutableUiState.value = mutableUiState.value.copy(
+            pendingDelete = pending.copy(isDeleting = true, errorMessage = null),
+        )
+        deleteJob = viewModelScope.launch {
+            when (deleteCollection(pending.collection.id)) {
+                is AppResult.Success -> {
+                    mutableUiState.value = mutableUiState.value.copy(pendingDelete = null)
+                }
+                is AppResult.Failure -> {
+                    mutableUiState.value = mutableUiState.value.copy(
+                        pendingDelete = mutableUiState.value.pendingDelete?.copy(
+                            isDeleting = false,
+                            errorMessage = "无法删除题集",
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     private fun AppError.toCollectionMessage(): String =

@@ -9,6 +9,13 @@ data class CollectionListUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val editor: CollectionEditorUiState? = null,
+    val pendingDelete: CollectionDeleteUiState? = null,
+)
+
+data class CollectionDeleteUiState(
+    val collection: CollectionSummary,
+    val isDeleting: Boolean = false,
+    val errorMessage: String? = null,
 )
 
 data class CollectionEditorUiState(
@@ -42,6 +49,14 @@ sealed interface CollectionListAction {
     data object SubmitEditor : CollectionListAction
 
     data object DismissEditor : CollectionListAction
+
+    data class RequestDelete(
+        val id: CollectionId,
+    ) : CollectionListAction
+
+    data object ConfirmDelete : CollectionListAction
+
+    data object DismissDelete : CollectionListAction
 
     data class OpenCollection(
         val id: CollectionId,
