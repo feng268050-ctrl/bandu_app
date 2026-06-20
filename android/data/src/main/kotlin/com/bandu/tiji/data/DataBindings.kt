@@ -50,6 +50,7 @@ import com.bandu.tiji.data.image.PendingImageCommitter
 import com.bandu.tiji.data.repository.RoomCollectionRepository
 import com.bandu.tiji.data.repository.RoomErrorItemRepository
 import com.bandu.tiji.data.repository.RoomExerciseRepository
+import com.bandu.tiji.data.repository.RoomStatsRepository
 import com.bandu.tiji.data.repository.RoomTagRepository
 import com.bandu.tiji.data.repository.RoomTutorRepository
 import com.bandu.tiji.domain.ai.AiStreamEvent
@@ -110,7 +111,7 @@ abstract class DataBindingsModule {
     @Binds abstract fun bindExerciseRepository(impl: RoomExerciseRepository): ExerciseRepository
     @Binds abstract fun bindTagRepository(impl: RoomTagRepository): TagRepository
     @Binds abstract fun bindTutorRepository(impl: RoomTutorRepository): TutorRepository
-    @Binds abstract fun bindStatsRepository(impl: InMemoryStatsRepository): StatsRepository
+    @Binds abstract fun bindStatsRepository(impl: RoomStatsRepository): StatsRepository
     @Binds abstract fun bindProfileRepository(impl: InMemoryProfileRepository): ProfileRepository
     @Binds abstract fun bindAiConfigurationRepository(impl: InMemoryAiConfigurationRepository): AiConfigurationRepository
     @Binds abstract fun bindAiTutorGateway(impl: InMemoryAiTutorGateway): AiTutorGateway

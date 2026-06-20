@@ -17,7 +17,7 @@
 - [x] `DATA-007` 实现 `TagRepository`，标准标签只读、自定义标签可写。验证：约束测试。
 - [x] `DATA-008` 实现 `TutorRepository` 和会话 sequence 分配。验证：并发追加消息测试。
 - [x] `DATA-009` 实现练习创建、批改、人工覆盖和最终结果读取。验证：覆盖后统计测试。
-- [ ] `DATA-010` 实现 `StatsRepository`，直接暴露 Room 聚合 Flow。验证：数据变化自动更新。
+- [x] `DATA-010` 实现 `StatsRepository`，直接暴露 Room 聚合 Flow。验证：数据变化自动更新。
 - [ ] `DATA-011` 实现 `AiConfigurationRepository`，协调 DataStore 与 Keystore。验证：验证失败不激活配置。
 - [ ] `DATA-012` 实现 `AiTutorGateway` Provider 路由和错误归一化。验证：Gemini/OpenAI Fake 路由测试。
 - [ ] `DATA-013` 实现 `ProfileRepository` 及学生资料更新。验证：入学年份校验测试。
