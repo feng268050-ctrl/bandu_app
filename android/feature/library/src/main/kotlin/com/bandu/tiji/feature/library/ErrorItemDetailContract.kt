@@ -11,6 +11,8 @@ data class ErrorItemDetailUiState(
 
 sealed interface ErrorItemDetailAction {
     data object NavigateBack : ErrorItemDetailAction
+
+    data object Retry : ErrorItemDetailAction
 }
 
 sealed interface ErrorItemDetailEffect {

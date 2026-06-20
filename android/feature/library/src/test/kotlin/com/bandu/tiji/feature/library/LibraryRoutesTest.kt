@@ -1,6 +1,5 @@
 package com.bandu.tiji.feature.library
 
-import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -18,19 +17,6 @@ import org.robolectric.annotation.Config
 class LibraryRoutesTest {
     @get:Rule
     val composeRule = createComposeRule()
-
-    @Test
-    fun `all routes expose their state to independent screen content`() {
-        composeRule.setContent {
-            BanduTijiTheme {
-                ErrorItemDetailRoute(ErrorItemDetailUiState(), {}) { _, _ ->
-                    Text("详情路由")
-                }
-            }
-        }
-
-        composeRule.onNodeWithText("详情路由").assertIsDisplayed()
-    }
 
     @Test
     fun `collection route binds view model state to screen`() {

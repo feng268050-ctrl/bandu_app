@@ -51,9 +51,23 @@ fun ErrorItemListRoute(
 
 @Composable
 fun ErrorItemDetailRoute(
-    uiState: ErrorItemDetailUiState,
-    onAction: (ErrorItemDetailAction) -> Unit,
-    content: @Composable (ErrorItemDetailUiState, (ErrorItemDetailAction) -> Unit) -> Unit,
+    viewModel: ErrorItemDetailViewModel,
+    onNavigate: (NavigationIntent) -> Unit,
+    onBack: () -> Unit,
+    imageModel: (String) -> Any? = { it },
 ) {
-    content(uiState, onAction)
+    val uiState by viewModel.uiState.collectAsState()
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                ErrorItemDetailEffect.NavigateBack -> onBack()
+                is ErrorItemDetailEffect.Navigate -> onNavigate(effect.intent)
+            }
+        }
+    }
+    ErrorItemDetailScreen(
+        uiState = uiState,
+        onAction = viewModel::onAction,
+        imageModel = imageModel,
+    )
 }
