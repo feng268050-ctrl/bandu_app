@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -55,19 +57,25 @@ fun ErrorItemListScreen(
                 .fillMaxSize()
                 .padding(contentPadding),
         ) {
-            OutlinedTextField(
-                value = uiState.query.keyword,
-                onValueChange = { onAction(ErrorItemListAction.UpdateKeyword(it)) },
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(
-                        horizontal = BanduSpacing.PageHorizontal,
-                        vertical = BanduSpacing.Small,
-                    )
-                    .testTag("error-item-search"),
-                label = { Text("搜索题目或解析") },
-                singleLine = true,
-            )
+                    .padding(horizontal = BanduSpacing.PageHorizontal),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = uiState.query.keyword,
+                    onValueChange = { onAction(ErrorItemListAction.UpdateKeyword(it)) },
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("error-item-search"),
+                    label = { Text("搜索题目或解析") },
+                    singleLine = true,
+                )
+                TextButton(onClick = { onAction(ErrorItemListAction.OpenFilters) }) {
+                    Text(if (uiState.activeFilters.isEmpty) "筛选" else "筛选（已启用）")
+                }
+            }
             when (val refresh = items.loadState.refresh) {
                 is LoadState.Error -> BanduErrorState(
                     message = "无法加载错题",
@@ -116,6 +124,10 @@ fun ErrorItemListScreen(
             }
         }
     }
+    ErrorItemFilterDialog(
+        state = uiState,
+        onAction = onAction,
+    )
 }
 
 @Composable
