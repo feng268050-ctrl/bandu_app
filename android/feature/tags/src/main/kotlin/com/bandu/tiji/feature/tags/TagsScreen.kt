@@ -141,11 +141,33 @@ private fun TagTreeRow(
             horizontalArrangement = Arrangement.spacedBy(BanduSpacing.Small),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = visibleNode.node.tag.name,
+            Column(
                 modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-            )
+                verticalArrangement = Arrangement.spacedBy(BanduSpacing.ExtraSmall),
+            ) {
+                Text(
+                    text = visibleNode.node.tag.name,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(
+                    text = "第 ${visibleNode.depth + 1} 层 · " +
+                        if (visibleNode.node.tag.isSystem) "标准标签" else "自定义标签",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.labelMedium,
+                )
+                visibleNode.node.code?.let { code ->
+                    Text(
+                        text = "编码：$code",
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                }
+                Text(
+                    text = "关联错题：${visibleNode.node.linkedErrorItemCount} 道",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
             if (visibleNode.hasChildren) {
                 TextButton(
                     onClick = onToggle,
