@@ -142,6 +142,9 @@ private fun TagTree(
                 onToggle = {
                     onAction(TagsAction.ToggleExpanded(visibleNode.node.tag.id))
                 },
+                onOpen = {
+                    onAction(TagsAction.OpenTag(visibleNode.node.tag.id))
+                },
                 onCreate = {
                     onAction(TagsAction.OpenCreate(visibleNode.node.tag.id))
                 },
@@ -160,6 +163,7 @@ private fun TagTree(
 private fun TagTreeRow(
     visibleNode: VisibleTagNode,
     onToggle: () -> Unit,
+    onOpen: () -> Unit,
     onCreate: () -> Unit,
     onRename: () -> Unit,
     onDelete: () -> Unit,
@@ -169,7 +173,7 @@ private fun TagTreeRow(
             .fillMaxWidth()
             .padding(start = (visibleNode.depth * 16).dp)
             .testTag("tags-node-${visibleNode.node.tag.id.value}")
-            .clickable(role = Role.Button, onClick = onToggle),
+            .clickable(role = Role.Button, onClick = onOpen),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
