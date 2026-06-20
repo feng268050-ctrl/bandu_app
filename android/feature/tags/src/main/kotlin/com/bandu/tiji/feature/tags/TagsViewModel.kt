@@ -7,6 +7,7 @@ import com.bandu.tiji.core.common.result.AppResult
 import com.bandu.tiji.domain.tag.CreateTagInput
 import com.bandu.tiji.domain.repository.TagRepository
 import com.bandu.tiji.domain.usecase.tag.CreateCustomTagUseCase
+import com.bandu.tiji.domain.usecase.tag.DeleteCustomTagUseCase
 import com.bandu.tiji.domain.usecase.tag.RenameCustomTagUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -24,6 +25,8 @@ class TagsViewModel(
         CreateCustomTagUseCase(tagRepository),
     private val renameCustomTag: RenameCustomTagUseCase =
         RenameCustomTagUseCase(tagRepository),
+    private val deleteCustomTag: DeleteCustomTagUseCase =
+        DeleteCustomTagUseCase(tagRepository),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(TagsUiState())
     val uiState: StateFlow<TagsUiState> = mutableUiState.asStateFlow()
@@ -48,13 +51,12 @@ class TagsViewModel(
             )
             is TagsAction.OpenCreate -> openCreate(action.parentId)
             is TagsAction.OpenRename -> openRename(action.node)
+            is TagsAction.OpenDelete -> openDelete(action.node)
             is TagsAction.EditorNameChanged -> updateEditorName(action.name)
             TagsAction.DismissEditor -> dismissEditor()
             TagsAction.SubmitEditor -> submitEditor()
-            is TagsAction.OpenDelete,
-            TagsAction.ConfirmDelete,
-            TagsAction.DismissDelete,
-            -> Unit
+            TagsAction.ConfirmDelete -> confirmDelete()
+            TagsAction.DismissDelete -> dismissDelete()
         }
     }
 
@@ -100,6 +102,54 @@ class TagsViewModel(
         mutationJob?.cancel()
         mutationJob = null
         mutableUiState.update { it.copy(editor = null) }
+    }
+
+    private fun openDelete(node: com.bandu.tiji.core.model.tag.TagNode) {
+        if (node.tag.isSystem) return
+        mutationJob?.cancel()
+        mutableUiState.update {
+            it.copy(
+                deleteConfirmation = TagDeleteConfirmation(
+                    tagId = node.tag.id,
+                    name = node.tag.name,
+                    linkedErrorItemCount = node.linkedErrorItemCount,
+                ),
+            )
+        }
+    }
+
+    private fun dismissDelete() {
+        mutationJob?.cancel()
+        mutationJob = null
+        mutableUiState.update { it.copy(deleteConfirmation = null) }
+    }
+
+    private fun confirmDelete() {
+        val confirmation = mutableUiState.value.deleteConfirmation ?: return
+        if (confirmation.isSubmitting) return
+        mutableUiState.update {
+            it.copy(
+                deleteConfirmation = confirmation.copy(
+                    isSubmitting = true,
+                    errorMessage = null,
+                ),
+            )
+        }
+        mutationJob = viewModelScope.launch {
+            when (deleteCustomTag(confirmation.tagId)) {
+                is AppResult.Success -> mutableUiState.update {
+                    it.copy(deleteConfirmation = null)
+                }
+                is AppResult.Failure -> mutableUiState.update { state ->
+                    state.copy(
+                        deleteConfirmation = state.deleteConfirmation?.copy(
+                            isSubmitting = false,
+                            errorMessage = "无法删除标签",
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     private fun submitEditor() {

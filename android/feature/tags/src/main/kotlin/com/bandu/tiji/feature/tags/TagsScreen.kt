@@ -85,6 +85,13 @@ fun TagsScreen(
             onDismiss = { onAction(TagsAction.DismissEditor) },
         )
     }
+    uiState.deleteConfirmation?.let { confirmation ->
+        TagDeleteDialog(
+            state = confirmation,
+            onConfirm = { onAction(TagsAction.ConfirmDelete) },
+            onDismiss = { onAction(TagsAction.DismissDelete) },
+        )
+    }
 }
 
 @Composable
