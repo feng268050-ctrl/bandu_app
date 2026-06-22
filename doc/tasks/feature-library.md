@@ -20,7 +20,7 @@
 - [x] `LIBRARY-010` 实现全部字段分组编辑和进程重开后持久化。验证：`AC-LIB-001`。
 - [x] `LIBRARY-011` 实现三态掌握状态、单条删除和删除后返回。验证：ViewModel 测试。
 - [x] `LIBRARY-012` 从详情发出绑定错题的 AI 辅导导航意图。验证：导航意图测试。
-- [ ] `LIBRARY-013` 接入 Markdown/GFM/LaTeX 展示。验证：`AC-LIB-003`。
+- [x] `LIBRARY-013` 接入 Markdown/GFM/LaTeX 展示。验证：`AC-LIB-003`。
 - [ ] `LIBRARY-014` 添加 5000 条列表滚动和筛选 Macrobenchmark 场景。验证：性能门槛。
 
 ## 模块完成条件

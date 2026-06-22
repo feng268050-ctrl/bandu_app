@@ -1,5 +1,6 @@
 package com.bandu.tiji.feature.library
 
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
@@ -61,6 +62,9 @@ class ErrorItemDetailDisplayTest {
                         isLoading = false,
                     ),
                     onAction = {},
+                    markdownRenderer = { markdown, modifier ->
+                        Text(markdown, modifier)
+                    },
                 )
             }
         }

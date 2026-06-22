@@ -22,6 +22,7 @@ import com.bandu.tiji.core.designsystem.component.BanduFilterChip
 import com.bandu.tiji.core.designsystem.component.BanduLoadingState
 import com.bandu.tiji.core.designsystem.component.BanduMasteryBadge
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
+import com.bandu.tiji.core.designsystem.markdown.MarkdownLatexView
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
 import com.bandu.tiji.core.model.enums.MistakeStatus
 import com.bandu.tiji.core.model.enums.MasteryLevel
@@ -37,6 +38,12 @@ fun ErrorItemDetailScreen(
     onAction: (ErrorItemDetailAction) -> Unit,
     modifier: Modifier = Modifier,
     imageModel: (String) -> Any? = { it },
+    markdownRenderer: @Composable (String, Modifier) -> Unit = { markdown, contentModifier ->
+        MarkdownLatexView(
+            markdown = markdown,
+            modifier = contentModifier.heightIn(min = 80.dp, max = 320.dp),
+        )
+    },
 ) {
     BanduPageScaffold(
         title = "错题详情",
@@ -64,6 +71,7 @@ fun ErrorItemDetailScreen(
                 uiState = uiState,
                 onAction = onAction,
                 imageModel = imageModel,
+                markdownRenderer = markdownRenderer,
                 modifier = Modifier.padding(contentPadding),
             )
         }
@@ -92,6 +100,7 @@ private fun ErrorItemDetailContent(
     uiState: ErrorItemDetailUiState,
     onAction: (ErrorItemDetailAction) -> Unit,
     imageModel: (String) -> Any?,
+    markdownRenderer: @Composable (String, Modifier) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -112,9 +121,9 @@ private fun ErrorItemDetailContent(
                 )
             }
         }
-        item { DetailSection("题目", item.questionText) }
-        item { DetailSection("答案", item.answerText) }
-        item { DetailSection("解析", item.analysis) }
+        item { MarkdownDetailSection("题目", item.questionText, markdownRenderer) }
+        item { MarkdownDetailSection("答案", item.answerText, markdownRenderer) }
+        item { MarkdownDetailSection("解析", item.analysis, markdownRenderer) }
         item {
             DetailSection(
                 "错误信息",
@@ -175,6 +184,23 @@ private fun ErrorItemDetailContent(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun MarkdownDetailSection(
+    title: String,
+    content: String,
+    renderer: @Composable (String, Modifier) -> Unit,
+) {
+    BanduCard(modifier = Modifier.fillMaxWidth()) {
+        Text(title, style = MaterialTheme.typography.titleMedium)
+        renderer(
+            content,
+            Modifier
+                .fillMaxWidth()
+                .testTag("detail-markdown-$title"),
+        )
     }
 }
 
