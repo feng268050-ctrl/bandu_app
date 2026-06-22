@@ -8,7 +8,7 @@
 
 ## 任务
 
-- [ ] `TUTOR-001` 创建会话列表和会话详情 Contract/Route。验证：模块编译。
+- [x] `TUTOR-001` 创建会话列表和会话详情 Contract/Route。验证：模块编译。
 - [ ] `TUTOR-002` 实现会话列表标题、绑定错题和更新时间。验证：Compose 测试。
 - [ ] `TUTOR-003` 实现新建无绑定会话和从错题创建绑定会话。验证：ViewModel 测试。
 - [ ] `TUTOR-004` 实现历史消息离线加载和 Markdown/LaTeX 展示。验证：无网络测试。
@@ -26,4 +26,3 @@
 
 - [ ] `:feature:tutor:testDebugUnitTest` 和流式 Compose 测试通过。
 - [ ] 练习仅存在于会话内，不增加独立一级页面。
-
