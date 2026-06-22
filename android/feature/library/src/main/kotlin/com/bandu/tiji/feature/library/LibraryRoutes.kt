@@ -54,6 +54,7 @@ fun ErrorItemDetailRoute(
     viewModel: ErrorItemDetailViewModel,
     onNavigate: (NavigationIntent) -> Unit,
     onBack: () -> Unit,
+    onSelectReplacementImage: () -> Unit = {},
     imageModel: (String) -> Any? = { it },
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -62,6 +63,7 @@ fun ErrorItemDetailRoute(
             when (effect) {
                 ErrorItemDetailEffect.NavigateBack -> onBack()
                 is ErrorItemDetailEffect.Navigate -> onNavigate(effect.intent)
+                ErrorItemDetailEffect.SelectReplacementImage -> onSelectReplacementImage()
             }
         }
     }

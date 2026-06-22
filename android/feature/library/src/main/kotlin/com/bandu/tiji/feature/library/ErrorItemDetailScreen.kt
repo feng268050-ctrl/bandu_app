@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -36,6 +37,13 @@ fun ErrorItemDetailScreen(
     BanduPageScaffold(
         title = "错题详情",
         modifier = modifier,
+        actions = {
+            if (uiState.item != null) {
+                TextButton(onClick = { onAction(ErrorItemDetailAction.OpenEditor) }) {
+                    Text("编辑")
+                }
+            }
+        },
     ) { contentPadding ->
         when {
             uiState.isLoading -> BanduLoadingState(
@@ -54,6 +62,10 @@ fun ErrorItemDetailScreen(
             )
         }
     }
+    ErrorItemEditorDialog(
+        state = uiState,
+        onAction = onAction,
+    )
 }
 
 @Composable
