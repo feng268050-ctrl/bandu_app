@@ -27,6 +27,7 @@ data class ProfileUiState(
     val isAiConfigurationActive: Boolean = false,
     val showPrivateHttpRiskConfirmation: Boolean = false,
     val promptEditor: PromptEditorState = PromptEditorState(),
+    val showAiDataConsent: Boolean = false,
 )
 
 data class PromptEditorState(
@@ -101,9 +102,17 @@ sealed interface ProfileAction {
     data object SavePrompt : ProfileAction
 
     data object ResetPrompt : ProfileAction
+
+    data object RequestAiDataConsent : ProfileAction
+
+    data object ConfirmAiDataConsent : ProfileAction
+
+    data object DismissAiDataConsent : ProfileAction
 }
 
-sealed interface ProfileEffect
+sealed interface ProfileEffect {
+    data object AiDataConsentGranted : ProfileEffect
+}
 
 val PromptDefaults = mapOf(
     PromptType.ANALYZE_IMAGE to

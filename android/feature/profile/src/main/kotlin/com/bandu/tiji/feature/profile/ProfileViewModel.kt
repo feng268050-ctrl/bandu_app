@@ -11,6 +11,7 @@ import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.domain.repository.AiConfigurationRepository
 import com.bandu.tiji.domain.repository.ProfileRepository
 import com.bandu.tiji.domain.ai.AiConfigurationDraft
+import com.bandu.tiji.domain.ai.AiDataConsentCoordinator
 import com.bandu.tiji.domain.usecase.aiconfig.SaveAndActivateAiConfigurationUseCase
 import com.bandu.tiji.domain.usecase.aiconfig.ResetPromptUseCase
 import com.bandu.tiji.domain.usecase.aiconfig.SavePromptUseCase
@@ -20,6 +21,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.receiveAsFlow
 
 class ProfileViewModel(
     private val profileRepository: ProfileRepository,
@@ -33,9 +36,12 @@ class ProfileViewModel(
         SaveAndActivateAiConfigurationUseCase(aiConfigurationRepository),
     private val savePrompt: SavePromptUseCase = SavePromptUseCase(aiConfigurationRepository),
     private val resetPrompt: ResetPromptUseCase = ResetPromptUseCase(aiConfigurationRepository),
+    private val aiDataConsent: AiDataConsentCoordinator = AiDataConsentCoordinator(),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = mutableUiState.asStateFlow()
+    private val mutableEffects = Channel<ProfileEffect>(Channel.BUFFERED)
+    val effects = mutableEffects.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -162,6 +168,21 @@ class ProfileViewModel(
             }
             ProfileAction.SavePrompt -> savePrompt()
             ProfileAction.ResetPrompt -> resetPrompt()
+            ProfileAction.RequestAiDataConsent -> {
+                if (aiDataConsent.isAccepted()) {
+                    mutableEffects.trySend(ProfileEffect.AiDataConsentGranted)
+                } else {
+                    mutableUiState.update { it.copy(showAiDataConsent = true) }
+                }
+            }
+            ProfileAction.ConfirmAiDataConsent -> {
+                aiDataConsent.accept()
+                mutableUiState.update { it.copy(showAiDataConsent = false) }
+                mutableEffects.trySend(ProfileEffect.AiDataConsentGranted)
+            }
+            ProfileAction.DismissAiDataConsent -> {
+                mutableUiState.update { it.copy(showAiDataConsent = false) }
+            }
         }
     }
 

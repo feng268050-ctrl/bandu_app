@@ -152,6 +152,9 @@ internal fun AiConfigurationScreen(
                     Text("恢复默认")
                 }
             }
+            TextButton(onClick = { onAction(ProfileAction.RequestAiDataConsent) }) {
+                Text("查看 AI 数据发送说明")
+            }
         }
     }
     if (uiState.showPrivateHttpRiskConfirmation) {
@@ -168,6 +171,28 @@ internal fun AiConfigurationScreen(
             },
             dismissButton = {
                 TextButton(onClick = { onAction(ProfileAction.DismissPrivateHttp) }) {
+                    Text("取消")
+                }
+            },
+        )
+    }
+    if (uiState.showAiDataConsent) {
+        AlertDialog(
+            onDismissRequest = { onAction(ProfileAction.DismissAiDataConsent) },
+            title = { Text("AI 数据发送说明") },
+            text = {
+                Text(
+                    "使用 AI 时，处理后的题目图片、题目内容、会话上下文和你的输入会发送到" +
+                        "所选 AI 服务商。API Key 仅保存在本机，不参与设备迁移。",
+                )
+            },
+            confirmButton = {
+                Button(onClick = { onAction(ProfileAction.ConfirmAiDataConsent) }) {
+                    Text("同意并继续")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onAction(ProfileAction.DismissAiDataConsent) }) {
                     Text("取消")
                 }
             },
