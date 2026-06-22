@@ -62,6 +62,8 @@ class ProfileViewModel(
                             providerType = configuration.providerType,
                             displayName = configuration.displayName,
                             baseUrl = configuration.baseUrl,
+                            apiKeyInput = "",
+                            hasSavedApiKey = configuration.hasApiKey,
                         ),
                     )
                 }
@@ -92,6 +94,9 @@ class ProfileViewModel(
             }
             is ProfileAction.UpdateAiBaseUrl -> updateAiDraft {
                 copy(baseUrl = action.value)
+            }
+            is ProfileAction.UpdateAiApiKey -> updateAiDraft {
+                copy(apiKeyInput = action.value)
             }
         }
     }

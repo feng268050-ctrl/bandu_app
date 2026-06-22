@@ -35,6 +35,8 @@ data class AiConfigurationDraftState(
     val providerType: AiProviderType = AiProviderType.GEMINI,
     val displayName: String = "Gemini",
     val baseUrl: String = GEMINI_DEFAULT_BASE_URL,
+    val apiKeyInput: String = "",
+    val hasSavedApiKey: Boolean = false,
 )
 
 const val GEMINI_DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
@@ -60,6 +62,8 @@ sealed interface ProfileAction {
     data class UpdateAiDisplayName(val value: String) : ProfileAction
 
     data class UpdateAiBaseUrl(val value: String) : ProfileAction
+
+    data class UpdateAiApiKey(val value: String) : ProfileAction
 }
 
 sealed interface ProfileEffect

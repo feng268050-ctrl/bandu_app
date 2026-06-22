@@ -10,6 +10,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
 import com.bandu.tiji.core.model.enums.AiProviderType
@@ -54,6 +55,26 @@ internal fun AiConfigurationScreen(
                 label = { Text("Base URL") },
                 singleLine = true,
             )
+            OutlinedTextField(
+                value = uiState.aiDraft.apiKeyInput,
+                onValueChange = { onAction(ProfileAction.UpdateAiApiKey(it)) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("API Key") },
+                placeholder = {
+                    Text(
+                        if (uiState.aiDraft.hasSavedApiKey) {
+                            "已安全保存，输入新值可替换"
+                        } else {
+                            "请输入 API Key"
+                        },
+                    )
+                },
+                visualTransformation = PasswordVisualTransformation(),
+                singleLine = true,
+            )
+            if (uiState.aiDraft.hasSavedApiKey) {
+                Text("已保存：••••••••")
+            }
         }
     }
 }
