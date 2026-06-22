@@ -21,7 +21,7 @@
 - [x] `PROFILE-011` 实现“清除学习数据”影响说明和指定文本确认。验证：保留 Profile/AI/Key/设备身份。
 - [x] `PROFILE-012` 实现“恢复出厂设置”影响说明和指定文本确认。验证：全部清除并生成新身份。
 - [x] `PROFILE-013` 实现关于页：名称、版本、隐私、开源许可和图标来源。验证：Compose 测试。
-- [ ] `PROFILE-014` 实现配置成功返回结果，供 PendingOperationCoordinator 恢复操作。验证：Capture/Tutor 集成测试。
+- [x] `PROFILE-014` 实现配置成功返回结果，供 PendingOperationCoordinator 恢复操作。验证：Capture/Tutor 集成测试。
 
 ## 模块完成条件
 

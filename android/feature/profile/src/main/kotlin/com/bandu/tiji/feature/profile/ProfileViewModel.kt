@@ -12,6 +12,7 @@ import com.bandu.tiji.domain.repository.AiConfigurationRepository
 import com.bandu.tiji.domain.repository.ProfileRepository
 import com.bandu.tiji.domain.ai.AiConfigurationDraft
 import com.bandu.tiji.domain.ai.AiDataConsentCoordinator
+import com.bandu.tiji.domain.pending.PendingOperationCoordinator
 import com.bandu.tiji.domain.usecase.aiconfig.SaveAndActivateAiConfigurationUseCase
 import com.bandu.tiji.domain.usecase.aiconfig.ResetPromptUseCase
 import com.bandu.tiji.domain.usecase.aiconfig.SavePromptUseCase
@@ -43,6 +44,8 @@ class ProfileViewModel(
         ClearLearningDataUseCase(profileRepository),
     private val factoryReset: FactoryResetUseCase = FactoryResetUseCase(profileRepository),
     aboutInfo: AboutInfo = AboutInfo(),
+    private val pendingOperations: PendingOperationCoordinator =
+        PendingOperationCoordinator(),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ProfileUiState(aboutInfo = aboutInfo))
     val uiState: StateFlow<ProfileUiState> = mutableUiState.asStateFlow()
@@ -276,9 +279,10 @@ class ProfileViewModel(
                     allowPrivateCleartext = draft.allowPrivateCleartext,
                 ),
             )
-            mutableUiState.update { current ->
-                when (result) {
-                    is AppResult.Success -> current.copy(
+            when (result) {
+                is AppResult.Success -> {
+                    mutableUiState.update { current ->
+                        current.copy(
                         isValidatingAi = false,
                         aiValidationMessage = "连接验证成功，配置已激活",
                         isAiConfigurationActive = true,
@@ -286,12 +290,20 @@ class ProfileViewModel(
                             apiKeyInput = "",
                             hasSavedApiKey = true,
                         ),
+                        )
+                    }
+                    mutableEffects.send(
+                        ProfileEffect.ConfigurationActivated(
+                            pendingOperations.consumeForResume(),
+                        ),
                     )
-                    is AppResult.Failure -> current.copy(
-                        isValidatingAi = false,
-                        aiValidationMessage = "连接验证失败，请检查地址、模型和密钥",
-                        isAiConfigurationActive = false,
-                    )
+                }
+                is AppResult.Failure -> mutableUiState.update { current ->
+                    current.copy(
+                            isValidatingAi = false,
+                            aiValidationMessage = "连接验证失败，请检查地址、模型和密钥",
+                            isAiConfigurationActive = false,
+                        )
                 }
             }
         }

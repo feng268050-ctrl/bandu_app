@@ -2,6 +2,7 @@ package com.bandu.tiji.feature.profile
 
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.domain.ai.PromptType
+import com.bandu.tiji.domain.pending.PendingAiOperation
 
 enum class ProfileSection(
     val title: String,
@@ -145,6 +146,10 @@ sealed interface ProfileAction {
 
 sealed interface ProfileEffect {
     data object AiDataConsentGranted : ProfileEffect
+
+    data class ConfigurationActivated(
+        val pendingOperation: PendingAiOperation?,
+    ) : ProfileEffect
 }
 
 val PromptDefaults = mapOf(
