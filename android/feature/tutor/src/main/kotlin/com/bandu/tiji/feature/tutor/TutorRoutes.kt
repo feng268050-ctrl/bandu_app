@@ -26,11 +26,21 @@ fun TutorSessionsRoute(
 
 @Composable
 fun TutorSessionRoute(
-    uiState: TutorSessionUiState,
-    onAction: (TutorSessionAction) -> Unit,
+    viewModel: TutorSessionViewModel,
+    onBack: () -> Unit,
+    onOpenAiConfiguration: () -> Unit,
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                TutorSessionEffect.NavigateBack -> onBack()
+                TutorSessionEffect.OpenAiConfiguration -> onOpenAiConfiguration()
+            }
+        }
+    }
     TutorSessionScreen(
         uiState = uiState,
-        onAction = onAction,
+        onAction = viewModel::onAction,
     )
 }

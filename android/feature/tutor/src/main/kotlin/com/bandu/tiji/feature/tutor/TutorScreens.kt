@@ -12,9 +12,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.bandu.tiji.core.designsystem.component.BanduCard
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
+import com.bandu.tiji.core.designsystem.markdown.MarkdownLatexView
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
+import com.bandu.tiji.core.model.tutor.TutorMessage
+import com.bandu.tiji.core.model.tutor.TutorMessageRole
 import com.bandu.tiji.core.model.tutor.TutorSessionSummary
 import java.time.Instant
 import java.time.ZoneId
@@ -110,11 +114,35 @@ fun TutorSessionScreen(
     uiState: TutorSessionUiState,
     onAction: (TutorSessionAction) -> Unit,
     modifier: Modifier = Modifier,
+    markdownRenderer: @Composable (String, Modifier, Boolean) -> Unit =
+        { markdown, contentModifier, streaming ->
+            MarkdownLatexView(
+                markdown = markdown,
+                modifier = contentModifier,
+                streaming = streaming,
+            )
+        },
 ) {
     BanduPageScaffold(
         title = uiState.session?.title ?: "辅导会话",
         modifier = modifier,
     ) { padding ->
+        TutorSessionContent(
+            uiState = uiState,
+            padding = padding,
+            markdownRenderer = markdownRenderer,
+        )
+    }
+}
+
+@Composable
+private fun TutorSessionContent(
+    uiState: TutorSessionUiState,
+    padding: PaddingValues,
+    markdownRenderer: @Composable (String, Modifier, Boolean) -> Unit,
+) {
+    val session = uiState.session
+    if (uiState.isLoading || session == null) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -122,12 +150,73 @@ fun TutorSessionScreen(
                 .padding(BanduSpacing.PageHorizontal),
         ) {
             Text(
-                text = when {
-                    uiState.isLoading -> "正在加载会话"
-                    uiState.session == null -> "会话不存在"
-                    else -> "消息 ${uiState.session.messages.size}"
+                uiState.errorMessage ?: if (uiState.isLoading) {
+                    "正在加载会话"
+                } else {
+                    "会话不存在"
                 },
             )
         }
+        return
+    }
+
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .testTag("tutor-session-messages"),
+        contentPadding = PaddingValues(BanduSpacing.PageHorizontal),
+        verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
+    ) {
+        items(
+            items = session.messages,
+            key = { it.id.value },
+        ) { message ->
+            TutorMessageCard(
+                message = message,
+                markdownRenderer = markdownRenderer,
+            )
+        }
+        if (uiState.streamingText.isNotEmpty()) {
+            item(key = "streaming-message") {
+                BanduCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("tutor-streaming-message"),
+                ) {
+                    Text("AI辅导")
+                    markdownRenderer(
+                        uiState.streamingText,
+                        Modifier.fillMaxWidth(),
+                        true,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TutorMessageCard(
+    message: TutorMessage,
+    markdownRenderer: @Composable (String, Modifier, Boolean) -> Unit,
+) {
+    BanduCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .testTag("tutor-message-${message.id.value}"),
+    ) {
+        Text(
+            when (message.role) {
+                TutorMessageRole.USER -> "我"
+                TutorMessageRole.ASSISTANT -> "AI辅导"
+                TutorMessageRole.SYSTEM_LOCAL -> "系统"
+            },
+        )
+        markdownRenderer(
+            message.content,
+            Modifier.fillMaxWidth(),
+            false,
+        )
     }
 }
