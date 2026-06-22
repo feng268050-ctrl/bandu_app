@@ -12,6 +12,7 @@ import com.bandu.tiji.core.model.tutor.TutorMessageRole
 import com.bandu.tiji.core.model.tutor.TutorMessageStatus
 import com.bandu.tiji.core.testing.coroutines.MainDispatcherRule
 import com.bandu.tiji.core.testing.fake.FakeTutorRepository
+import com.bandu.tiji.core.testing.fake.FakeAiTutorGateway
 import com.bandu.tiji.core.testing.fixture.sessionFixture
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -34,7 +35,7 @@ class TutorOfflineHistoryViewModelTest {
         }
         val repository = FakeTutorRepository(listOf(session))
 
-        val viewModel = TutorSessionViewModel(repository, session.id)
+        val viewModel = TutorSessionViewModel(repository, session.id, FakeAiTutorGateway())
         advanceUntilIdle()
 
         assertThat(viewModel.uiState.value.session?.messages).containsExactlyElementsIn(

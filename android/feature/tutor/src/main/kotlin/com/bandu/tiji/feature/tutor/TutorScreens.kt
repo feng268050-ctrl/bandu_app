@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
+import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -131,6 +133,7 @@ fun TutorSessionScreen(
             uiState = uiState,
             padding = padding,
             markdownRenderer = markdownRenderer,
+            onAction = onAction,
         )
     }
 }
@@ -140,6 +143,7 @@ private fun TutorSessionContent(
     uiState: TutorSessionUiState,
     padding: PaddingValues,
     markdownRenderer: @Composable (String, Modifier, Boolean) -> Unit,
+    onAction: (TutorSessionAction) -> Unit,
 ) {
     val session = uiState.session
     if (uiState.isLoading || session == null) {
@@ -160,38 +164,64 @@ private fun TutorSessionContent(
         return
     }
 
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(padding)
-            .testTag("tutor-session-messages"),
-        contentPadding = PaddingValues(BanduSpacing.PageHorizontal),
-        verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
+            .padding(padding),
+        verticalArrangement = Arrangement.spacedBy(BanduSpacing.Small),
     ) {
-        items(
-            items = session.messages,
-            key = { it.id.value },
-        ) { message ->
-            TutorMessageCard(
-                message = message,
-                markdownRenderer = markdownRenderer,
-            )
-        }
-        if (uiState.streamingText.isNotEmpty()) {
-            item(key = "streaming-message") {
-                BanduCard(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("tutor-streaming-message"),
-                ) {
-                    Text("AI辅导")
-                    markdownRenderer(
-                        uiState.streamingText,
-                        Modifier.fillMaxWidth(),
-                        true,
-                    )
+        LazyColumn(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .testTag("tutor-session-messages"),
+            contentPadding = PaddingValues(BanduSpacing.PageHorizontal),
+            verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
+        ) {
+            items(
+                items = session.messages,
+                key = { it.id.value },
+            ) { message ->
+                TutorMessageCard(
+                    message = message,
+                    markdownRenderer = markdownRenderer,
+                )
+            }
+            if (uiState.streamingText.isNotEmpty()) {
+                item(key = "streaming-message") {
+                    BanduCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("tutor-streaming-message"),
+                    ) {
+                        Text("AI辅导")
+                        markdownRenderer(
+                            uiState.streamingText,
+                            Modifier.fillMaxWidth(),
+                            true,
+                        )
+                    }
                 }
             }
+        }
+        uiState.errorMessage?.let { Text(it) }
+        OutlinedTextField(
+            value = uiState.input,
+            onValueChange = { onAction(TutorSessionAction.UpdateInput(it)) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BanduSpacing.PageHorizontal),
+            label = { Text("输入问题") },
+            enabled = !uiState.isStreaming,
+        )
+        Button(
+            onClick = { onAction(TutorSessionAction.Send) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BanduSpacing.PageHorizontal),
+            enabled = uiState.input.isNotBlank() && !uiState.isStreaming,
+        ) {
+            Text(if (uiState.isStreaming) "生成中" else "发送")
         }
     }
 }
