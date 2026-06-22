@@ -14,11 +14,13 @@ class FakeExerciseRepository(
 ) : ExerciseRepository {
     private val exercises = MutableStateFlow(initialExercises.associateBy { it.id })
     private var nextId = initialExercises.size + 1
+    val createdDrafts = mutableListOf<ExerciseDraft>()
 
     override fun observe(id: ExerciseId): Flow<Exercise?> =
         exercises.map { it[id] }
 
     override suspend fun create(draft: ExerciseDraft): ExerciseId {
+        createdDrafts += draft
         val id = ExerciseId("exercise-${nextId++}")
         exercises.value = exercises.value + (
             id to Exercise(

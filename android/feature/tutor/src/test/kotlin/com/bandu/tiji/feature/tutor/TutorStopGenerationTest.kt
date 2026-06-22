@@ -3,6 +3,7 @@ package com.bandu.tiji.feature.tutor
 import com.bandu.tiji.core.testing.coroutines.MainDispatcherRule
 import com.bandu.tiji.core.testing.fake.FakeAiTutorGateway
 import com.bandu.tiji.core.testing.fake.FakeTutorRepository
+import com.bandu.tiji.core.testing.fake.FakeExerciseRepository
 import com.bandu.tiji.core.testing.fake.TutorStreamScript
 import com.bandu.tiji.core.testing.fixture.sessionFixture
 import com.bandu.tiji.domain.ai.AiStreamEvent
@@ -36,7 +37,12 @@ class TutorStopGenerationTest {
                 ),
             )
         }
-        val viewModel = TutorSessionViewModel(repository, session.id, gateway)
+        val viewModel = TutorSessionViewModel(
+            repository,
+            session.id,
+            gateway,
+            FakeExerciseRepository(),
+        )
         advanceUntilIdle()
 
         viewModel.onAction(TutorSessionAction.UpdateInput("第一次"))

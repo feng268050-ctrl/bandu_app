@@ -5,8 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.bandu.tiji.core.model.id.TutorSessionId
 import com.bandu.tiji.domain.repository.TutorRepository
 import com.bandu.tiji.domain.repository.AiTutorGateway
+import com.bandu.tiji.domain.repository.ExerciseRepository
 import com.bandu.tiji.domain.usecase.tutor.SendTutorMessageUseCase
 import com.bandu.tiji.domain.usecase.tutor.StopTutorGenerationUseCase
+import com.bandu.tiji.domain.usecase.tutor.GenerateExerciseUseCase
+import com.bandu.tiji.domain.ai.ExerciseRequest
+import com.bandu.tiji.core.model.tutor.ExerciseDraft
 import com.bandu.tiji.core.common.result.AppResult
 import com.bandu.tiji.domain.ai.AiStreamEvent
 import kotlinx.coroutines.delay
@@ -24,6 +28,7 @@ class TutorSessionViewModel(
     private val tutorRepository: TutorRepository,
     private val sessionId: TutorSessionId,
     aiTutorGateway: AiTutorGateway,
+    private val exerciseRepository: ExerciseRepository,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(TutorSessionUiState())
     val uiState: StateFlow<TutorSessionUiState> = mutableUiState.asStateFlow()
@@ -38,6 +43,7 @@ class TutorSessionViewModel(
     private var pendingStreamingText = ""
     private val sendTutorMessage = SendTutorMessageUseCase(tutorRepository, aiTutorGateway)
     private val stopTutorGeneration = StopTutorGenerationUseCase(tutorRepository)
+    private val generateExercise = GenerateExerciseUseCase(aiTutorGateway)
 
     init {
         observeSession()
@@ -53,8 +59,12 @@ class TutorSessionViewModel(
             TutorSessionAction.Send -> send()
             TutorSessionAction.StopGeneration -> stopGeneration()
             TutorSessionAction.RequestStepByStep -> send(STEP_BY_STEP_MESSAGE)
-            is TutorSessionAction.SelectDifficulty,
-            TutorSessionAction.GenerateExercise,
+            is TutorSessionAction.SelectDifficulty ->
+                mutableUiState.value = mutableUiState.value.copy(
+                    selectedDifficulty = action.difficulty,
+                    exerciseErrorMessage = null,
+                )
+            TutorSessionAction.GenerateExercise -> generateExercise()
             is TutorSessionAction.UpdateExerciseAnswer,
             is TutorSessionAction.GradeExercise,
             is TutorSessionAction.OverrideGrade,
@@ -141,6 +151,53 @@ class TutorSessionViewModel(
                 isStreaming = false,
                 errorMessage = null,
             )
+        }
+    }
+
+    private fun generateExercise() {
+        val state = mutableUiState.value
+        val session = state.session ?: return
+        val difficulty = state.selectedDifficulty ?: return
+        if (state.isGeneratingExercise) return
+        mutableUiState.value = state.copy(
+            isGeneratingExercise = true,
+            exerciseErrorMessage = null,
+        )
+        viewModelScope.launch {
+            val request = ExerciseRequest(
+                sessionId = sessionId,
+                originalQuestion = session.messages
+                    .lastOrNull { it.role == com.bandu.tiji.core.model.tutor.TutorMessageRole.USER }
+                    ?.content
+                    .orEmpty(),
+                knowledgePoints = "",
+                difficulty = difficulty,
+                sourceErrorItemId = session.errorItemId,
+                subject = "未分类",
+            )
+            when (val result = generateExercise(request)) {
+                is AppResult.Success -> {
+                    val generated = result.value
+                    exerciseRepository.create(
+                        ExerciseDraft(
+                            sessionId = sessionId,
+                            sourceErrorItemId = session.errorItemId,
+                            subject = "未分类",
+                            difficulty = difficulty,
+                            questionText = generated.questionText,
+                            expectedAnswer = generated.answerText,
+                            analysis = generated.analysis,
+                        ),
+                    )
+                    mutableUiState.value = mutableUiState.value.copy(
+                        isGeneratingExercise = false,
+                    )
+                }
+                is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
+                    isGeneratingExercise = false,
+                    exerciseErrorMessage = "无法生成类似练习",
+                )
+            }
         }
     }
 

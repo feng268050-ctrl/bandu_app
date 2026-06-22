@@ -12,6 +12,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.layout.FlowRow
+import com.bandu.tiji.core.model.enums.ExerciseDifficulty
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -205,6 +208,36 @@ private fun TutorSessionContent(
             }
         }
         uiState.errorMessage?.let { Text(it) }
+        Text(
+            "生成类似练习",
+            modifier = Modifier.padding(horizontal = BanduSpacing.PageHorizontal),
+        )
+        FlowRow(
+            modifier = Modifier.padding(horizontal = BanduSpacing.PageHorizontal),
+            horizontalArrangement = Arrangement.spacedBy(BanduSpacing.Small),
+        ) {
+            ExerciseDifficulty.entries.forEach { difficulty ->
+                FilterChip(
+                    selected = uiState.selectedDifficulty == difficulty,
+                    onClick = {
+                        onAction(TutorSessionAction.SelectDifficulty(difficulty))
+                    },
+                    label = { Text(difficulty.tutorLabel()) },
+                )
+            }
+        }
+        Button(
+            onClick = { onAction(TutorSessionAction.GenerateExercise) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = BanduSpacing.PageHorizontal),
+            enabled = uiState.selectedDifficulty != null &&
+                !uiState.isGeneratingExercise &&
+                !uiState.isStreaming,
+        ) {
+            Text(if (uiState.isGeneratingExercise) "生成中" else "生成练习")
+        }
+        uiState.exerciseErrorMessage?.let { Text(it) }
         OutlinedTextField(
             value = uiState.input,
             onValueChange = { onAction(TutorSessionAction.UpdateInput(it)) },
@@ -244,6 +277,13 @@ private fun TutorSessionContent(
             }
         }
     }
+}
+
+private fun ExerciseDifficulty.tutorLabel(): String = when (this) {
+    ExerciseDifficulty.EASY -> "简单"
+    ExerciseDifficulty.MEDIUM -> "普通"
+    ExerciseDifficulty.HARD -> "困难"
+    ExerciseDifficulty.CHALLENGE -> "挑战"
 }
 
 @Composable

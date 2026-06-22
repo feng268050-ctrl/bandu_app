@@ -41,6 +41,8 @@ data class TutorSessionUiState(
     val exerciseAnswers: Map<ExerciseId, String> = emptyMap(),
     val gradingExerciseIds: Set<ExerciseId> = emptySet(),
     val pendingDelete: Boolean = false,
+    val isGeneratingExercise: Boolean = false,
+    val exerciseErrorMessage: String? = null,
 )
 
 sealed interface TutorSessionAction {
