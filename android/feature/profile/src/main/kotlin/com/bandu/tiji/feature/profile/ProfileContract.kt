@@ -1,6 +1,7 @@
 package com.bandu.tiji.feature.profile
 
 import com.bandu.tiji.core.model.enums.AiProviderType
+import com.bandu.tiji.domain.ai.PromptType
 
 enum class ProfileSection(
     val title: String,
@@ -25,6 +26,15 @@ data class ProfileUiState(
     val aiValidationMessage: String? = null,
     val isAiConfigurationActive: Boolean = false,
     val showPrivateHttpRiskConfirmation: Boolean = false,
+    val promptEditor: PromptEditorState = PromptEditorState(),
+)
+
+data class PromptEditorState(
+    val type: PromptType = PromptType.ANALYZE_IMAGE,
+    val template: String = PromptDefaults.getValue(PromptType.ANALYZE_IMAGE),
+    val isSaving: Boolean = false,
+    val errorMessage: String? = null,
+    val statusMessage: String? = null,
 )
 
 data class StudentProfileDraft(
@@ -83,6 +93,29 @@ sealed interface ProfileAction {
     data object ConfirmPrivateHttp : ProfileAction
 
     data object DismissPrivateHttp : ProfileAction
+
+    data class SelectPromptType(val type: PromptType) : ProfileAction
+
+    data class UpdatePromptTemplate(val value: String) : ProfileAction
+
+    data object SavePrompt : ProfileAction
+
+    data object ResetPrompt : ProfileAction
 }
 
 sealed interface ProfileEffect
+
+val PromptDefaults = mapOf(
+    PromptType.ANALYZE_IMAGE to
+        "{{language_instruction}}\n{{knowledge_points_list}}\n" +
+        "{{grade_instruction}}\n{{provider_hints}}",
+    PromptType.TUTOR to
+        "{{question_context}}\n{{conversation_context}}\n" +
+        "{{user_message}}\n{{grade_instruction}}",
+    PromptType.GENERATE_EXERCISE to
+        "{{original_question}}\n{{knowledge_points}}\n" +
+        "{{difficulty_level}}\n{{grade_instruction}}",
+    PromptType.GRADE_EXERCISE to
+        "{{exercise_question}}\n{{expected_answer}}\n" +
+        "{{user_answer}}\n{{rubric_context}}",
+)

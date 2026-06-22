@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Button
@@ -20,6 +22,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
 import com.bandu.tiji.core.model.enums.AiProviderType
+import com.bandu.tiji.domain.ai.PromptType
 
 @Composable
 internal fun AiConfigurationScreen(
@@ -36,7 +39,8 @@ internal fun AiConfigurationScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(contentPadding)
-                .padding(BanduSpacing.PageHorizontal),
+                .padding(BanduSpacing.PageHorizontal)
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
         ) {
             Text("服务类型")
@@ -115,6 +119,39 @@ internal fun AiConfigurationScreen(
                 Text(if (uiState.isValidatingAi) "正在验证" else "保存并验证")
             }
             uiState.aiValidationMessage?.let { Text(it) }
+            Text("高级提示词")
+            PromptType.entries.forEach { type ->
+                FilterChip(
+                    selected = uiState.promptEditor.type == type,
+                    onClick = { onAction(ProfileAction.SelectPromptType(type)) },
+                    label = { Text(type.profileLabel()) },
+                )
+            }
+            OutlinedTextField(
+                value = uiState.promptEditor.template,
+                onValueChange = { onAction(ProfileAction.UpdatePromptTemplate(it)) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("提示词模板") },
+                minLines = 6,
+            )
+            uiState.promptEditor.errorMessage?.let { Text(it) }
+            uiState.promptEditor.statusMessage?.let { Text(it) }
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(BanduSpacing.Small),
+            ) {
+                Button(
+                    onClick = { onAction(ProfileAction.SavePrompt) },
+                    enabled = !uiState.promptEditor.isSaving,
+                ) {
+                    Text("保存提示词")
+                }
+                TextButton(
+                    onClick = { onAction(ProfileAction.ResetPrompt) },
+                    enabled = !uiState.promptEditor.isSaving,
+                ) {
+                    Text("恢复默认")
+                }
+            }
         }
     }
     if (uiState.showPrivateHttpRiskConfirmation) {
@@ -143,3 +180,10 @@ internal fun AiProviderType.displayLabel(): String =
         AiProviderType.GEMINI -> "Gemini"
         AiProviderType.OPENAI_COMPATIBLE -> "OpenAI-compatible"
     }
+
+private fun PromptType.profileLabel(): String = when (this) {
+    PromptType.ANALYZE_IMAGE -> "图片分析"
+    PromptType.TUTOR -> "辅导"
+    PromptType.GENERATE_EXERCISE -> "变式题生成"
+    PromptType.GRADE_EXERCISE -> "练习批改"
+}

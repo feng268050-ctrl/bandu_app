@@ -12,6 +12,8 @@ import com.bandu.tiji.domain.repository.AiConfigurationRepository
 import com.bandu.tiji.domain.repository.ProfileRepository
 import com.bandu.tiji.domain.ai.AiConfigurationDraft
 import com.bandu.tiji.domain.usecase.aiconfig.SaveAndActivateAiConfigurationUseCase
+import com.bandu.tiji.domain.usecase.aiconfig.ResetPromptUseCase
+import com.bandu.tiji.domain.usecase.aiconfig.SavePromptUseCase
 import com.bandu.tiji.domain.usecase.profile.UpdateStudentProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -29,6 +31,8 @@ class ProfileViewModel(
         UpdateStudentProfileUseCase(profileRepository, clock),
     private val saveAiConfiguration: SaveAndActivateAiConfigurationUseCase =
         SaveAndActivateAiConfigurationUseCase(aiConfigurationRepository),
+    private val savePrompt: SavePromptUseCase = SavePromptUseCase(aiConfigurationRepository),
+    private val resetPrompt: ResetPromptUseCase = ResetPromptUseCase(aiConfigurationRepository),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = mutableUiState.asStateFlow()
@@ -135,6 +139,29 @@ class ProfileViewModel(
                     it.copy(showPrivateHttpRiskConfirmation = false)
                 }
             }
+            is ProfileAction.SelectPromptType -> {
+                mutableUiState.update {
+                    it.copy(
+                        promptEditor = PromptEditorState(
+                            type = action.type,
+                            template = PromptDefaults.getValue(action.type),
+                        ),
+                    )
+                }
+            }
+            is ProfileAction.UpdatePromptTemplate -> {
+                mutableUiState.update {
+                    it.copy(
+                        promptEditor = it.promptEditor.copy(
+                            template = action.value,
+                            errorMessage = null,
+                            statusMessage = null,
+                        ),
+                    )
+                }
+            }
+            ProfileAction.SavePrompt -> savePrompt()
+            ProfileAction.ResetPrompt -> resetPrompt()
         }
     }
 
@@ -202,6 +229,63 @@ class ProfileViewModel(
                         isValidatingAi = false,
                         aiValidationMessage = "连接验证失败，请检查地址、模型和密钥",
                         isAiConfigurationActive = false,
+                    )
+                }
+            }
+        }
+    }
+
+    private fun savePrompt() {
+        val editor = mutableUiState.value.promptEditor
+        if (editor.isSaving) return
+        mutableUiState.update {
+            it.copy(promptEditor = editor.copy(isSaving = true, errorMessage = null))
+        }
+        viewModelScope.launch {
+            when (savePrompt(editor.type, editor.template)) {
+                is AppResult.Success -> mutableUiState.update {
+                    it.copy(
+                        promptEditor = it.promptEditor.copy(
+                            isSaving = false,
+                            statusMessage = "提示词已保存",
+                        ),
+                    )
+                }
+                is AppResult.Failure -> mutableUiState.update {
+                    it.copy(
+                        promptEditor = it.promptEditor.copy(
+                            isSaving = false,
+                            errorMessage = "提示词缺少必要占位符或包含未知占位符",
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun resetPrompt() {
+        val editor = mutableUiState.value.promptEditor
+        if (editor.isSaving) return
+        mutableUiState.update {
+            it.copy(promptEditor = editor.copy(isSaving = true, errorMessage = null))
+        }
+        viewModelScope.launch {
+            when (resetPrompt(editor.type)) {
+                is AppResult.Success -> mutableUiState.update {
+                    it.copy(
+                        promptEditor = PromptEditorState(
+                            type = editor.type,
+                            template = PromptDefaults.getValue(editor.type),
+                            statusMessage = "已恢复默认提示词",
+                        ),
+                    )
+                }
+                is AppResult.Failure -> mutableUiState.update {
+                    it.copy(
+                        promptEditor = it.promptEditor.copy(
+                            isSaving = false,
+                            errorMessage = "无法恢复默认提示词",
+                        ),
                     )
                 }
             }
