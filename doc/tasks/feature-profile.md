@@ -10,7 +10,7 @@
 
 - [x] `PROFILE-001` 创建“我的”首页和五个设置分区 Contract/Route。验证：模块编译。
 - [x] `PROFILE-002` 实现昵称、教育阶段、入学年份编辑和校验。验证：未来年份拒绝测试。
-- [ ] `PROFILE-003` 实现设备名称编辑，限制长度并实时保存。验证：ViewModel 测试。
+- [x] `PROFILE-003` 实现设备名称编辑，限制长度并实时保存。验证：ViewModel 测试。
 - [ ] `PROFILE-004` 实现 Gemini/OpenAI-compatible Provider 选择和公共配置字段。验证：不显示 Azure。
 - [ ] `PROFILE-005` 实现 API Key 输入、掩码和“不读取明文回显”。验证：UI 状态测试。
 - [ ] `PROFILE-006` 实现图片模型和辅导模型独立配置。验证：保存模型测试。

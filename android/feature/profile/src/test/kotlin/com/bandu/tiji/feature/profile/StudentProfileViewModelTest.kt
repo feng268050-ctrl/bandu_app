@@ -27,7 +27,10 @@ class StudentProfileViewModelTest {
                 .toInstant()
                 .toEpochMilli(),
         )
-        val viewModel = ProfileViewModel(repository, clock)
+        val viewModel = ProfileViewModel(
+            profileRepository = repository,
+            clock = clock,
+        )
         advanceUntilIdle()
 
         viewModel.onAction(ProfileAction.UpdateNickname("小明"))

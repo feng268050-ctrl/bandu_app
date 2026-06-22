@@ -17,6 +17,7 @@ import kotlinx.coroutines.launch
 
 class ProfileViewModel(
     private val profileRepository: ProfileRepository,
+    private val deviceNameStore: DeviceNameStore = InMemoryDeviceNameStore(),
     clock: Clock = SystemClock(),
     private val updateStudentProfile: UpdateStudentProfileUseCase =
         UpdateStudentProfileUseCase(profileRepository, clock),
@@ -34,6 +35,16 @@ class ProfileViewModel(
                             educationStage = profile.educationStage,
                             enrollmentYear = profile.enrollmentYear?.toString().orEmpty(),
                         ),
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
+            deviceNameStore.observeDeviceName().collect { name ->
+                mutableUiState.update {
+                    it.copy(
+                        deviceName = name,
+                        deviceNameErrorMessage = null,
                     )
                 }
             }
@@ -56,6 +67,29 @@ class ProfileViewModel(
                 copy(enrollmentYear = action.value.filter(Char::isDigit).take(4))
             }
             ProfileAction.SaveStudentProfile -> saveStudentProfile()
+            is ProfileAction.UpdateDeviceName -> updateDeviceName(action.value)
+        }
+    }
+
+    private fun updateDeviceName(value: String) {
+        val normalized = value.take(MAX_DEVICE_NAME_LENGTH)
+        mutableUiState.update {
+            it.copy(
+                deviceName = normalized,
+                deviceNameErrorMessage = if (value.length > MAX_DEVICE_NAME_LENGTH) {
+                    "设备名称最多 $MAX_DEVICE_NAME_LENGTH 个字符"
+                } else {
+                    null
+                },
+            )
+        }
+        viewModelScope.launch {
+            runCatching { deviceNameStore.saveDeviceName(normalized) }
+                .onFailure {
+                    mutableUiState.update { state ->
+                        state.copy(deviceNameErrorMessage = "无法保存设备名称")
+                    }
+                }
         }
     }
 
@@ -107,4 +141,8 @@ class ProfileViewModel(
         } else {
             "无法保存学生资料"
         }
+
+    companion object {
+        const val MAX_DEVICE_NAME_LENGTH = 40
+    }
 }

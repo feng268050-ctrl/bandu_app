@@ -29,6 +29,11 @@ fun ProfileScreen(
             onAction = onAction,
             modifier = modifier,
         )
+        ProfileSection.DEVICE -> DeviceNameScreen(
+            uiState = uiState,
+            onAction = onAction,
+            modifier = modifier,
+        )
         else -> ProfileSectionPlaceholder(
             section = section,
             onBack = { onAction(ProfileAction.Back) },

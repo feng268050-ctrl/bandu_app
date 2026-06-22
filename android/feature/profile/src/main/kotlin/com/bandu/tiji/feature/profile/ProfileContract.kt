@@ -16,6 +16,8 @@ data class ProfileUiState(
     val studentDraft: StudentProfileDraft = StudentProfileDraft(),
     val studentErrorMessage: String? = null,
     val isSavingStudent: Boolean = false,
+    val deviceName: String = "",
+    val deviceNameErrorMessage: String? = null,
 )
 
 data class StudentProfileDraft(
@@ -38,6 +40,8 @@ sealed interface ProfileAction {
     data class UpdateEnrollmentYear(val value: String) : ProfileAction
 
     data object SaveStudentProfile : ProfileAction
+
+    data class UpdateDeviceName(val value: String) : ProfileAction
 }
 
 sealed interface ProfileEffect
