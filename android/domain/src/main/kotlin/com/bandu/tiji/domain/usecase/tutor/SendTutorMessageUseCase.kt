@@ -9,6 +9,7 @@ import com.bandu.tiji.domain.repository.AiTutorGateway
 import com.bandu.tiji.domain.repository.TutorRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.CancellationException
 
 class SendTutorMessageUseCase(
     private val tutorRepository: TutorRepository,
@@ -47,6 +48,8 @@ class SendTutorMessageUseCase(
                 }
                 emit(AppResult.Success(event))
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (error: Throwable) {
             emit(AppResult.Failure(AppError.Unexpected(error)))
         }

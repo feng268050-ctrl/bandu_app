@@ -223,6 +223,16 @@ private fun TutorSessionContent(
         ) {
             Text(if (uiState.isStreaming) "生成中" else "发送")
         }
+        if (uiState.isStreaming) {
+            Button(
+                onClick = { onAction(TutorSessionAction.StopGeneration) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = BanduSpacing.PageHorizontal),
+            ) {
+                Text("停止生成")
+            }
+        }
     }
 }
 

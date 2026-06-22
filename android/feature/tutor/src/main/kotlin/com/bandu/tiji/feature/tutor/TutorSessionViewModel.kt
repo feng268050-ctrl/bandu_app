@@ -6,9 +6,11 @@ import com.bandu.tiji.core.model.id.TutorSessionId
 import com.bandu.tiji.domain.repository.TutorRepository
 import com.bandu.tiji.domain.repository.AiTutorGateway
 import com.bandu.tiji.domain.usecase.tutor.SendTutorMessageUseCase
+import com.bandu.tiji.domain.usecase.tutor.StopTutorGenerationUseCase
 import com.bandu.tiji.core.common.result.AppResult
 import com.bandu.tiji.domain.ai.AiStreamEvent
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -32,8 +34,10 @@ class TutorSessionViewModel(
     private var observationJob: Job? = null
     private var streamingJob: Job? = null
     private var refreshJob: Job? = null
+    private var stopJob: Job? = null
     private var pendingStreamingText = ""
     private val sendTutorMessage = SendTutorMessageUseCase(tutorRepository, aiTutorGateway)
+    private val stopTutorGeneration = StopTutorGenerationUseCase(tutorRepository)
 
     init {
         observeSession()
@@ -47,7 +51,7 @@ class TutorSessionViewModel(
             is TutorSessionAction.UpdateInput ->
                 mutableUiState.value = mutableUiState.value.copy(input = action.text)
             TutorSessionAction.Send -> send()
-            TutorSessionAction.StopGeneration,
+            TutorSessionAction.StopGeneration -> stopGeneration()
             TutorSessionAction.RequestStepByStep,
             is TutorSessionAction.SelectDifficulty,
             TutorSessionAction.GenerateExercise,
@@ -117,6 +121,25 @@ class TutorSessionViewModel(
             delay(STREAMING_UI_REFRESH_MILLIS)
             mutableUiState.value = mutableUiState.value.copy(
                 streamingText = pendingStreamingText,
+            )
+        }
+    }
+
+    private fun stopGeneration() {
+        if (!mutableUiState.value.isStreaming) return
+        val partialText = pendingStreamingText
+        stopJob?.cancel()
+        stopJob = viewModelScope.launch {
+            streamingJob?.cancelAndJoin()
+            refreshJob?.cancel()
+            if (partialText.isNotBlank()) {
+                stopTutorGeneration(sessionId, partialText)
+            }
+            pendingStreamingText = ""
+            mutableUiState.value = mutableUiState.value.copy(
+                streamingText = "",
+                isStreaming = false,
+                errorMessage = null,
             )
         }
     }
