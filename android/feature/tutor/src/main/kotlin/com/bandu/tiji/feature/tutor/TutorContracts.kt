@@ -3,6 +3,7 @@ package com.bandu.tiji.feature.tutor
 import com.bandu.tiji.core.model.enums.ExerciseDifficulty
 import com.bandu.tiji.core.model.enums.GradeResult
 import com.bandu.tiji.core.model.id.ExerciseId
+import com.bandu.tiji.core.model.id.ErrorItemId
 import com.bandu.tiji.core.model.id.TutorSessionId
 import com.bandu.tiji.core.model.tutor.TutorSession
 import com.bandu.tiji.core.model.tutor.TutorSessionSummary
@@ -18,6 +19,7 @@ data class TutorSessionsUiState(
 sealed interface TutorSessionsAction {
     data object Retry : TutorSessionsAction
     data object CreateSession : TutorSessionsAction
+    data class CreateSessionForError(val errorItemId: ErrorItemId) : TutorSessionsAction
     data class OpenSession(val sessionId: TutorSessionId) : TutorSessionsAction
     data class RequestDelete(val sessionId: TutorSessionId) : TutorSessionsAction
     data object DismissDelete : TutorSessionsAction
