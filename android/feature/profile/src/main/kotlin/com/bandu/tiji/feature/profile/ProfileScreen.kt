@@ -24,6 +24,11 @@ fun ProfileScreen(
 ) {
     when (val section = uiState.currentSection) {
         null -> ProfileOverview(onAction = onAction, modifier = modifier)
+        ProfileSection.STUDENT -> StudentProfileScreen(
+            uiState = uiState,
+            onAction = onAction,
+            modifier = modifier,
+        )
         else -> ProfileSectionPlaceholder(
             section = section,
             onBack = { onAction(ProfileAction.Back) },

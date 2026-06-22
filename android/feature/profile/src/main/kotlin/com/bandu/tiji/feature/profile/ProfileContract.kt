@@ -13,12 +13,31 @@ enum class ProfileSection(
 
 data class ProfileUiState(
     val currentSection: ProfileSection? = null,
+    val studentDraft: StudentProfileDraft = StudentProfileDraft(),
+    val studentErrorMessage: String? = null,
+    val isSavingStudent: Boolean = false,
 )
+
+data class StudentProfileDraft(
+    val nickname: String = "",
+    val educationStage: String? = null,
+    val enrollmentYear: String = "",
+)
+
+val EducationStages = listOf("小学", "初中", "高中")
 
 sealed interface ProfileAction {
     data class OpenSection(val section: ProfileSection) : ProfileAction
 
     data object Back : ProfileAction
+
+    data class UpdateNickname(val value: String) : ProfileAction
+
+    data class UpdateEducationStage(val value: String?) : ProfileAction
+
+    data class UpdateEnrollmentYear(val value: String) : ProfileAction
+
+    data object SaveStudentProfile : ProfileAction
 }
 
 sealed interface ProfileEffect
