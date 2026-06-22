@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -74,6 +75,26 @@ internal fun AiConfigurationScreen(
             )
             if (uiState.aiDraft.hasSavedApiKey) {
                 Text("已保存：••••••••")
+            }
+            OutlinedTextField(
+                value = uiState.aiDraft.analysisModel,
+                onValueChange = { onAction(ProfileAction.UpdateAnalysisModel(it)) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("图片分析模型") },
+                singleLine = true,
+            )
+            OutlinedTextField(
+                value = uiState.aiDraft.tutorModel,
+                onValueChange = { onAction(ProfileAction.UpdateTutorModel(it)) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("辅导模型") },
+                singleLine = true,
+            )
+            Button(
+                onClick = { onAction(ProfileAction.SaveAiConfiguration) },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text("保存并验证")
             }
         }
     }

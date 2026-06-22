@@ -13,7 +13,7 @@
 - [x] `PROFILE-003` 实现设备名称编辑，限制长度并实时保存。验证：ViewModel 测试。
 - [x] `PROFILE-004` 实现 Gemini/OpenAI-compatible Provider 选择和公共配置字段。验证：不显示 Azure。
 - [x] `PROFILE-005` 实现 API Key 输入、掩码和“不读取明文回显”。验证：UI 状态测试。
-- [ ] `PROFILE-006` 实现图片模型和辅导模型独立配置。验证：保存模型测试。
+- [x] `PROFILE-006` 实现图片模型和辅导模型独立配置。验证：保存模型测试。
 - [ ] `PROFILE-007` 实现连接验证，成功后激活、失败保留未激活草稿。验证：Fake Gateway 测试。
 - [ ] `PROFILE-008` 实现私有 HTTP 高级开关和风险确认。验证：未确认不能启用。
 - [ ] `PROFILE-009` 实现四类提示词编辑、占位符错误和恢复默认。验证：`AC-AI-003`。

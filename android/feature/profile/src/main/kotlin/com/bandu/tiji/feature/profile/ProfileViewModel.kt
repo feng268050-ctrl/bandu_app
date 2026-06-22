@@ -10,6 +10,8 @@ import com.bandu.tiji.core.model.profile.StudentProfile
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.domain.repository.AiConfigurationRepository
 import com.bandu.tiji.domain.repository.ProfileRepository
+import com.bandu.tiji.domain.ai.AiConfigurationDraft
+import com.bandu.tiji.domain.usecase.aiconfig.SaveAndActivateAiConfigurationUseCase
 import com.bandu.tiji.domain.usecase.profile.UpdateStudentProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +27,8 @@ class ProfileViewModel(
     clock: Clock = SystemClock(),
     private val updateStudentProfile: UpdateStudentProfileUseCase =
         UpdateStudentProfileUseCase(profileRepository, clock),
+    private val saveAiConfiguration: SaveAndActivateAiConfigurationUseCase =
+        SaveAndActivateAiConfigurationUseCase(aiConfigurationRepository),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = mutableUiState.asStateFlow()
@@ -64,6 +68,8 @@ class ProfileViewModel(
                             baseUrl = configuration.baseUrl,
                             apiKeyInput = "",
                             hasSavedApiKey = configuration.hasApiKey,
+                            analysisModel = configuration.analysisModel,
+                            tutorModel = configuration.tutorModel,
                         ),
                     )
                 }
@@ -98,6 +104,13 @@ class ProfileViewModel(
             is ProfileAction.UpdateAiApiKey -> updateAiDraft {
                 copy(apiKeyInput = action.value)
             }
+            is ProfileAction.UpdateAnalysisModel -> updateAiDraft {
+                copy(analysisModel = action.value)
+            }
+            is ProfileAction.UpdateTutorModel -> updateAiDraft {
+                copy(tutorModel = action.value)
+            }
+            ProfileAction.SaveAiConfiguration -> saveAiConfiguration()
         }
     }
 
@@ -121,6 +134,22 @@ class ProfileViewModel(
         transform: AiConfigurationDraftState.() -> AiConfigurationDraftState,
     ) {
         mutableUiState.update { it.copy(aiDraft = it.aiDraft.transform()) }
+    }
+
+    private fun saveAiConfiguration() {
+        val draft = mutableUiState.value.aiDraft
+        viewModelScope.launch {
+            saveAiConfiguration(
+                AiConfigurationDraft(
+                    providerType = draft.providerType,
+                    displayName = draft.displayName.trim(),
+                    baseUrl = draft.baseUrl.trim(),
+                    apiKey = draft.apiKeyInput.trim().ifBlank { null },
+                    analysisModel = draft.analysisModel.trim(),
+                    tutorModel = draft.tutorModel.trim(),
+                ),
+            )
+        }
     }
 
     private fun updateDeviceName(value: String) {
