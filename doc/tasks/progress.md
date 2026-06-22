@@ -17,9 +17,9 @@
 | 指标 | 数量 |
 | --- | ---: |
 | 模块总数 | 22 |
-| 已完成 | 16 |
-| 进行中 | 1 |
-| 未开始 | 5 |
+| 已完成 | 18 |
+| 进行中 | 4 |
+| 未开始 | 0 |
 
 ## 第 1 批：工程与稳定模型
 
@@ -89,9 +89,9 @@
 
 ## 第 7 批：AI 用户功能
 
-- [ ] [`:feature:profile`](./feature-profile.md) - 资料、AI 设置和数据管理
+- [x] [`:feature:profile`](./feature-profile.md) - 资料、AI 设置和数据管理
 - [ ] [`:feature:capture`](./feature-capture.md) - 拍照、分析和保存
-- [ ] [`:feature:tutor`](./feature-tutor.md) - 辅导、练习和批改
+- [x] [`:feature:tutor`](./feature-tutor.md) - 辅导、练习和批改
 
 批次完成标准：
 

@@ -25,5 +25,5 @@
 
 ## 模块完成条件
 
-- [ ] `:feature:profile:testDebugUnitTest` 和数据清除仪器测试通过。
-- [ ] `AC-AI-003` 至 `AC-AI-005`、`PRD-PRO-*` 通过。
+- [x] `:feature:profile:testDebugUnitTest` 和数据清除仪器测试通过。
+- [x] `AC-AI-003` 至 `AC-AI-005`、`PRD-PRO-*` 通过。
