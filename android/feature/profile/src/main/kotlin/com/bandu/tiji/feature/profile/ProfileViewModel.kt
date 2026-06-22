@@ -112,6 +112,29 @@ class ProfileViewModel(
                 copy(tutorModel = action.value)
             }
             ProfileAction.SaveAiConfiguration -> saveAiConfiguration()
+            is ProfileAction.RequestPrivateHttp -> {
+                if (action.enabled) {
+                    mutableUiState.update {
+                        it.copy(showPrivateHttpRiskConfirmation = true)
+                    }
+                } else {
+                    updateAiDraft { copy(allowPrivateCleartext = false) }
+                }
+            }
+            ProfileAction.ConfirmPrivateHttp -> {
+                mutableUiState.update {
+                    it.copy(
+                        aiDraft = it.aiDraft.copy(allowPrivateCleartext = true),
+                        showPrivateHttpRiskConfirmation = false,
+                        isAiConfigurationActive = false,
+                    )
+                }
+            }
+            ProfileAction.DismissPrivateHttp -> {
+                mutableUiState.update {
+                    it.copy(showPrivateHttpRiskConfirmation = false)
+                }
+            }
         }
     }
 
@@ -161,6 +184,7 @@ class ProfileViewModel(
                     apiKey = draft.apiKeyInput.trim().ifBlank { null },
                     analysisModel = draft.analysisModel.trim(),
                     tutorModel = draft.tutorModel.trim(),
+                    allowPrivateCleartext = draft.allowPrivateCleartext,
                 ),
             )
             mutableUiState.update { current ->

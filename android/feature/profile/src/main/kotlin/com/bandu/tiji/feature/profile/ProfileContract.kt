@@ -24,6 +24,7 @@ data class ProfileUiState(
     val isValidatingAi: Boolean = false,
     val aiValidationMessage: String? = null,
     val isAiConfigurationActive: Boolean = false,
+    val showPrivateHttpRiskConfirmation: Boolean = false,
 )
 
 data class StudentProfileDraft(
@@ -42,6 +43,7 @@ data class AiConfigurationDraftState(
     val hasSavedApiKey: Boolean = false,
     val analysisModel: String = "",
     val tutorModel: String = "",
+    val allowPrivateCleartext: Boolean = false,
 )
 
 const val GEMINI_DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
@@ -75,6 +77,12 @@ sealed interface ProfileAction {
     data class UpdateTutorModel(val value: String) : ProfileAction
 
     data object SaveAiConfiguration : ProfileAction
+
+    data class RequestPrivateHttp(val enabled: Boolean) : ProfileAction
+
+    data object ConfirmPrivateHttp : ProfileAction
+
+    data object DismissPrivateHttp : ProfileAction
 }
 
 sealed interface ProfileEffect
