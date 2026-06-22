@@ -62,6 +62,10 @@ data class CaptureUiState(
 )
 
 sealed interface CaptureAction {
+    data object ChooseCamera : CaptureAction
+
+    data object ChoosePhoto : CaptureAction
+
     data object Cancel : CaptureAction
 }
 
