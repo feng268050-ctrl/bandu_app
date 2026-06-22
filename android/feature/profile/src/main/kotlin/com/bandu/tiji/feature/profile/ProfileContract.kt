@@ -1,5 +1,7 @@
 package com.bandu.tiji.feature.profile
 
+import com.bandu.tiji.core.model.enums.AiProviderType
+
 enum class ProfileSection(
     val title: String,
     val description: String,
@@ -18,6 +20,7 @@ data class ProfileUiState(
     val isSavingStudent: Boolean = false,
     val deviceName: String = "",
     val deviceNameErrorMessage: String? = null,
+    val aiDraft: AiConfigurationDraftState = AiConfigurationDraftState(),
 )
 
 data class StudentProfileDraft(
@@ -27,6 +30,15 @@ data class StudentProfileDraft(
 )
 
 val EducationStages = listOf("小学", "初中", "高中")
+
+data class AiConfigurationDraftState(
+    val providerType: AiProviderType = AiProviderType.GEMINI,
+    val displayName: String = "Gemini",
+    val baseUrl: String = GEMINI_DEFAULT_BASE_URL,
+)
+
+const val GEMINI_DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
+const val OPENAI_COMPATIBLE_DEFAULT_BASE_URL = "https://api.openai.com/v1"
 
 sealed interface ProfileAction {
     data class OpenSection(val section: ProfileSection) : ProfileAction
@@ -42,6 +54,12 @@ sealed interface ProfileAction {
     data object SaveStudentProfile : ProfileAction
 
     data class UpdateDeviceName(val value: String) : ProfileAction
+
+    data class SelectAiProvider(val value: AiProviderType) : ProfileAction
+
+    data class UpdateAiDisplayName(val value: String) : ProfileAction
+
+    data class UpdateAiBaseUrl(val value: String) : ProfileAction
 }
 
 sealed interface ProfileEffect

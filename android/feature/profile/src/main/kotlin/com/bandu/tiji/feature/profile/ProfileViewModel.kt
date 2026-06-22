@@ -7,6 +7,8 @@ import com.bandu.tiji.core.common.result.AppResult
 import com.bandu.tiji.core.common.time.Clock
 import com.bandu.tiji.core.common.time.SystemClock
 import com.bandu.tiji.core.model.profile.StudentProfile
+import com.bandu.tiji.core.model.enums.AiProviderType
+import com.bandu.tiji.domain.repository.AiConfigurationRepository
 import com.bandu.tiji.domain.repository.ProfileRepository
 import com.bandu.tiji.domain.usecase.profile.UpdateStudentProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +20,8 @@ import kotlinx.coroutines.launch
 class ProfileViewModel(
     private val profileRepository: ProfileRepository,
     private val deviceNameStore: DeviceNameStore = InMemoryDeviceNameStore(),
+    private val aiConfigurationRepository: AiConfigurationRepository =
+        EmptyAiConfigurationRepository,
     clock: Clock = SystemClock(),
     private val updateStudentProfile: UpdateStudentProfileUseCase =
         UpdateStudentProfileUseCase(profileRepository, clock),
@@ -49,6 +53,20 @@ class ProfileViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            aiConfigurationRepository.observeActiveConfiguration().collect { configuration ->
+                configuration ?: return@collect
+                mutableUiState.update {
+                    it.copy(
+                        aiDraft = AiConfigurationDraftState(
+                            providerType = configuration.providerType,
+                            displayName = configuration.displayName,
+                            baseUrl = configuration.baseUrl,
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     fun onAction(action: ProfileAction) {
@@ -68,7 +86,36 @@ class ProfileViewModel(
             }
             ProfileAction.SaveStudentProfile -> saveStudentProfile()
             is ProfileAction.UpdateDeviceName -> updateDeviceName(action.value)
+            is ProfileAction.SelectAiProvider -> selectAiProvider(action.value)
+            is ProfileAction.UpdateAiDisplayName -> updateAiDraft {
+                copy(displayName = action.value)
+            }
+            is ProfileAction.UpdateAiBaseUrl -> updateAiDraft {
+                copy(baseUrl = action.value)
+            }
         }
+    }
+
+    private fun selectAiProvider(providerType: AiProviderType) {
+        updateAiDraft {
+            copy(
+                providerType = providerType,
+                displayName = when (providerType) {
+                    AiProviderType.GEMINI -> "Gemini"
+                    AiProviderType.OPENAI_COMPATIBLE -> "OpenAI-compatible"
+                },
+                baseUrl = when (providerType) {
+                    AiProviderType.GEMINI -> GEMINI_DEFAULT_BASE_URL
+                    AiProviderType.OPENAI_COMPATIBLE -> OPENAI_COMPATIBLE_DEFAULT_BASE_URL
+                },
+            )
+        }
+    }
+
+    private fun updateAiDraft(
+        transform: AiConfigurationDraftState.() -> AiConfigurationDraftState,
+    ) {
+        mutableUiState.update { it.copy(aiDraft = it.aiDraft.transform()) }
     }
 
     private fun updateDeviceName(value: String) {
