@@ -8,7 +8,7 @@
 
 ## 任务
 
-- [ ] `RUNTIME-001` 创建 Android Library 模块和 Runtime public API。验证：`:transfer:runtime:compileDebugKotlin`。
+- [x] `RUNTIME-001` 创建 Android Library 模块和 Runtime public API。验证：`:transfer:runtime:compileDebugKotlin`。
 - [ ] `RUNTIME-002` 实现本机设备 UUID、Keystore P-256 身份和公钥指纹存取。验证：重启保持、重置变化测试。
 - [ ] `RUNTIME-003` 实现 `_bandu-tiji._tcp.` NSD 注册、TXT 和手动发现。验证：两模拟器发现测试。
 - [ ] `RUNTIME-004` 实现发现生命周期，离开页面停止注册和扫描。验证：生命周期仪器测试。
@@ -28,4 +28,3 @@
 
 - [ ] 双设备 E2E 和 5000 条迁移基准通过。
 - [ ] 无用户操作时不扫描、不注册、不启动迁移服务。
-
