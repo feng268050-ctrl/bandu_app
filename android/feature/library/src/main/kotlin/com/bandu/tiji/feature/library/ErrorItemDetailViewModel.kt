@@ -86,6 +86,15 @@ class ErrorItemDetailViewModel(
                 }
             }
             ErrorItemDetailAction.ConfirmDelete -> confirmDelete()
+            ErrorItemDetailAction.OpenTutor -> {
+                mutableEffects.trySend(
+                    ErrorItemDetailEffect.Navigate(
+                        com.bandu.tiji.core.model.navigation.NavigationIntent.OpenTutor(
+                            errorItemId.value,
+                        ),
+                    ),
+                )
+            }
         }
     }
 

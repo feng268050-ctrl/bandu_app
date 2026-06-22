@@ -70,6 +70,8 @@ sealed interface ErrorItemDetailAction {
     data object DismissDelete : ErrorItemDetailAction
 
     data object ConfirmDelete : ErrorItemDetailAction
+
+    data object OpenTutor : ErrorItemDetailAction
 }
 
 sealed interface ErrorItemDetailEffect {

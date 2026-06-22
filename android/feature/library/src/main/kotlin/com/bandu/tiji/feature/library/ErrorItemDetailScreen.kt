@@ -167,6 +167,9 @@ private fun ErrorItemDetailContent(
                     Text("正在更新掌握状态")
                 }
                 uiState.masteryErrorMessage?.let { Text(it) }
+                TextButton(onClick = { onAction(ErrorItemDetailAction.OpenTutor) }) {
+                    Text("AI 辅导")
+                }
                 TextButton(onClick = { onAction(ErrorItemDetailAction.RequestDelete) }) {
                     Text("删除错题")
                 }
