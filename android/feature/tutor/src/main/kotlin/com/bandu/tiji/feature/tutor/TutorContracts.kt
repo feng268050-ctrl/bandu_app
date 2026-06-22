@@ -43,6 +43,14 @@ data class TutorSessionUiState(
     val pendingDelete: Boolean = false,
     val isGeneratingExercise: Boolean = false,
     val exerciseErrorMessage: String? = null,
+    val exerciseGrades: Map<ExerciseId, ExerciseGradeUiState> = emptyMap(),
+)
+
+data class ExerciseGradeUiState(
+    val aiResult: GradeResult,
+    val finalResult: GradeResult = aiResult,
+    val feedback: String,
+    val isOverridden: Boolean = false,
 )
 
 sealed interface TutorSessionAction {

@@ -9,7 +9,9 @@ import com.bandu.tiji.domain.repository.ExerciseRepository
 import com.bandu.tiji.domain.usecase.tutor.SendTutorMessageUseCase
 import com.bandu.tiji.domain.usecase.tutor.StopTutorGenerationUseCase
 import com.bandu.tiji.domain.usecase.tutor.GenerateExerciseUseCase
+import com.bandu.tiji.domain.usecase.tutor.GradeExerciseUseCase
 import com.bandu.tiji.domain.ai.ExerciseRequest
+import com.bandu.tiji.domain.ai.GradeExerciseRequest
 import com.bandu.tiji.core.model.tutor.ExerciseDraft
 import com.bandu.tiji.core.common.result.AppResult
 import com.bandu.tiji.domain.ai.AiStreamEvent
@@ -44,6 +46,7 @@ class TutorSessionViewModel(
     private val sendTutorMessage = SendTutorMessageUseCase(tutorRepository, aiTutorGateway)
     private val stopTutorGeneration = StopTutorGenerationUseCase(tutorRepository)
     private val generateExercise = GenerateExerciseUseCase(aiTutorGateway)
+    private val gradeExercise = GradeExerciseUseCase(aiTutorGateway)
 
     init {
         observeSession()
@@ -65,8 +68,13 @@ class TutorSessionViewModel(
                     exerciseErrorMessage = null,
                 )
             TutorSessionAction.GenerateExercise -> generateExercise()
-            is TutorSessionAction.UpdateExerciseAnswer,
-            is TutorSessionAction.GradeExercise,
+            is TutorSessionAction.UpdateExerciseAnswer ->
+                mutableUiState.value = mutableUiState.value.copy(
+                    exerciseAnswers = mutableUiState.value.exerciseAnswers +
+                        (action.exerciseId to action.text),
+                    exerciseErrorMessage = null,
+                )
+            is TutorSessionAction.GradeExercise -> gradeExercise(action.exerciseId)
             is TutorSessionAction.OverrideGrade,
             TutorSessionAction.RequestDelete,
             TutorSessionAction.DismissDelete,
@@ -196,6 +204,57 @@ class TutorSessionViewModel(
                 is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
                     isGeneratingExercise = false,
                     exerciseErrorMessage = "无法生成类似练习",
+                )
+            }
+        }
+    }
+
+    private fun gradeExercise(exerciseId: com.bandu.tiji.core.model.id.ExerciseId) {
+        val state = mutableUiState.value
+        val exercise = state.session?.exercises?.firstOrNull { it.id == exerciseId } ?: return
+        val answer = state.exerciseAnswers[exerciseId].orEmpty()
+        if (exerciseId in state.gradingExerciseIds) return
+        mutableUiState.value = state.copy(
+            gradingExerciseIds = state.gradingExerciseIds + exerciseId,
+            exerciseErrorMessage = null,
+        )
+        viewModelScope.launch {
+            when (
+                val result = gradeExercise(
+                    GradeExerciseRequest(
+                        exerciseId = exercise.id,
+                        exerciseQuestion = exercise.questionText,
+                        expectedAnswer = exercise.expectedAnswer,
+                        userAnswer = answer,
+                        rubricContext = exercise.analysis,
+                    ),
+                )
+            ) {
+                is AppResult.Success -> {
+                    val grade = result.value
+                    exerciseRepository.recordGrade(
+                        id = exercise.id,
+                        userAnswer = answer.trim(),
+                        result = grade.result,
+                        feedback = grade.feedback,
+                    )
+                    mutableUiState.value = mutableUiState.value.copy(
+                        gradingExerciseIds =
+                            mutableUiState.value.gradingExerciseIds - exerciseId,
+                        exerciseGrades = mutableUiState.value.exerciseGrades +
+                            (
+                                exerciseId to ExerciseGradeUiState(
+                                    aiResult = grade.result,
+                                    feedback = grade.feedback,
+                                )
+                            ),
+                    )
+                }
+                is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
+                    gradingExerciseIds =
+                        mutableUiState.value.gradingExerciseIds - exerciseId,
+                    exerciseErrorMessage =
+                        if (answer.isBlank()) "请输入练习答案" else "无法批改练习",
                 )
             }
         }

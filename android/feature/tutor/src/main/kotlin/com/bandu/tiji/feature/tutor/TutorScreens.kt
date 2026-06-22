@@ -15,6 +15,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.FilterChip
 import androidx.compose.foundation.layout.FlowRow
 import com.bandu.tiji.core.model.enums.ExerciseDifficulty
+import com.bandu.tiji.core.model.enums.GradeResult
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -206,6 +207,44 @@ private fun TutorSessionContent(
                     }
                 }
             }
+            items(
+                items = session.exercises,
+                key = { "exercise-${it.id.value}" },
+            ) { exercise ->
+                val grade = uiState.exerciseGrades[exercise.id]
+                BanduCard(modifier = Modifier.fillMaxWidth()) {
+                    Text("类似练习 · ${exercise.difficulty.tutorLabel()}")
+                    markdownRenderer(exercise.questionText, Modifier.fillMaxWidth(), false)
+                    OutlinedTextField(
+                        value = uiState.exerciseAnswers[exercise.id].orEmpty(),
+                        onValueChange = {
+                            onAction(
+                                TutorSessionAction.UpdateExerciseAnswer(exercise.id, it),
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("你的答案") },
+                    )
+                    Button(
+                        onClick = {
+                            onAction(TutorSessionAction.GradeExercise(exercise.id))
+                        },
+                        enabled = exercise.id !in uiState.gradingExerciseIds,
+                    ) {
+                        Text(
+                            if (exercise.id in uiState.gradingExerciseIds) {
+                                "批改中"
+                            } else {
+                                "提交批改"
+                            },
+                        )
+                    }
+                    grade?.let {
+                        Text("批改结果：${it.finalResult.gradeLabel()}")
+                        Text(it.feedback)
+                    }
+                }
+            }
         }
         uiState.errorMessage?.let { Text(it) }
         Text(
@@ -284,6 +323,12 @@ private fun ExerciseDifficulty.tutorLabel(): String = when (this) {
     ExerciseDifficulty.MEDIUM -> "普通"
     ExerciseDifficulty.HARD -> "困难"
     ExerciseDifficulty.CHALLENGE -> "挑战"
+}
+
+private fun GradeResult.gradeLabel(): String = when (this) {
+    GradeResult.CORRECT -> "正确"
+    GradeResult.INCORRECT -> "错误"
+    GradeResult.NEEDS_REVIEW -> "待复核"
 }
 
 @Composable
