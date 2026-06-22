@@ -6,6 +6,7 @@ import com.bandu.tiji.core.common.result.AppResult
 import com.bandu.tiji.core.model.id.ErrorItemId
 import com.bandu.tiji.domain.repository.TutorRepository
 import com.bandu.tiji.domain.usecase.tutor.GetOrCreateTutorSessionUseCase
+import com.bandu.tiji.domain.usecase.tutor.DeleteTutorSessionUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,8 +26,10 @@ class TutorSessionsViewModel(
     val effects = mutableEffects.receiveAsFlow()
 
     private val getOrCreateSession = GetOrCreateTutorSessionUseCase(repository)
+    private val deleteSession = DeleteTutorSessionUseCase(repository)
     private var observationJob: Job? = null
     private var createJob: Job? = null
+    private var deleteJob: Job? = null
 
     init {
         observeSessions()
@@ -40,12 +43,20 @@ class TutorSessionsViewModel(
             is TutorSessionsAction.OpenSession ->
                 mutableEffects.trySend(TutorSessionsEffect.OpenSession(action.sessionId))
             is TutorSessionsAction.RequestDelete -> {
-                mutableUiState.value = mutableUiState.value.copy(pendingDelete = action.sessionId)
+                mutableUiState.value = mutableUiState.value.copy(
+                    pendingDelete = action.sessionId,
+                    deleteErrorMessage = null,
+                )
             }
             TutorSessionsAction.DismissDelete -> {
-                mutableUiState.value = mutableUiState.value.copy(pendingDelete = null)
+                if (!mutableUiState.value.isDeleting) {
+                    mutableUiState.value = mutableUiState.value.copy(
+                        pendingDelete = null,
+                        deleteErrorMessage = null,
+                    )
+                }
             }
-            TutorSessionsAction.ConfirmDelete -> Unit
+            TutorSessionsAction.ConfirmDelete -> confirmDelete()
         }
     }
 
@@ -91,6 +102,29 @@ class TutorSessionsViewModel(
                         errorMessage = "无法创建辅导会话",
                     )
                 }
+            }
+        }
+    }
+
+    private fun confirmDelete() {
+        val sessionId = mutableUiState.value.pendingDelete ?: return
+        if (mutableUiState.value.isDeleting) return
+        mutableUiState.value = mutableUiState.value.copy(
+            isDeleting = true,
+            deleteErrorMessage = null,
+        )
+        deleteJob?.cancel()
+        deleteJob = viewModelScope.launch {
+            when (deleteSession(sessionId)) {
+                is AppResult.Success -> mutableUiState.value = mutableUiState.value.copy(
+                    pendingDelete = null,
+                    isDeleting = false,
+                    deleteErrorMessage = null,
+                )
+                is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
+                    isDeleting = false,
+                    deleteErrorMessage = "无法删除辅导会话",
+                )
             }
         }
     }

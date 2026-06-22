@@ -15,6 +15,8 @@ data class TutorSessionsUiState(
     val isCreating: Boolean = false,
     val errorMessage: String? = null,
     val pendingDelete: TutorSessionId? = null,
+    val isDeleting: Boolean = false,
+    val deleteErrorMessage: String? = null,
 )
 
 sealed interface TutorSessionsAction {

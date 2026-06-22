@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.TextButton
 import androidx.compose.foundation.layout.FlowRow
 import com.bandu.tiji.core.model.enums.ExerciseDifficulty
 import com.bandu.tiji.core.model.enums.GradeResult
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.bandu.tiji.core.designsystem.component.BanduCard
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
+import com.bandu.tiji.core.designsystem.component.BanduDangerConfirmationDialog
 import com.bandu.tiji.core.designsystem.markdown.MarkdownLatexView
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
 import com.bandu.tiji.core.model.tutor.TutorMessage
@@ -41,6 +43,18 @@ fun TutorSessionsScreen(
         modifier = modifier,
     ) { padding ->
         TutorSessionsContent(uiState, onAction, padding)
+    }
+    uiState.pendingDelete?.let {
+        BanduDangerConfirmationDialog(
+            title = "删除辅导会话",
+            message = listOfNotNull(
+                "会话中的消息和练习将永久删除，绑定的错题不会删除。",
+                uiState.deleteErrorMessage,
+            ).joinToString("\n"),
+            confirmLabel = if (uiState.isDeleting) "删除中" else "确认删除",
+            onConfirm = { onAction(TutorSessionsAction.ConfirmDelete) },
+            onDismiss = { onAction(TutorSessionsAction.DismissDelete) },
+        )
     }
 }
 
@@ -73,6 +87,9 @@ private fun TutorSessionsContent(
                     onClick = {
                         onAction(TutorSessionsAction.OpenSession(session.id))
                     },
+                    onDelete = {
+                        onAction(TutorSessionsAction.RequestDelete(session.id))
+                    },
                 )
             }
         }
@@ -83,6 +100,7 @@ private fun TutorSessionsContent(
 private fun TutorSessionSummaryCard(
     session: TutorSessionSummary,
     onClick: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     BanduCard(
         modifier = Modifier
@@ -104,6 +122,9 @@ private fun TutorSessionSummaryCard(
             text = "更新于 ${formatTutorTimestamp(session.updatedAtEpochMillis)}",
             style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
         )
+        TextButton(onClick = onDelete) {
+            Text("删除会话")
+        }
     }
 }
 
