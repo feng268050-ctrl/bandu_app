@@ -1,11 +1,21 @@
 package com.bandu.tiji.feature.devices
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import com.bandu.tiji.core.designsystem.component.BanduCard
+import com.bandu.tiji.core.designsystem.component.BanduEmptyState
 import com.bandu.tiji.core.designsystem.component.BanduErrorState
 import com.bandu.tiji.core.designsystem.component.BanduLoadingState
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
+import com.bandu.tiji.core.designsystem.theme.BanduSpacing
 
 @Composable
 fun DevicesScreen(
@@ -16,17 +26,89 @@ fun DevicesScreen(
     BanduPageScaffold(
         title = "设备",
         modifier = modifier,
-    ) { padding ->
+    ) { contentPadding ->
         when {
             uiState.isLoading -> BanduLoadingState(
                 message = "正在加载设备信息",
-                modifier = Modifier,
+                modifier = Modifier.padding(contentPadding),
             )
             uiState.errorMessage != null -> BanduErrorState(
                 message = uiState.errorMessage,
                 onRetry = { onAction(DevicesAction.Retry) },
+                modifier = Modifier.padding(contentPadding),
             )
-            else -> Text("设备迁移", modifier = Modifier)
+            else -> LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(contentPadding)
+                    .padding(horizontal = BanduSpacing.PageHorizontal)
+                    .testTag("devices-list"),
+                verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
+            ) {
+                item {
+                    BanduCard(modifier = Modifier.fillMaxWidth()) {
+                        Text("本机", style = MaterialTheme.typography.titleMedium)
+                        Text(uiState.localDeviceName)
+                        Text("身份指纹：${uiState.localFingerprint}")
+                    }
+                }
+                item {
+                    DeviceSectionTitle("附近设备")
+                }
+                if (uiState.nearbyDevices.isEmpty()) {
+                    item {
+                        BanduEmptyState(
+                            title = "未发现附近设备",
+                            description = "手动开始发现后，确保两台设备位于同一局域网。",
+                        )
+                    }
+                } else {
+                    items(
+                        count = uiState.nearbyDevices.size,
+                        key = { uiState.nearbyDevices[it].discoveryId },
+                    ) { index ->
+                        val device = uiState.nearbyDevices[index]
+                        BanduCard(modifier = Modifier.fillMaxWidth()) {
+                            Text(device.displayName)
+                            Text(
+                                when (device.mode) {
+                                    com.bandu.tiji.domain.transfer.DiscoveryMode.PAIR ->
+                                        "可配对设备"
+                                    com.bandu.tiji.domain.transfer.DiscoveryMode.TRUSTED ->
+                                        "已信任设备在线"
+                                },
+                            )
+                        }
+                    }
+                }
+                item {
+                    DeviceSectionTitle("已配对设备")
+                }
+                if (uiState.trustedDevices.isEmpty()) {
+                    item {
+                        Text("暂无已配对设备")
+                    }
+                } else {
+                    items(
+                        count = uiState.trustedDevices.size,
+                        key = { uiState.trustedDevices[it].deviceId },
+                    ) { index ->
+                        val device = uiState.trustedDevices[index]
+                        BanduCard(modifier = Modifier.fillMaxWidth()) {
+                            Text(device.displayName)
+                            Text("身份指纹：${device.publicKeyFingerprint}")
+                        }
+                    }
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun DeviceSectionTitle(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleLarge,
+    )
 }
