@@ -4,9 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bandu.tiji.domain.repository.DeviceTransferRepository
 import com.bandu.tiji.core.common.result.AppResult
+import com.bandu.tiji.core.common.time.Clock
+import com.bandu.tiji.core.common.time.SystemClock
+import com.bandu.tiji.domain.usecase.transfer.CreateReceiveCodeUseCase
 import com.bandu.tiji.domain.usecase.transfer.StartDiscoveryUseCase
 import com.bandu.tiji.domain.usecase.transfer.StopDiscoveryUseCase
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,6 +22,7 @@ class DevicesViewModel(
     private val repository: DeviceTransferRepository,
     localDeviceName: String,
     localFingerprint: String,
+    private val clock: Clock = SystemClock(),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(
         DevicesUiState(
@@ -28,8 +33,10 @@ class DevicesViewModel(
     val uiState: StateFlow<DevicesUiState> = mutableUiState.asStateFlow()
     private var observationJob: Job? = null
     private var commandJob: Job? = null
+    private var receiveJob: Job? = null
     private val startDiscovery = StartDiscoveryUseCase(repository)
     private val stopDiscovery = StopDiscoveryUseCase(repository)
+    private val createReceiveCode = CreateReceiveCodeUseCase(repository)
 
     init {
         observeDevices()
@@ -42,6 +49,8 @@ class DevicesViewModel(
             DevicesAction.StopDiscovery,
             DevicesAction.LeavePage,
             -> runDiscoveryCommand(start = false)
+            DevicesAction.StartReceiveMode -> startReceiveMode()
+            DevicesAction.StopReceiveMode -> stopReceiveMode()
         }
     }
 
@@ -95,5 +104,60 @@ class DevicesViewModel(
                 },
             )
         }
+    }
+
+    private fun startReceiveMode() {
+        if (mutableUiState.value.receiveMode?.isCreating == true) return
+        mutableUiState.value = mutableUiState.value.copy(
+            receiveMode = ReceiveModeUiState(
+                code = null,
+                expiresAtEpochMillis = null,
+                secondsRemaining = 0,
+                isCreating = true,
+            ),
+        )
+        receiveJob?.cancel()
+        receiveJob = viewModelScope.launch {
+            when (val result = createReceiveCode()) {
+                is AppResult.Success -> {
+                    val code = result.value
+                    updateReceiveCountdown(code.code, code.expiresAtEpochMillis)
+                    while (mutableUiState.value.receiveMode?.isExpired == false) {
+                        delay(1_000)
+                        updateReceiveCountdown(code.code, code.expiresAtEpochMillis)
+                    }
+                }
+                is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
+                    receiveMode = ReceiveModeUiState(
+                        code = null,
+                        expiresAtEpochMillis = null,
+                        secondsRemaining = 0,
+                        isCreating = false,
+                        errorMessage = "无法开启接收模式",
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun updateReceiveCountdown(code: String, expiresAt: Long) {
+        val remainingMillis = (expiresAt - clock.nowEpochMillis()).coerceAtLeast(0L)
+        mutableUiState.value = mutableUiState.value.copy(
+            receiveMode = ReceiveModeUiState(
+                code = code,
+                expiresAtEpochMillis = expiresAt,
+                secondsRemaining = ((remainingMillis + 999L) / 1_000L)
+                    .coerceAtMost(Int.MAX_VALUE.toLong())
+                    .toInt(),
+                isCreating = false,
+            ),
+        )
+    }
+
+    private fun stopReceiveMode() {
+        receiveJob?.cancel()
+        receiveJob = null
+        mutableUiState.value = mutableUiState.value.copy(receiveMode = null)
+        runDiscoveryCommand(start = false)
     }
 }

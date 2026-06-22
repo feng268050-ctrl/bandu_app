@@ -14,7 +14,19 @@ data class DevicesUiState(
     val errorMessage: String? = null,
     val isDiscoveryCommandRunning: Boolean = false,
     val commandErrorMessage: String? = null,
+    val receiveMode: ReceiveModeUiState? = null,
 )
+
+data class ReceiveModeUiState(
+    val code: String?,
+    val expiresAtEpochMillis: Long?,
+    val secondsRemaining: Int,
+    val isCreating: Boolean,
+    val errorMessage: String? = null,
+) {
+    val isExpired: Boolean
+        get() = code != null && secondsRemaining <= 0
+}
 
 sealed interface DevicesAction {
     data object Retry : DevicesAction
@@ -24,6 +36,10 @@ sealed interface DevicesAction {
     data object StopDiscovery : DevicesAction
 
     data object LeavePage : DevicesAction
+
+    data object StartReceiveMode : DevicesAction
+
+    data object StopReceiveMode : DevicesAction
 }
 
 sealed interface DevicesEffect

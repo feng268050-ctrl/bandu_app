@@ -52,6 +52,41 @@ fun DevicesScreen(
                         Text("本机", style = MaterialTheme.typography.titleMedium)
                         Text(uiState.localDeviceName)
                         Text("身份指纹：${uiState.localFingerprint}")
+                        if (uiState.receiveMode == null) {
+                            Button(onClick = { onAction(DevicesAction.StartReceiveMode) }) {
+                                Text("接收数据")
+                            }
+                        } else {
+                            TextButton(onClick = { onAction(DevicesAction.StopReceiveMode) }) {
+                                Text("退出接收模式")
+                            }
+                        }
+                    }
+                }
+                uiState.receiveMode?.let { receiveMode ->
+                    item {
+                        BanduCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("receive-mode-card"),
+                        ) {
+                            Text("接收模式", style = MaterialTheme.typography.titleMedium)
+                            when {
+                                receiveMode.isCreating -> Text("正在生成配对码")
+                                receiveMode.errorMessage != null ->
+                                    Text(receiveMode.errorMessage)
+                                receiveMode.code != null -> {
+                                    Text("配对码：${receiveMode.code}")
+                                    Text(
+                                        if (receiveMode.isExpired) {
+                                            "配对码已过期"
+                                        } else {
+                                            "剩余 ${receiveMode.secondsRemaining} 秒"
+                                        },
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
                 item {
