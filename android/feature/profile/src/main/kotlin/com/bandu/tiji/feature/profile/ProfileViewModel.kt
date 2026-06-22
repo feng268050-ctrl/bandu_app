@@ -71,6 +71,7 @@ class ProfileViewModel(
                             analysisModel = configuration.analysisModel,
                             tutorModel = configuration.tutorModel,
                         ),
+                        isAiConfigurationActive = true,
                     )
                 }
             }
@@ -133,13 +134,26 @@ class ProfileViewModel(
     private fun updateAiDraft(
         transform: AiConfigurationDraftState.() -> AiConfigurationDraftState,
     ) {
-        mutableUiState.update { it.copy(aiDraft = it.aiDraft.transform()) }
+        mutableUiState.update {
+            it.copy(
+                aiDraft = it.aiDraft.transform(),
+                aiValidationMessage = null,
+                isAiConfigurationActive = false,
+            )
+        }
     }
 
     private fun saveAiConfiguration() {
+        if (mutableUiState.value.isValidatingAi) return
         val draft = mutableUiState.value.aiDraft
+        mutableUiState.update {
+            it.copy(
+                isValidatingAi = true,
+                aiValidationMessage = null,
+            )
+        }
         viewModelScope.launch {
-            saveAiConfiguration(
+            val result = saveAiConfiguration(
                 AiConfigurationDraft(
                     providerType = draft.providerType,
                     displayName = draft.displayName.trim(),
@@ -149,6 +163,24 @@ class ProfileViewModel(
                     tutorModel = draft.tutorModel.trim(),
                 ),
             )
+            mutableUiState.update { current ->
+                when (result) {
+                    is AppResult.Success -> current.copy(
+                        isValidatingAi = false,
+                        aiValidationMessage = "连接验证成功，配置已激活",
+                        isAiConfigurationActive = true,
+                        aiDraft = current.aiDraft.copy(
+                            apiKeyInput = "",
+                            hasSavedApiKey = true,
+                        ),
+                    )
+                    is AppResult.Failure -> current.copy(
+                        isValidatingAi = false,
+                        aiValidationMessage = "连接验证失败，请检查地址、模型和密钥",
+                        isAiConfigurationActive = false,
+                    )
+                }
+            }
         }
     }
 

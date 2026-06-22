@@ -21,6 +21,9 @@ data class ProfileUiState(
     val deviceName: String = "",
     val deviceNameErrorMessage: String? = null,
     val aiDraft: AiConfigurationDraftState = AiConfigurationDraftState(),
+    val isValidatingAi: Boolean = false,
+    val aiValidationMessage: String? = null,
+    val isAiConfigurationActive: Boolean = false,
 )
 
 data class StudentProfileDraft(

@@ -93,9 +93,11 @@ internal fun AiConfigurationScreen(
             Button(
                 onClick = { onAction(ProfileAction.SaveAiConfiguration) },
                 modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isValidatingAi,
             ) {
-                Text("保存并验证")
+                Text(if (uiState.isValidatingAi) "正在验证" else "保存并验证")
             }
+            uiState.aiValidationMessage?.let { Text(it) }
         }
     }
 }
