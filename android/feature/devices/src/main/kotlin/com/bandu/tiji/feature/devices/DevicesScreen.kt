@@ -6,7 +6,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -54,6 +56,26 @@ fun DevicesScreen(
                 }
                 item {
                     DeviceSectionTitle("附近设备")
+                }
+                item {
+                    val discovering = uiState.transferState ==
+                        com.bandu.tiji.domain.transfer.TransferState.Discovering
+                    if (discovering) {
+                        TextButton(
+                            onClick = { onAction(DevicesAction.StopDiscovery) },
+                            enabled = !uiState.isDiscoveryCommandRunning,
+                        ) {
+                            Text("停止发现")
+                        }
+                    } else {
+                        Button(
+                            onClick = { onAction(DevicesAction.StartDiscovery) },
+                            enabled = !uiState.isDiscoveryCommandRunning,
+                        ) {
+                            Text("开始发现")
+                        }
+                    }
+                    uiState.commandErrorMessage?.let { Text(it) }
                 }
                 if (uiState.nearbyDevices.isEmpty()) {
                     item {

@@ -12,10 +12,18 @@ data class DevicesUiState(
     val transferState: TransferState = TransferState.Idle,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
+    val isDiscoveryCommandRunning: Boolean = false,
+    val commandErrorMessage: String? = null,
 )
 
 sealed interface DevicesAction {
     data object Retry : DevicesAction
+
+    data object StartDiscovery : DevicesAction
+
+    data object StopDiscovery : DevicesAction
+
+    data object LeavePage : DevicesAction
 }
 
 sealed interface DevicesEffect

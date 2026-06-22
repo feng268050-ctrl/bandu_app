@@ -3,6 +3,9 @@ package com.bandu.tiji.feature.devices
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bandu.tiji.domain.repository.DeviceTransferRepository
+import com.bandu.tiji.core.common.result.AppResult
+import com.bandu.tiji.domain.usecase.transfer.StartDiscoveryUseCase
+import com.bandu.tiji.domain.usecase.transfer.StopDiscoveryUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,6 +27,9 @@ class DevicesViewModel(
     )
     val uiState: StateFlow<DevicesUiState> = mutableUiState.asStateFlow()
     private var observationJob: Job? = null
+    private var commandJob: Job? = null
+    private val startDiscovery = StartDiscoveryUseCase(repository)
+    private val stopDiscovery = StopDiscoveryUseCase(repository)
 
     init {
         observeDevices()
@@ -32,6 +38,10 @@ class DevicesViewModel(
     fun onAction(action: DevicesAction) {
         when (action) {
             DevicesAction.Retry -> observeDevices()
+            DevicesAction.StartDiscovery -> runDiscoveryCommand(start = true)
+            DevicesAction.StopDiscovery,
+            DevicesAction.LeavePage,
+            -> runDiscoveryCommand(start = false)
         }
     }
 
@@ -64,6 +74,26 @@ class DevicesViewModel(
                         errorMessage = null,
                     )
                 }
+        }
+    }
+
+    private fun runDiscoveryCommand(start: Boolean) {
+        if (mutableUiState.value.isDiscoveryCommandRunning) return
+        mutableUiState.value = mutableUiState.value.copy(
+            isDiscoveryCommandRunning = true,
+            commandErrorMessage = null,
+        )
+        commandJob?.cancel()
+        commandJob = viewModelScope.launch {
+            val result = if (start) startDiscovery() else stopDiscovery()
+            mutableUiState.value = mutableUiState.value.copy(
+                isDiscoveryCommandRunning = false,
+                commandErrorMessage = when (result) {
+                    is AppResult.Success -> null
+                    is AppResult.Failure ->
+                        if (start) "无法开始发现设备" else "无法停止发现设备"
+                },
+            )
         }
     }
 }
