@@ -39,6 +39,11 @@ fun ProfileScreen(
             onAction = onAction,
             modifier = modifier,
         )
+        ProfileSection.DATA -> DataManagementScreen(
+            uiState = uiState,
+            onAction = onAction,
+            modifier = modifier,
+        )
         else -> ProfileSectionPlaceholder(
             section = section,
             onBack = { onAction(ProfileAction.Back) },

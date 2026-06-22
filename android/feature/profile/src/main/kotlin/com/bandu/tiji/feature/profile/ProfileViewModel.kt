@@ -16,6 +16,7 @@ import com.bandu.tiji.domain.usecase.aiconfig.SaveAndActivateAiConfigurationUseC
 import com.bandu.tiji.domain.usecase.aiconfig.ResetPromptUseCase
 import com.bandu.tiji.domain.usecase.aiconfig.SavePromptUseCase
 import com.bandu.tiji.domain.usecase.profile.UpdateStudentProfileUseCase
+import com.bandu.tiji.domain.usecase.profile.ClearLearningDataUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -37,6 +38,8 @@ class ProfileViewModel(
     private val savePrompt: SavePromptUseCase = SavePromptUseCase(aiConfigurationRepository),
     private val resetPrompt: ResetPromptUseCase = ResetPromptUseCase(aiConfigurationRepository),
     private val aiDataConsent: AiDataConsentCoordinator = AiDataConsentCoordinator(),
+    private val clearLearningData: ClearLearningDataUseCase =
+        ClearLearningDataUseCase(profileRepository),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = mutableUiState.asStateFlow()
@@ -183,6 +186,31 @@ class ProfileViewModel(
             ProfileAction.DismissAiDataConsent -> {
                 mutableUiState.update { it.copy(showAiDataConsent = false) }
             }
+            ProfileAction.RequestClearLearningData -> {
+                mutableUiState.update {
+                    it.copy(
+                        dataManagement = DataManagementState(
+                            showClearLearningConfirmation = true,
+                        ),
+                    )
+                }
+            }
+            is ProfileAction.UpdateDataConfirmationText -> {
+                mutableUiState.update {
+                    it.copy(
+                        dataManagement = it.dataManagement.copy(
+                            confirmationText = action.value,
+                            errorMessage = null,
+                        ),
+                    )
+                }
+            }
+            ProfileAction.ConfirmClearLearningData -> confirmClearLearningData()
+            ProfileAction.DismissDataConfirmation -> {
+                if (!mutableUiState.value.dataManagement.isWorking) {
+                    mutableUiState.update { it.copy(dataManagement = DataManagementState()) }
+                }
+            }
         }
     }
 
@@ -313,6 +341,41 @@ class ProfileViewModel(
         }
     }
 
+    private fun confirmClearLearningData() {
+        val state = mutableUiState.value.dataManagement
+        if (state.isWorking) return
+        if (state.confirmationText != CLEAR_LEARNING_CONFIRMATION_TEXT) {
+            mutableUiState.update {
+                it.copy(
+                    dataManagement = state.copy(errorMessage = "确认文本不匹配"),
+                )
+            }
+            return
+        }
+        mutableUiState.update {
+            it.copy(dataManagement = state.copy(isWorking = true, errorMessage = null))
+        }
+        viewModelScope.launch {
+            when (clearLearningData()) {
+                is AppResult.Success -> mutableUiState.update {
+                    it.copy(
+                        dataManagement = DataManagementState(
+                            statusMessage = "学习数据已清除",
+                        ),
+                    )
+                }
+                is AppResult.Failure -> mutableUiState.update {
+                    it.copy(
+                        dataManagement = state.copy(
+                            isWorking = false,
+                            errorMessage = "无法清除学习数据",
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     private fun updateDeviceName(value: String) {
         val normalized = value.take(MAX_DEVICE_NAME_LENGTH)
         mutableUiState.update {
@@ -386,5 +449,6 @@ class ProfileViewModel(
 
     companion object {
         const val MAX_DEVICE_NAME_LENGTH = 40
+        const val CLEAR_LEARNING_CONFIRMATION_TEXT = "清除学习数据"
     }
 }

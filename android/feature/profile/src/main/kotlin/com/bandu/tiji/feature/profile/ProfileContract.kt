@@ -28,6 +28,15 @@ data class ProfileUiState(
     val showPrivateHttpRiskConfirmation: Boolean = false,
     val promptEditor: PromptEditorState = PromptEditorState(),
     val showAiDataConsent: Boolean = false,
+    val dataManagement: DataManagementState = DataManagementState(),
+)
+
+data class DataManagementState(
+    val confirmationText: String = "",
+    val showClearLearningConfirmation: Boolean = false,
+    val isWorking: Boolean = false,
+    val errorMessage: String? = null,
+    val statusMessage: String? = null,
 )
 
 data class PromptEditorState(
@@ -108,6 +117,14 @@ sealed interface ProfileAction {
     data object ConfirmAiDataConsent : ProfileAction
 
     data object DismissAiDataConsent : ProfileAction
+
+    data object RequestClearLearningData : ProfileAction
+
+    data class UpdateDataConfirmationText(val value: String) : ProfileAction
+
+    data object ConfirmClearLearningData : ProfileAction
+
+    data object DismissDataConfirmation : ProfileAction
 }
 
 sealed interface ProfileEffect {
