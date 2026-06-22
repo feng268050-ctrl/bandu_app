@@ -7,6 +7,7 @@ import com.bandu.tiji.core.model.id.ErrorItemId
 import com.bandu.tiji.core.model.id.TutorSessionId
 import com.bandu.tiji.core.model.tutor.TutorSession
 import com.bandu.tiji.core.model.tutor.TutorSessionSummary
+import com.bandu.tiji.domain.pending.PendingAiOperation
 
 data class TutorSessionsUiState(
     val sessions: List<TutorSessionSummary> = emptyList(),
@@ -74,6 +75,7 @@ sealed interface TutorSessionAction {
     data object RequestDelete : TutorSessionAction
     data object DismissDelete : TutorSessionAction
     data object ConfirmDelete : TutorSessionAction
+    data class ResumePending(val operation: PendingAiOperation) : TutorSessionAction
 }
 
 sealed interface TutorSessionEffect {

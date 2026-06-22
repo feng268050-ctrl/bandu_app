@@ -14,7 +14,11 @@ import com.bandu.tiji.domain.ai.ExerciseRequest
 import com.bandu.tiji.domain.ai.GradeExerciseRequest
 import com.bandu.tiji.core.model.tutor.ExerciseDraft
 import com.bandu.tiji.core.common.result.AppResult
+import com.bandu.tiji.core.common.result.AppError
 import com.bandu.tiji.domain.ai.AiStreamEvent
+import com.bandu.tiji.domain.ai.AiGatewayException
+import com.bandu.tiji.domain.pending.PendingAiOperation
+import com.bandu.tiji.domain.pending.PendingOperationCoordinator
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.Job
@@ -31,6 +35,7 @@ class TutorSessionViewModel(
     private val sessionId: TutorSessionId,
     aiTutorGateway: AiTutorGateway,
     private val exerciseRepository: ExerciseRepository,
+    private val pendingOperations: PendingOperationCoordinator = PendingOperationCoordinator(),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(TutorSessionUiState())
     val uiState: StateFlow<TutorSessionUiState> = mutableUiState.asStateFlow()
@@ -43,6 +48,7 @@ class TutorSessionViewModel(
     private var refreshJob: Job? = null
     private var stopJob: Job? = null
     private var pendingStreamingText = ""
+    private val resumedOperationKeys = mutableSetOf<String>()
     private val sendTutorMessage = SendTutorMessageUseCase(tutorRepository, aiTutorGateway)
     private val stopTutorGeneration = StopTutorGenerationUseCase(tutorRepository)
     private val generateExercise = GenerateExerciseUseCase(aiTutorGateway)
@@ -81,6 +87,7 @@ class TutorSessionViewModel(
             TutorSessionAction.DismissDelete,
             TutorSessionAction.ConfirmDelete,
             -> Unit
+            is TutorSessionAction.ResumePending -> resumePending(action.operation)
         }
     }
 
@@ -123,10 +130,22 @@ class TutorSessionViewModel(
                     }
                     is AppResult.Failure -> {
                         refreshJob?.cancel()
+                        val configurationRequired = result.error.configurationRequired()
+                        if (configurationRequired) {
+                            pendingOperations.save(
+                                PendingAiOperation.SendTutorMessage(sessionId, input),
+                            )
+                            mutableEffects.send(TutorSessionEffect.OpenAiConfiguration)
+                        }
                         mutableUiState.value = mutableUiState.value.copy(
                             streamingText = pendingStreamingText,
                             isStreaming = false,
-                            errorMessage = "AI 辅导失败，请重试",
+                            input = if (configurationRequired) input else "",
+                            errorMessage = if (configurationRequired) {
+                                "请先完成 AI 配置"
+                            } else {
+                                "AI 辅导失败，请重试"
+                            },
                         )
                     }
                 }
@@ -204,7 +223,15 @@ class TutorSessionViewModel(
                 }
                 is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
                     isGeneratingExercise = false,
-                    exerciseErrorMessage = "无法生成类似练习",
+                    exerciseErrorMessage = if (result.error.configurationRequired()) {
+                        pendingOperations.save(
+                            PendingAiOperation.GenerateExercise(sessionId, difficulty),
+                        )
+                        mutableEffects.trySend(TutorSessionEffect.OpenAiConfiguration)
+                        "请先完成 AI 配置"
+                    } else {
+                        "无法生成类似练习"
+                    },
                 )
             }
         }
@@ -254,8 +281,17 @@ class TutorSessionViewModel(
                 is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
                     gradingExerciseIds =
                         mutableUiState.value.gradingExerciseIds - exerciseId,
-                    exerciseErrorMessage =
-                        if (answer.isBlank()) "请输入练习答案" else "无法批改练习",
+                    exerciseErrorMessage = when {
+                        answer.isBlank() -> "请输入练习答案"
+                        result.error.configurationRequired() -> {
+                            pendingOperations.save(
+                                PendingAiOperation.GradeExercise(exerciseId, answer),
+                            )
+                            mutableEffects.trySend(TutorSessionEffect.OpenAiConfiguration)
+                            "请先完成 AI 配置"
+                        }
+                        else -> "无法批改练习"
+                    },
                 )
             }
         }
@@ -287,6 +323,35 @@ class TutorSessionViewModel(
             }
         }
     }
+
+    private fun resumePending(operation: PendingAiOperation) {
+        val key = operation.toString()
+        if (!resumedOperationKeys.add(key)) return
+        when (operation) {
+            is PendingAiOperation.SendTutorMessage -> {
+                if (operation.sessionId == sessionId) send(operation.text)
+            }
+            is PendingAiOperation.GenerateExercise -> {
+                if (operation.sessionId == sessionId) {
+                    mutableUiState.value = mutableUiState.value.copy(
+                        selectedDifficulty = operation.difficulty,
+                    )
+                    generateExercise()
+                }
+            }
+            is PendingAiOperation.GradeExercise -> {
+                mutableUiState.value = mutableUiState.value.copy(
+                    exerciseAnswers = mutableUiState.value.exerciseAnswers +
+                        (operation.exerciseId to operation.userAnswer),
+                )
+                gradeExercise(operation.exerciseId)
+            }
+            is PendingAiOperation.AnalyzeCapture -> Unit
+        }
+    }
+
+    private fun AppError.configurationRequired(): Boolean =
+        this is AppError.Unexpected && cause is AiGatewayException.ConfigurationRequired
 
     companion object {
         const val STREAMING_UI_REFRESH_MILLIS = 250L
