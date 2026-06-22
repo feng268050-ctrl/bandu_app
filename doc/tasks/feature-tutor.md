@@ -20,9 +20,9 @@
 - [x] `TUTOR-010` 实现人工覆盖批改结果并显示修改状态。验证：`AC-TUT-002`。
 - [x] `TUTOR-011` AI 配置缺失时保存并恢复原会话操作。验证：只恢复一次。
 - [x] `TUTOR-012` 实现删除会话确认，级联消息/练习但不删除错题。验证：ViewModel 测试。
-- [ ] `TUTOR-013` 对长会话滚动、流式 Markdown 和进程重开恢复进行测试。验证：Compose/状态恢复测试。
+- [x] `TUTOR-013` 对长会话滚动、流式 Markdown 和进程重开恢复进行测试。验证：Compose/状态恢复测试。
 
 ## 模块完成条件
 
-- [ ] `:feature:tutor:testDebugUnitTest` 和流式 Compose 测试通过。
-- [ ] 练习仅存在于会话内，不增加独立一级页面。
+- [x] `:feature:tutor:testDebugUnitTest` 和流式 Compose 测试通过。
+- [x] 练习仅存在于会话内，不增加独立一级页面。
