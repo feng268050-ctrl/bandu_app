@@ -17,6 +17,7 @@ import com.bandu.tiji.domain.usecase.aiconfig.ResetPromptUseCase
 import com.bandu.tiji.domain.usecase.aiconfig.SavePromptUseCase
 import com.bandu.tiji.domain.usecase.profile.UpdateStudentProfileUseCase
 import com.bandu.tiji.domain.usecase.profile.ClearLearningDataUseCase
+import com.bandu.tiji.domain.usecase.profile.FactoryResetUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +41,7 @@ class ProfileViewModel(
     private val aiDataConsent: AiDataConsentCoordinator = AiDataConsentCoordinator(),
     private val clearLearningData: ClearLearningDataUseCase =
         ClearLearningDataUseCase(profileRepository),
+    private val factoryReset: FactoryResetUseCase = FactoryResetUseCase(profileRepository),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = mutableUiState.asStateFlow()
@@ -211,6 +213,16 @@ class ProfileViewModel(
                     mutableUiState.update { it.copy(dataManagement = DataManagementState()) }
                 }
             }
+            ProfileAction.RequestFactoryReset -> {
+                mutableUiState.update {
+                    it.copy(
+                        dataManagement = DataManagementState(
+                            showFactoryResetConfirmation = true,
+                        ),
+                    )
+                }
+            }
+            ProfileAction.ConfirmFactoryReset -> confirmFactoryReset()
         }
     }
 
@@ -376,6 +388,46 @@ class ProfileViewModel(
         }
     }
 
+    private fun confirmFactoryReset() {
+        val state = mutableUiState.value.dataManagement
+        if (state.isWorking) return
+        if (state.confirmationText != FACTORY_RESET_CONFIRMATION_TEXT) {
+            mutableUiState.update {
+                it.copy(
+                    dataManagement = state.copy(errorMessage = "确认文本不匹配"),
+                )
+            }
+            return
+        }
+        mutableUiState.update {
+            it.copy(dataManagement = state.copy(isWorking = true, errorMessage = null))
+        }
+        viewModelScope.launch {
+            when (factoryReset()) {
+                is AppResult.Success -> {
+                    aiDataConsent.reset()
+                    mutableUiState.update {
+                        it.copy(
+                            dataManagement = DataManagementState(
+                                statusMessage = "已恢复出厂设置并生成新设备身份",
+                            ),
+                            isAiConfigurationActive = false,
+                            aiDraft = AiConfigurationDraftState(),
+                        )
+                    }
+                }
+                is AppResult.Failure -> mutableUiState.update {
+                    it.copy(
+                        dataManagement = state.copy(
+                            isWorking = false,
+                            errorMessage = "无法恢复出厂设置",
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
     private fun updateDeviceName(value: String) {
         val normalized = value.take(MAX_DEVICE_NAME_LENGTH)
         mutableUiState.update {
@@ -450,5 +502,6 @@ class ProfileViewModel(
     companion object {
         const val MAX_DEVICE_NAME_LENGTH = 40
         const val CLEAR_LEARNING_CONFIRMATION_TEXT = "清除学习数据"
+        const val FACTORY_RESET_CONFIRMATION_TEXT = "恢复出厂设置"
     }
 }

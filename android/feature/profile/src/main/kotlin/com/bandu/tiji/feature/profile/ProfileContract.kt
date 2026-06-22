@@ -34,6 +34,7 @@ data class ProfileUiState(
 data class DataManagementState(
     val confirmationText: String = "",
     val showClearLearningConfirmation: Boolean = false,
+    val showFactoryResetConfirmation: Boolean = false,
     val isWorking: Boolean = false,
     val errorMessage: String? = null,
     val statusMessage: String? = null,
@@ -125,6 +126,10 @@ sealed interface ProfileAction {
     data object ConfirmClearLearningData : ProfileAction
 
     data object DismissDataConfirmation : ProfileAction
+
+    data object RequestFactoryReset : ProfileAction
+
+    data object ConfirmFactoryReset : ProfileAction
 }
 
 sealed interface ProfileEffect {
