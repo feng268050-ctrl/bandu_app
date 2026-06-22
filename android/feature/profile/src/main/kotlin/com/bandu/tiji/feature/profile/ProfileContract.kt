@@ -29,6 +29,17 @@ data class ProfileUiState(
     val promptEditor: PromptEditorState = PromptEditorState(),
     val showAiDataConsent: Boolean = false,
     val dataManagement: DataManagementState = DataManagementState(),
+    val aboutInfo: AboutInfo = AboutInfo(),
+)
+
+data class AboutInfo(
+    val appName: String = "伴读题集",
+    val versionName: String = "开发版本",
+    val privacyStatement: String =
+        "学习数据默认仅保存在本机；只有在你确认后才向所选 AI 服务发送必要内容。",
+    val openSourceLicenses: String =
+        "AndroidX、Kotlin、OkHttp、Room、CameraX、Markdown-it、KaTeX、DOMPurify",
+    val iconSource: String = "应用图标使用项目随附的 ic_launcher_source.png 资源。",
 )
 
 data class DataManagementState(

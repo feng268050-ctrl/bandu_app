@@ -42,8 +42,9 @@ class ProfileViewModel(
     private val clearLearningData: ClearLearningDataUseCase =
         ClearLearningDataUseCase(profileRepository),
     private val factoryReset: FactoryResetUseCase = FactoryResetUseCase(profileRepository),
+    aboutInfo: AboutInfo = AboutInfo(),
 ) : ViewModel() {
-    private val mutableUiState = MutableStateFlow(ProfileUiState())
+    private val mutableUiState = MutableStateFlow(ProfileUiState(aboutInfo = aboutInfo))
     val uiState: StateFlow<ProfileUiState> = mutableUiState.asStateFlow()
     private val mutableEffects = Channel<ProfileEffect>(Channel.BUFFERED)
     val effects = mutableEffects.receiveAsFlow()

@@ -44,8 +44,8 @@ fun ProfileScreen(
             onAction = onAction,
             modifier = modifier,
         )
-        else -> ProfileSectionPlaceholder(
-            section = section,
+        ProfileSection.ABOUT -> AboutScreen(
+            aboutInfo = uiState.aboutInfo,
             onBack = { onAction(ProfileAction.Back) },
             modifier = modifier,
         )
@@ -80,31 +80,5 @@ private fun ProfileOverview(
                 }
             }
         }
-    }
-}
-
-@Composable
-private fun ProfileSectionPlaceholder(
-    section: ProfileSection,
-    onBack: () -> Unit,
-    modifier: Modifier,
-) {
-    BanduPageScaffold(
-        title = section.title,
-        modifier = modifier,
-        navigation = {
-            Text(
-                text = "返回",
-                modifier = Modifier
-                    .testTag("profile-back")
-                    .clickable(role = Role.Button, onClick = onBack)
-                    .padding(BanduSpacing.Small),
-            )
-        },
-    ) { contentPadding ->
-        Text(
-            text = section.description,
-            modifier = Modifier.padding(contentPadding).padding(BanduSpacing.PageHorizontal),
-        )
     }
 }
