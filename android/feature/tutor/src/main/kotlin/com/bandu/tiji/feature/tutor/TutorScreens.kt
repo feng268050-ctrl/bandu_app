@@ -241,7 +241,28 @@ private fun TutorSessionContent(
                     }
                     grade?.let {
                         Text("批改结果：${it.finalResult.gradeLabel()}")
+                        if (it.isOverridden) {
+                            Text("已人工修改")
+                        }
                         Text(it.feedback)
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(BanduSpacing.Small),
+                        ) {
+                            GradeResult.entries.forEach { result ->
+                                FilterChip(
+                                    selected = it.finalResult == result,
+                                    onClick = {
+                                        onAction(
+                                            TutorSessionAction.OverrideGrade(
+                                                exercise.id,
+                                                result,
+                                            ),
+                                        )
+                                    },
+                                    label = { Text(result.gradeLabel()) },
+                                )
+                            }
+                        }
                     }
                 }
             }

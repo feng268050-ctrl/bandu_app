@@ -75,7 +75,8 @@ class TutorSessionViewModel(
                     exerciseErrorMessage = null,
                 )
             is TutorSessionAction.GradeExercise -> gradeExercise(action.exerciseId)
-            is TutorSessionAction.OverrideGrade,
+            is TutorSessionAction.OverrideGrade ->
+                overrideGrade(action.exerciseId, action.result)
             TutorSessionAction.RequestDelete,
             TutorSessionAction.DismissDelete,
             TutorSessionAction.ConfirmDelete,
@@ -255,6 +256,33 @@ class TutorSessionViewModel(
                         mutableUiState.value.gradingExerciseIds - exerciseId,
                     exerciseErrorMessage =
                         if (answer.isBlank()) "请输入练习答案" else "无法批改练习",
+                )
+            }
+        }
+    }
+
+    private fun overrideGrade(
+        exerciseId: com.bandu.tiji.core.model.id.ExerciseId,
+        result: com.bandu.tiji.core.model.enums.GradeResult,
+    ) {
+        val current = mutableUiState.value.exerciseGrades[exerciseId] ?: return
+        viewModelScope.launch {
+            runCatching {
+                exerciseRepository.overrideResult(exerciseId, result)
+            }.onSuccess {
+                mutableUiState.value = mutableUiState.value.copy(
+                    exerciseGrades = mutableUiState.value.exerciseGrades +
+                        (
+                            exerciseId to current.copy(
+                                finalResult = result,
+                                isOverridden = true,
+                            )
+                        ),
+                    exerciseErrorMessage = null,
+                )
+            }.onFailure {
+                mutableUiState.value = mutableUiState.value.copy(
+                    exerciseErrorMessage = "无法修改批改结果",
                 )
             }
         }
