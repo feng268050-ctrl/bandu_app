@@ -8,7 +8,7 @@
 
 ## 任务
 
-- [ ] `CAPTURE-001` 创建 Feature 模块和 CaptureStage Contract。验证：状态模型测试。
+- [x] `CAPTURE-001` 创建 Feature 模块和 CaptureStage Contract。验证：状态模型测试。
 - [ ] `CAPTURE-002` 实现来源选择页面，仅提供拍照和相册。验证：无纯文本/文件入口测试。
 - [ ] `CAPTURE-003` 集成 CameraX 拍照和按需 CAMERA 权限。验证：允许/拒绝仪器测试。
 - [ ] `CAPTURE-004` 集成 Photo Picker，不请求广泛媒体读取权限。验证：merged manifest。
@@ -27,4 +27,3 @@
 
 - [ ] `:feature:capture:testDebugUnitTest` 和仪器测试通过。
 - [ ] 模块不直接依赖具体 AI Provider 或 Storage 实现。
-
