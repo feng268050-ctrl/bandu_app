@@ -2,6 +2,7 @@ package com.bandu.tiji.feature.library
 
 import com.bandu.tiji.core.model.erroritem.ErrorItem
 import com.bandu.tiji.core.model.collection.CollectionSummary
+import com.bandu.tiji.core.model.enums.MasteryLevel
 import com.bandu.tiji.core.model.enums.MistakeStatus
 import com.bandu.tiji.core.model.enums.PaperLevel
 import com.bandu.tiji.core.model.erroritem.StoredImage
@@ -19,6 +20,14 @@ data class ErrorItemDetailUiState(
     val isSaving: Boolean = false,
     val availableCollections: List<CollectionSummary> = emptyList(),
     val availableTags: List<TagSummary> = emptyList(),
+    val isUpdatingMastery: Boolean = false,
+    val masteryErrorMessage: String? = null,
+    val pendingDelete: ErrorItemDeleteState? = null,
+)
+
+data class ErrorItemDeleteState(
+    val isDeleting: Boolean = false,
+    val errorMessage: String? = null,
 )
 
 data class ErrorItemEditDraft(
@@ -53,6 +62,14 @@ sealed interface ErrorItemDetailAction {
     data class ReplaceImage(val image: StoredImage) : ErrorItemDetailAction
 
     data object SaveEditor : ErrorItemDetailAction
+
+    data class UpdateMastery(val level: MasteryLevel) : ErrorItemDetailAction
+
+    data object RequestDelete : ErrorItemDetailAction
+
+    data object DismissDelete : ErrorItemDetailAction
+
+    data object ConfirmDelete : ErrorItemDetailAction
 }
 
 sealed interface ErrorItemDetailEffect {

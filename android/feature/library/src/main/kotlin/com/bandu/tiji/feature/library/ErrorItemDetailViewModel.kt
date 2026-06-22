@@ -10,7 +10,9 @@ import com.bandu.tiji.core.common.result.AppResult
 import com.bandu.tiji.domain.repository.CollectionRepository
 import com.bandu.tiji.domain.repository.ErrorItemRepository
 import com.bandu.tiji.domain.repository.TagRepository
+import com.bandu.tiji.domain.usecase.erroritem.DeleteErrorItemsUseCase
 import com.bandu.tiji.domain.usecase.erroritem.UpdateErrorItemUseCase
+import com.bandu.tiji.domain.usecase.erroritem.UpdateMasteryLevelUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,7 +35,11 @@ class ErrorItemDetailViewModel(
     val effects = mutableEffects.receiveAsFlow()
     private var observationJob: Job? = null
     private var saveJob: Job? = null
+    private var masteryJob: Job? = null
+    private var deleteJob: Job? = null
     private val updateErrorItem = UpdateErrorItemUseCase(repository)
+    private val updateMasteryLevel = UpdateMasteryLevelUseCase(repository)
+    private val deleteErrorItems = DeleteErrorItemsUseCase(repository)
 
     init {
         observeItem()
@@ -68,6 +74,18 @@ class ErrorItemDetailViewModel(
                 )
             }
             ErrorItemDetailAction.SaveEditor -> saveEditor()
+            is ErrorItemDetailAction.UpdateMastery -> updateMastery(action.level)
+            ErrorItemDetailAction.RequestDelete -> {
+                mutableUiState.value = mutableUiState.value.copy(
+                    pendingDelete = ErrorItemDeleteState(),
+                )
+            }
+            ErrorItemDetailAction.DismissDelete -> {
+                if (mutableUiState.value.pendingDelete?.isDeleting != true) {
+                    mutableUiState.value = mutableUiState.value.copy(pendingDelete = null)
+                }
+            }
+            ErrorItemDetailAction.ConfirmDelete -> confirmDelete()
         }
     }
 
@@ -209,4 +227,49 @@ class ErrorItemDetailViewModel(
 
     private fun List<TagNode>.flattenTags(): List<com.bandu.tiji.core.model.tag.TagSummary> =
         flatMap { node -> listOf(node.tag) + node.children.flattenTags() }
+
+    private fun updateMastery(level: com.bandu.tiji.core.model.enums.MasteryLevel) {
+        val current = mutableUiState.value
+        if (current.item?.masteryLevel == level || current.isUpdatingMastery) return
+        mutableUiState.value = current.copy(
+            isUpdatingMastery = true,
+            masteryErrorMessage = null,
+        )
+        masteryJob?.cancel()
+        masteryJob = viewModelScope.launch {
+            when (updateMasteryLevel(errorItemId, level)) {
+                is AppResult.Success -> mutableUiState.value = mutableUiState.value.copy(
+                    isUpdatingMastery = false,
+                    masteryErrorMessage = null,
+                )
+                is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
+                    isUpdatingMastery = false,
+                    masteryErrorMessage = "无法更新掌握状态",
+                )
+            }
+        }
+    }
+
+    private fun confirmDelete() {
+        val pending = mutableUiState.value.pendingDelete ?: return
+        if (pending.isDeleting) return
+        mutableUiState.value = mutableUiState.value.copy(
+            pendingDelete = pending.copy(isDeleting = true, errorMessage = null),
+        )
+        deleteJob?.cancel()
+        deleteJob = viewModelScope.launch {
+            when (deleteErrorItems(setOf(errorItemId))) {
+                is AppResult.Success -> {
+                    mutableUiState.value = mutableUiState.value.copy(pendingDelete = null)
+                    mutableEffects.send(ErrorItemDetailEffect.NavigateBack)
+                }
+                is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
+                    pendingDelete = ErrorItemDeleteState(
+                        isDeleting = false,
+                        errorMessage = "无法删除错题",
+                    ),
+                )
+            }
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.bandu.tiji.feature.library
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -15,12 +16,15 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.bandu.tiji.core.designsystem.component.BanduCard
+import com.bandu.tiji.core.designsystem.component.BanduDangerConfirmationDialog
 import com.bandu.tiji.core.designsystem.component.BanduErrorState
+import com.bandu.tiji.core.designsystem.component.BanduFilterChip
 import com.bandu.tiji.core.designsystem.component.BanduLoadingState
 import com.bandu.tiji.core.designsystem.component.BanduMasteryBadge
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
 import com.bandu.tiji.core.model.enums.MistakeStatus
+import com.bandu.tiji.core.model.enums.MasteryLevel
 import com.bandu.tiji.core.model.enums.PaperLevel
 import com.bandu.tiji.core.model.erroritem.ErrorItem
 import java.time.Instant
@@ -57,6 +61,8 @@ fun ErrorItemDetailScreen(
             )
             uiState.item != null -> ErrorItemDetailContent(
                 item = uiState.item,
+                uiState = uiState,
+                onAction = onAction,
                 imageModel = imageModel,
                 modifier = Modifier.padding(contentPadding),
             )
@@ -66,11 +72,25 @@ fun ErrorItemDetailScreen(
         state = uiState,
         onAction = onAction,
     )
+    uiState.pendingDelete?.let { pending ->
+        BanduDangerConfirmationDialog(
+            title = "删除错题",
+            message = listOfNotNull(
+                "删除后将立即从题集中消失，首版不提供回收站。",
+                pending.errorMessage,
+            ).joinToString("\n"),
+            confirmLabel = if (pending.isDeleting) "删除中" else "确认删除",
+            onConfirm = { onAction(ErrorItemDetailAction.ConfirmDelete) },
+            onDismiss = { onAction(ErrorItemDetailAction.DismissDelete) },
+        )
+    }
 }
 
 @Composable
 private fun ErrorItemDetailContent(
     item: ErrorItem,
+    uiState: ErrorItemDetailUiState,
+    onAction: (ErrorItemDetailAction) -> Unit,
     imageModel: (String) -> Any?,
     modifier: Modifier = Modifier,
 ) {
@@ -129,6 +149,29 @@ private fun ErrorItemDetailContent(
             }
         }
         item { DetailSection("笔记", item.notes.ifBlank { "无笔记" }) }
+        item {
+            BanduCard(modifier = Modifier.fillMaxWidth()) {
+                Text("掌握状态", style = MaterialTheme.typography.titleMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(BanduSpacing.Small)) {
+                    MasteryLevel.entries.forEach { level ->
+                        BanduFilterChip(
+                            label = masteryLevelLabel(level),
+                            selected = item.masteryLevel == level,
+                            onClick = {
+                                onAction(ErrorItemDetailAction.UpdateMastery(level))
+                            },
+                        )
+                    }
+                }
+                if (uiState.isUpdatingMastery) {
+                    Text("正在更新掌握状态")
+                }
+                uiState.masteryErrorMessage?.let { Text(it) }
+                TextButton(onClick = { onAction(ErrorItemDetailAction.RequestDelete) }) {
+                    Text("删除错题")
+                }
+            }
+        }
     }
 }
 
@@ -151,6 +194,12 @@ private fun paperLevelLabel(level: PaperLevel?): String = when (level) {
     PaperLevel.B -> "B"
     PaperLevel.OTHER -> "其他"
     null -> "未设置"
+}
+
+private fun masteryLevelLabel(level: MasteryLevel): String = when (level) {
+    MasteryLevel.NEW -> "未掌握"
+    MasteryLevel.REVIEWING -> "复习中"
+    MasteryLevel.MASTERED -> "已掌握"
 }
 
 internal fun formatDetailTime(
