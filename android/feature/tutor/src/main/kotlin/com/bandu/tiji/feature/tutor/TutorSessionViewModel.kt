@@ -52,7 +52,7 @@ class TutorSessionViewModel(
                 mutableUiState.value = mutableUiState.value.copy(input = action.text)
             TutorSessionAction.Send -> send()
             TutorSessionAction.StopGeneration -> stopGeneration()
-            TutorSessionAction.RequestStepByStep,
+            TutorSessionAction.RequestStepByStep -> send(STEP_BY_STEP_MESSAGE)
             is TutorSessionAction.SelectDifficulty,
             TutorSessionAction.GenerateExercise,
             is TutorSessionAction.UpdateExerciseAnswer,
@@ -65,10 +65,10 @@ class TutorSessionViewModel(
         }
     }
 
-    private fun send() {
+    private fun send(quickMessage: String? = null) {
         val state = mutableUiState.value
         val session = state.session ?: return
-        val input = state.input.trim()
+        val input = (quickMessage ?: state.input).trim()
         if (input.isEmpty() || state.isStreaming) return
         pendingStreamingText = ""
         mutableUiState.value = state.copy(
@@ -146,6 +146,7 @@ class TutorSessionViewModel(
 
     companion object {
         const val STREAMING_UI_REFRESH_MILLIS = 250L
+        const val STEP_BY_STEP_MESSAGE = "请分步骤讲解这道题，并说明每一步使用的知识点。"
     }
 
     private fun observeSession() {
