@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
 import com.bandu.tiji.core.testing.coroutines.MainDispatcherRule
@@ -13,6 +14,7 @@ import com.bandu.tiji.domain.transfer.DiscoveryMode
 import com.bandu.tiji.domain.transfer.NearbyDevice
 import com.bandu.tiji.domain.transfer.PairingResult
 import com.bandu.tiji.domain.transfer.TransferFailureCode
+import com.bandu.tiji.domain.transfer.TrustedDevice
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -43,6 +45,7 @@ class DevicesPairingViewModelTest {
         assertThat(repository.pairRequests.single().device).isEqualTo(device)
         assertThat(repository.pairRequests.single().code).isEqualTo("123456")
         assertThat(viewModel.uiState.value.pairingDialog).isNull()
+        assertThat(viewModel.uiState.value.pairingConfirmation?.deviceName).isEqualTo("新手机")
     }
 
     @Test
@@ -65,6 +68,32 @@ class DevicesPairingViewModelTest {
         assertThat(dialog.failureCount).isEqualTo(3)
         assertThat(dialog.isLimited).isTrue()
         assertThat(dialog.errorMessage).isEqualTo("配对失败次数过多，请重新获取配对码。")
+    }
+
+    @Test
+    fun `paired identity confirmation can be accepted or rejected without keeping trust`() = runTest {
+        val device = NearbyDevice("nearby-1", "新手机", DiscoveryMode.PAIR)
+        val trusted = TrustedDevice("trusted-1", "新手机", "AA:BB:CC")
+        val repository = FakeDeviceTransferRepository(
+            initialNearbyDevices = listOf(device),
+            initialTrustedDevices = listOf(trusted),
+        )
+        val viewModel = DevicesViewModel(repository, "本机", "LOCAL")
+        advanceUntilIdle()
+
+        viewModel.onAction(DevicesAction.SelectNearbyDevice(device))
+        viewModel.onAction(DevicesAction.UpdatePairingCode("123456"))
+        viewModel.onAction(DevicesAction.SubmitPairingCode)
+        advanceUntilIdle()
+
+        val confirmation = checkNotNull(viewModel.uiState.value.pairingConfirmation)
+        assertThat(confirmation.peerFingerprint).isEqualTo("AA:BB:CC")
+
+        viewModel.onAction(DevicesAction.RejectPairingIdentity)
+        advanceUntilIdle()
+
+        assertThat(repository.forgottenDeviceIds).containsExactly("trusted-1")
+        assertThat(viewModel.uiState.value.pairingConfirmation).isNull()
     }
 }
 
@@ -105,5 +134,36 @@ class DevicesPairingScreenTest {
                 DevicesAction.SubmitPairingCode,
             )
         }
+    }
+
+    @Test
+    fun `pairing confirmation shows both fingerprints and reject action`() {
+        val actions = mutableListOf<DevicesAction>()
+
+        composeRule.setContent {
+            BanduTijiTheme {
+                DevicesScreen(
+                    uiState = DevicesUiState(
+                        localDeviceName = "本机",
+                        localFingerprint = "LOCAL",
+                        pairingConfirmation = PairingConfirmationUiState(
+                            deviceName = "新手机",
+                            localFingerprint = "LOCAL",
+                            peerFingerprint = "AA:BB:CC",
+                            trustedDeviceId = "trusted-1",
+                        ),
+                        isLoading = false,
+                    ),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag(PAIRING_CONFIRMATION_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("本机身份：LOCAL").assertIsDisplayed()
+        composeRule.onNodeWithText("对方身份：AA:BB:CC").assertIsDisplayed()
+        composeRule.onNodeWithText("身份不一致，取消配对")
+            .performScrollTo()
+            .assertIsDisplayed()
     }
 }

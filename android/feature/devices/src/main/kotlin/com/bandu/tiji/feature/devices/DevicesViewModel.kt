@@ -9,6 +9,7 @@ import com.bandu.tiji.core.common.time.SystemClock
 import com.bandu.tiji.domain.transfer.PairingResult
 import com.bandu.tiji.domain.transfer.TransferFailureCode
 import com.bandu.tiji.domain.usecase.transfer.CreateReceiveCodeUseCase
+import com.bandu.tiji.domain.usecase.transfer.ForgetDeviceUseCase
 import com.bandu.tiji.domain.usecase.transfer.StartDiscoveryUseCase
 import com.bandu.tiji.domain.usecase.transfer.StopDiscoveryUseCase
 import kotlinx.coroutines.Job
@@ -39,6 +40,7 @@ class DevicesViewModel(
     private val startDiscovery = StartDiscoveryUseCase(repository)
     private val stopDiscovery = StopDiscoveryUseCase(repository)
     private val createReceiveCode = CreateReceiveCodeUseCase(repository)
+    private val forgetDevice = ForgetDeviceUseCase(repository)
 
     init {
         observeDevices()
@@ -71,6 +73,10 @@ class DevicesViewModel(
             DevicesAction.DismissPairing -> {
                 mutableUiState.value = mutableUiState.value.copy(pairingDialog = null)
             }
+            DevicesAction.ConfirmPairingIdentity -> {
+                mutableUiState.value = mutableUiState.value.copy(pairingConfirmation = null)
+            }
+            DevicesAction.RejectPairingIdentity -> rejectPairingIdentity()
         }
     }
 
@@ -199,7 +205,18 @@ class DevicesViewModel(
                 .getOrElse { PairingResult.Failure(TransferFailureCode.PROTOCOL_ERROR) }
             when (result) {
                 PairingResult.Success -> {
-                    mutableUiState.value = mutableUiState.value.copy(pairingDialog = null)
+                    val trustedDevice = mutableUiState.value.trustedDevices
+                        .firstOrNull { it.displayName == current.device.displayName }
+                    mutableUiState.value = mutableUiState.value.copy(
+                        pairingDialog = null,
+                        pairingConfirmation = PairingConfirmationUiState(
+                            deviceName = current.device.displayName,
+                            localFingerprint = mutableUiState.value.localFingerprint,
+                            peerFingerprint = trustedDevice?.publicKeyFingerprint
+                                ?: current.device.discoveryId,
+                            trustedDeviceId = trustedDevice?.deviceId,
+                        ),
+                    )
                 }
                 is PairingResult.Failure -> {
                     val failureCount = current.failureCount + 1
@@ -226,4 +243,31 @@ class DevicesViewModel(
             TransferFailureCode.NETWORK_INTERRUPTED -> "网络连接中断，请重试。"
             else -> "配对失败，请重试。"
         }
+
+    private fun rejectPairingIdentity() {
+        val confirmation = mutableUiState.value.pairingConfirmation ?: return
+        if (confirmation.isRejecting) return
+        val trustedDeviceId = confirmation.trustedDeviceId
+        if (trustedDeviceId == null) {
+            mutableUiState.value = mutableUiState.value.copy(pairingConfirmation = null)
+            return
+        }
+        mutableUiState.value = mutableUiState.value.copy(
+            pairingConfirmation = confirmation.copy(isRejecting = true, errorMessage = null),
+        )
+        commandJob?.cancel()
+        commandJob = viewModelScope.launch {
+            when (forgetDevice(trustedDeviceId)) {
+                is AppResult.Success -> mutableUiState.value = mutableUiState.value.copy(
+                    pairingConfirmation = null,
+                )
+                is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
+                    pairingConfirmation = confirmation.copy(
+                        isRejecting = false,
+                        errorMessage = "无法取消信任，请稍后重试。",
+                    ),
+                )
+            }
+        }
+    }
 }

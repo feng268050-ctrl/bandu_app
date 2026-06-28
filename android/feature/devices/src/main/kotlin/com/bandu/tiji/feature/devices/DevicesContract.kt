@@ -16,6 +16,7 @@ data class DevicesUiState(
     val commandErrorMessage: String? = null,
     val receiveMode: ReceiveModeUiState? = null,
     val pairingDialog: PairingDialogUiState? = null,
+    val pairingConfirmation: PairingConfirmationUiState? = null,
 )
 
 data class ReceiveModeUiState(
@@ -39,6 +40,15 @@ data class PairingDialogUiState(
     val isLimited: Boolean
         get() = failureCount >= 3
 }
+
+data class PairingConfirmationUiState(
+    val deviceName: String,
+    val localFingerprint: String,
+    val peerFingerprint: String,
+    val trustedDeviceId: String? = null,
+    val isRejecting: Boolean = false,
+    val errorMessage: String? = null,
+)
 
 sealed interface DevicesAction {
     data object Retry : DevicesAction
@@ -64,6 +74,10 @@ sealed interface DevicesAction {
     data object SubmitPairingCode : DevicesAction
 
     data object DismissPairing : DevicesAction
+
+    data object ConfirmPairingIdentity : DevicesAction
+
+    data object RejectPairingIdentity : DevicesAction
 }
 
 sealed interface DevicesEffect

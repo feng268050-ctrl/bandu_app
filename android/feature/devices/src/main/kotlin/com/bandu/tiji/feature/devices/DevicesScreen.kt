@@ -175,6 +175,36 @@ fun DevicesScreen(
                         }
                     }
                 }
+                uiState.pairingConfirmation?.let { confirmation ->
+                    item {
+                        BanduCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(PAIRING_CONFIRMATION_TAG),
+                        ) {
+                            Text("确认设备身份", style = MaterialTheme.typography.titleMedium)
+                            Text("对方设备：${confirmation.deviceName}")
+                            Text("本机身份：${confirmation.localFingerprint}")
+                            Text("对方身份：${confirmation.peerFingerprint}")
+                            Text("确认后才保留本次配对关系。")
+                            confirmation.errorMessage?.let { Text(it) }
+                            Button(
+                                onClick = { onAction(DevicesAction.ConfirmPairingIdentity) },
+                                enabled = !confirmation.isRejecting,
+                                modifier = Modifier.testTag(PAIRING_CONFIRM_TAG),
+                            ) {
+                                Text("身份一致，保留配对")
+                            }
+                            TextButton(
+                                onClick = { onAction(DevicesAction.RejectPairingIdentity) },
+                                enabled = !confirmation.isRejecting,
+                                modifier = Modifier.testTag(PAIRING_REJECT_TAG),
+                            ) {
+                                Text(if (confirmation.isRejecting) "正在取消" else "身份不一致，取消配对")
+                            }
+                        }
+                    }
+                }
                 item {
                     DeviceSectionTitle("已配对设备")
                 }
@@ -202,6 +232,9 @@ fun DevicesScreen(
 internal const val PAIRING_DIALOG_TAG = "devices-pairing-dialog"
 internal const val PAIRING_CODE_FIELD_TAG = "devices-pairing-code"
 internal const val PAIRING_SUBMIT_TAG = "devices-pairing-submit"
+internal const val PAIRING_CONFIRMATION_TAG = "devices-pairing-confirmation"
+internal const val PAIRING_CONFIRM_TAG = "devices-pairing-confirm"
+internal const val PAIRING_REJECT_TAG = "devices-pairing-reject"
 
 @Composable
 private fun DeviceSectionTitle(title: String) {
