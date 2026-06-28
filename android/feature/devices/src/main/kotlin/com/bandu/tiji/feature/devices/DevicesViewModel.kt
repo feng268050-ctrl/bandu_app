@@ -6,6 +6,8 @@ import com.bandu.tiji.domain.repository.DeviceTransferRepository
 import com.bandu.tiji.core.common.result.AppResult
 import com.bandu.tiji.core.common.time.Clock
 import com.bandu.tiji.core.common.time.SystemClock
+import com.bandu.tiji.domain.transfer.PairingResult
+import com.bandu.tiji.domain.transfer.TransferFailureCode
 import com.bandu.tiji.domain.usecase.transfer.CreateReceiveCodeUseCase
 import com.bandu.tiji.domain.usecase.transfer.StartDiscoveryUseCase
 import com.bandu.tiji.domain.usecase.transfer.StopDiscoveryUseCase
@@ -51,6 +53,24 @@ class DevicesViewModel(
             -> runDiscoveryCommand(start = false)
             DevicesAction.StartReceiveMode -> startReceiveMode()
             DevicesAction.StopReceiveMode -> stopReceiveMode()
+            is DevicesAction.SelectNearbyDevice -> {
+                mutableUiState.value = mutableUiState.value.copy(
+                    pairingDialog = PairingDialogUiState(device = action.device),
+                )
+            }
+            is DevicesAction.UpdatePairingCode -> {
+                val current = mutableUiState.value.pairingDialog ?: return
+                mutableUiState.value = mutableUiState.value.copy(
+                    pairingDialog = current.copy(
+                        code = action.code.filter(Char::isDigit).take(6),
+                        errorMessage = null,
+                    ),
+                )
+            }
+            DevicesAction.SubmitPairingCode -> submitPairingCode()
+            DevicesAction.DismissPairing -> {
+                mutableUiState.value = mutableUiState.value.copy(pairingDialog = null)
+            }
         }
     }
 
@@ -160,4 +180,50 @@ class DevicesViewModel(
         mutableUiState.value = mutableUiState.value.copy(receiveMode = null)
         runDiscoveryCommand(start = false)
     }
+
+    private fun submitPairingCode() {
+        val current = mutableUiState.value.pairingDialog ?: return
+        if (current.isSubmitting || current.isLimited) return
+        if (!current.code.matches(Regex("\\d{6}"))) {
+            mutableUiState.value = mutableUiState.value.copy(
+                pairingDialog = current.copy(errorMessage = "请输入 6 位配对码"),
+            )
+            return
+        }
+        mutableUiState.value = mutableUiState.value.copy(
+            pairingDialog = current.copy(isSubmitting = true, errorMessage = null),
+        )
+        commandJob?.cancel()
+        commandJob = viewModelScope.launch {
+            val result = runCatching { repository.pair(current.device, current.code) }
+                .getOrElse { PairingResult.Failure(TransferFailureCode.PROTOCOL_ERROR) }
+            when (result) {
+                PairingResult.Success -> {
+                    mutableUiState.value = mutableUiState.value.copy(pairingDialog = null)
+                }
+                is PairingResult.Failure -> {
+                    val failureCount = current.failureCount + 1
+                    mutableUiState.value = mutableUiState.value.copy(
+                        pairingDialog = current.copy(
+                            isSubmitting = false,
+                            failureCount = failureCount,
+                            errorMessage = if (failureCount >= 3) {
+                                "配对失败次数过多，请重新获取配对码。"
+                            } else {
+                                result.code.toPairingErrorMessage()
+                            },
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun TransferFailureCode.toPairingErrorMessage(): String =
+        when (this) {
+            TransferFailureCode.PAIRING_EXPIRED -> "配对码已过期，请重新生成后再试。"
+            TransferFailureCode.PAIRING_FAILED -> "配对码错误，请检查后重试。"
+            TransferFailureCode.NETWORK_INTERRUPTED -> "网络连接中断，请重试。"
+            else -> "配对失败，请重试。"
+        }
 }

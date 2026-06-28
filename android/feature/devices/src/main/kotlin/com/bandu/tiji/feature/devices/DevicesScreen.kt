@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -135,6 +136,42 @@ fun DevicesScreen(
                                         "已信任设备在线"
                                 },
                             )
+                            Button(
+                                onClick = { onAction(DevicesAction.SelectNearbyDevice(device)) },
+                                modifier = Modifier.testTag("pair-device-${device.discoveryId}"),
+                            ) {
+                                Text("输入配对码")
+                            }
+                        }
+                    }
+                }
+                uiState.pairingDialog?.let { pairing ->
+                    item {
+                        BanduCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(PAIRING_DIALOG_TAG),
+                        ) {
+                            Text("配对 ${pairing.device.displayName}", style = MaterialTheme.typography.titleMedium)
+                            OutlinedTextField(
+                                value = pairing.code,
+                                onValueChange = { onAction(DevicesAction.UpdatePairingCode(it)) },
+                                label = { Text("6 位配对码") },
+                                enabled = !pairing.isSubmitting && !pairing.isLimited,
+                                singleLine = true,
+                                modifier = Modifier.testTag(PAIRING_CODE_FIELD_TAG),
+                            )
+                            pairing.errorMessage?.let { Text(it) }
+                            Button(
+                                onClick = { onAction(DevicesAction.SubmitPairingCode) },
+                                enabled = !pairing.isSubmitting && !pairing.isLimited,
+                                modifier = Modifier.testTag(PAIRING_SUBMIT_TAG),
+                            ) {
+                                Text(if (pairing.isSubmitting) "配对中" else "确认配对")
+                            }
+                            TextButton(onClick = { onAction(DevicesAction.DismissPairing) }) {
+                                Text("取消")
+                            }
                         }
                     }
                 }
@@ -161,6 +198,10 @@ fun DevicesScreen(
         }
     }
 }
+
+internal const val PAIRING_DIALOG_TAG = "devices-pairing-dialog"
+internal const val PAIRING_CODE_FIELD_TAG = "devices-pairing-code"
+internal const val PAIRING_SUBMIT_TAG = "devices-pairing-submit"
 
 @Composable
 private fun DeviceSectionTitle(title: String) {

@@ -15,6 +15,7 @@ data class DevicesUiState(
     val isDiscoveryCommandRunning: Boolean = false,
     val commandErrorMessage: String? = null,
     val receiveMode: ReceiveModeUiState? = null,
+    val pairingDialog: PairingDialogUiState? = null,
 )
 
 data class ReceiveModeUiState(
@@ -26,6 +27,17 @@ data class ReceiveModeUiState(
 ) {
     val isExpired: Boolean
         get() = code != null && secondsRemaining <= 0
+}
+
+data class PairingDialogUiState(
+    val device: NearbyDevice,
+    val code: String = "",
+    val isSubmitting: Boolean = false,
+    val errorMessage: String? = null,
+    val failureCount: Int = 0,
+) {
+    val isLimited: Boolean
+        get() = failureCount >= 3
 }
 
 sealed interface DevicesAction {
@@ -40,6 +52,18 @@ sealed interface DevicesAction {
     data object StartReceiveMode : DevicesAction
 
     data object StopReceiveMode : DevicesAction
+
+    data class SelectNearbyDevice(
+        val device: NearbyDevice,
+    ) : DevicesAction
+
+    data class UpdatePairingCode(
+        val code: String,
+    ) : DevicesAction
+
+    data object SubmitPairingCode : DevicesAction
+
+    data object DismissPairing : DevicesAction
 }
 
 sealed interface DevicesEffect
