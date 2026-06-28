@@ -19,7 +19,7 @@
 - [x] `DEVICES-009` 实现目标端接收确认，显示将清除 API Key。验证：确认文案测试。
 - [x] `DEVICES-010` 展示阶段、总进度、大小、速度、错误和可续传状态。验证：Fake State 截图测试。
 - [x] `DEVICES-011` 实现双方最终确认、取消和失败后原数据安全提示。验证：状态机 UI 测试。
-- [ ] `DEVICES-012` 成功页明确源数据保留、目标 API Key 需重新配置。验证：Compose 测试。
+- [x] `DEVICES-012` 成功页明确源数据保留、目标 API Key 需重新配置。验证：Compose 测试。
 - [ ] `DEVICES-013` 添加完整 Fake Repository 流程测试，不引用 NSD/Socket 类型。验证：`AC-NFR-002`。
 
 ## 模块完成条件

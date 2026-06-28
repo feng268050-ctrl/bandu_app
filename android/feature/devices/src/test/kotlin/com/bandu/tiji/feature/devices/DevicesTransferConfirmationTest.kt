@@ -15,6 +15,7 @@ import com.bandu.tiji.core.testing.fake.FakeDeviceTransferRepository
 import com.bandu.tiji.domain.transfer.TransferOfferSummary
 import com.bandu.tiji.domain.transfer.TransferFailureCode
 import com.bandu.tiji.domain.transfer.TransferState
+import com.bandu.tiji.domain.transfer.TransferSummary
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -180,6 +181,38 @@ class DevicesTransferConfirmationScreenTest {
                 DevicesAction.CancelTransfer,
             )
         }
+    }
+
+    @Test
+    fun `success page states source retained and target api key must be configured`() {
+        composeRule.setContent {
+            BanduTijiTheme {
+                DevicesScreen(
+                    uiState = DevicesUiState(
+                        localDeviceName = "本机",
+                        localFingerprint = "LOCAL",
+                        transferState = TransferState.Completed(
+                            TransferSummary(
+                                sessionId = "session-1",
+                                transferredBytes = 2_097_152L,
+                                durationMillis = 3_000L,
+                            ),
+                        ),
+                        isLoading = false,
+                    ),
+                    onAction = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("devices-list").performScrollToIndex(4)
+        composeRule.onNodeWithTag(TRANSFER_SUCCESS_TAG)
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("源设备数据已保留，不会被删除。")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("目标设备 API Key 已清除，请在“我的”中重新配置 AI 服务。")
+            .assertIsDisplayed()
     }
 
     private fun setTransferStatusContent(state: TransferState) {

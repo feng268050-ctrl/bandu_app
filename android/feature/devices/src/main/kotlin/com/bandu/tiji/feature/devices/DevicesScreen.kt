@@ -350,6 +350,21 @@ fun DevicesScreen(
                         }
                     }
                 }
+                (uiState.transferState as? TransferState.Completed)?.let { state ->
+                    item {
+                        BanduCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(TRANSFER_SUCCESS_TAG),
+                        ) {
+                            Text("迁移完成", style = MaterialTheme.typography.titleMedium)
+                            Text("已传输：${formatBytes(state.summary.transferredBytes)}")
+                            Text("耗时：${state.summary.durationMillis / 1_000L} 秒")
+                            Text("源设备数据已保留，不会被删除。")
+                            Text("目标设备 API Key 已清除，请在“我的”中重新配置 AI 服务。")
+                        }
+                    }
+                }
                 uiState.forgetDevice?.let { pending ->
                     item {
                         BanduCard(
@@ -400,6 +415,7 @@ internal const val TRANSFER_CANCEL_TAG = "devices-transfer-cancel"
 internal const val FINAL_CONFIRMATION_TAG = "devices-final-confirmation"
 internal const val FINAL_CONFIRM_TAG = "devices-final-confirm"
 internal const val FINAL_CANCEL_TAG = "devices-final-cancel"
+internal const val TRANSFER_SUCCESS_TAG = "devices-transfer-success"
 
 @Composable
 private fun DeviceSectionTitle(title: String) {
