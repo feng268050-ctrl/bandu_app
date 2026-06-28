@@ -1,7 +1,13 @@
 package com.bandu.tiji.feature.capture
 
 import com.bandu.tiji.core.model.enums.MistakeStatus
+import com.bandu.tiji.core.model.erroritem.ErrorItem
+import com.bandu.tiji.core.model.erroritem.ErrorItemDraft
+import com.bandu.tiji.core.model.erroritem.ErrorItemPatch
+import com.bandu.tiji.core.model.erroritem.ErrorItemQuery
+import com.bandu.tiji.core.model.erroritem.ErrorItemSummary
 import com.bandu.tiji.core.model.id.CollectionId
+import com.bandu.tiji.core.model.id.ErrorItemId
 import com.bandu.tiji.core.model.id.TagId
 import com.bandu.tiji.core.model.navigation.NavigationIntent
 import com.bandu.tiji.core.testing.coroutines.MainDispatcherRule
@@ -11,10 +17,13 @@ import com.bandu.tiji.core.testing.fake.FakeErrorItemRepository
 import com.bandu.tiji.core.testing.id.FixedUuidGenerator
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import androidx.paging.PagingSource
 import org.junit.Rule
 import org.junit.Test
 
@@ -55,8 +64,21 @@ class CaptureSaveViewModelTest {
             .isEqualTo(CaptureEffect.Navigate(NavigationIntent.OpenErrorItem("error-item-1")))
     }
 
+    @Test
+    fun `repeated save clicks create only one error item`() = runTest {
+        val repository = SlowCreateErrorItemRepository()
+        val viewModel = reviewedViewModel(repository)
+        viewModel.onAction(CaptureAction.UpdateReviewDraft(reviewDraft()))
+
+        viewModel.onAction(CaptureAction.SaveReview)
+        viewModel.onAction(CaptureAction.SaveReview)
+        advanceUntilIdle()
+
+        assertThat(repository.createdDrafts).hasSize(1)
+    }
+
     private suspend fun TestScope.reviewedViewModel(
-        repository: FakeErrorItemRepository,
+        repository: com.bandu.tiji.domain.repository.ErrorItemRepository,
     ): CaptureViewModel {
         val gateway = FakeAiTutorGateway().apply {
             enqueueAnalyze(CallScript.Return(analyzedQuestion()))
@@ -85,4 +107,26 @@ class CaptureSaveViewModelTest {
             mistakeAnalysis = "计算错误",
             tagIds = listOf(TagId("tag-1")),
         )
+}
+
+private class SlowCreateErrorItemRepository : com.bandu.tiji.domain.repository.ErrorItemRepository {
+    val createdDrafts = mutableListOf<ErrorItemDraft>()
+
+    override fun page(query: ErrorItemQuery): PagingSource<Int, ErrorItemSummary> =
+        error("Not used")
+
+    override fun observe(id: ErrorItemId): Flow<ErrorItem?> =
+        error("Not used")
+
+    override suspend fun create(draft: ErrorItemDraft): ErrorItemId {
+        delay(100)
+        createdDrafts += draft
+        return ErrorItemId("error-slow")
+    }
+
+    override suspend fun update(id: ErrorItemId, patch: ErrorItemPatch) =
+        error("Not used")
+
+    override suspend fun delete(ids: Set<ErrorItemId>) =
+        error("Not used")
 }
