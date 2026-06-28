@@ -1,5 +1,10 @@
 package com.bandu.tiji.feature.capture
 
+import com.bandu.tiji.core.model.enums.MistakeStatus
+import com.bandu.tiji.core.model.enums.PaperLevel
+import com.bandu.tiji.core.model.id.CollectionId
+import com.bandu.tiji.core.model.id.TagId
+
 sealed interface CaptureStage {
     data object SelectSource : CaptureStage
 
@@ -62,7 +67,26 @@ data class CaptureUiState(
     val stage: CaptureStage = CaptureStage.SelectSource,
     val errorMessage: String? = null,
     val qualityWarning: String? = null,
+    val reviewDraft: CaptureReviewDraft? = null,
 )
+
+data class CaptureReviewDraft(
+    val collectionId: CollectionId? = null,
+    val subject: String = "",
+    val questionText: String = "",
+    val answerText: String = "",
+    val analysis: String = "",
+    val wrongAnswerText: String = "",
+    val mistakeStatus: MistakeStatus = MistakeStatus.UNKNOWN,
+    val mistakeAnalysis: String = "",
+    val tagIds: List<TagId> = emptyList(),
+    val gradeSemester: String? = null,
+    val paperLevel: PaperLevel? = null,
+    val notes: String = "",
+) {
+    val selectedTagCount: Int
+        get() = tagIds.size
+}
 
 sealed interface CaptureAction {
     data object ChooseCamera : CaptureAction
@@ -76,6 +100,8 @@ sealed interface CaptureAction {
     data object RotateCropClockwise : CaptureAction
 
     data object ConfirmCrop : CaptureAction
+
+    data object RetryAnalysis : CaptureAction
 
     data object Cancel : CaptureAction
 }

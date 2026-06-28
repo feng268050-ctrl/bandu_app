@@ -14,7 +14,7 @@
 - [x] `CAPTURE-004` 集成 Photo Picker，不请求广泛媒体读取权限。验证：merged manifest。
 - [x] `CAPTURE-005` 实现裁剪、旋转页面和取消返回。验证：裁剪 UI 测试。
 - [x] `CAPTURE-006` 调用图片处理 UseCase并展示压缩进度/最低质量提示。验证：ViewModel 测试。
-- [ ] `CAPTURE-007` 调用图片分析 AI，展示可重试中文错误。验证：错误矩阵测试。
+- [x] `CAPTURE-007` 调用图片分析 AI，展示可重试中文错误。验证：错误矩阵测试。
 - [ ] `CAPTURE-008` AI 配置缺失时保存 PendingOperation 并导航设置。验证：中断状态测试。
 - [ ] `CAPTURE-009` 配置成功后自动恢复同一草稿分析且只执行一次。验证：`AC-CAP-003`。
 - [ ] `CAPTURE-010` 实现确认页全部字段编辑和最多 5 个标签限制。验证：字段保存测试。

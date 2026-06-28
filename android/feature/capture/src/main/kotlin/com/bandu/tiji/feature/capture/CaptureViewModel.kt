@@ -4,6 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bandu.tiji.core.common.id.RandomUuidGenerator
 import com.bandu.tiji.core.common.id.UuidGenerator
+import com.bandu.tiji.domain.ai.AiGatewayException
+import com.bandu.tiji.domain.ai.AnalyzeImageRequest
+import com.bandu.tiji.domain.ai.AnalyzedQuestion
+import com.bandu.tiji.domain.repository.AiTutorGateway
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +18,7 @@ import kotlinx.coroutines.launch
 
 class CaptureViewModel(
     private val imageProcessor: ProcessCaptureImageUseCase = DeterministicCaptureImageProcessor(),
+    private val aiGateway: AiTutorGateway? = null,
     private val uuidGenerator: UuidGenerator = RandomUuidGenerator(),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(CaptureUiState())
@@ -52,6 +57,7 @@ class CaptureViewModel(
                 mutableUiState.value = mutableUiState.value.copy(stage = stage.rotatedClockwise())
             }
             CaptureAction.ConfirmCrop -> processCurrentCrop()
+            CaptureAction.RetryAnalysis -> retryAnalysis()
             CaptureAction.Cancel -> {
                 processingJob?.cancel()
                 mutableEffects.trySend(CaptureEffect.NavigateBack)
@@ -83,14 +89,15 @@ class CaptureViewModel(
                 }
             }.onSuccess { processed ->
                 processedImages[crop.draftId] = processed
-                mutableUiState.value = CaptureUiState(
-                    stage = CaptureStage.Reviewing(crop.draftId),
-                    qualityWarning = if (processed.reachedMinimumQuality) {
-                        "图片已压缩到最低质量，仍可能影响 AI 识别，请确认题目清晰。"
-                    } else {
-                        null
-                    },
-                )
+                val qualityWarning = processed.minimumQualityWarning()
+                if (aiGateway == null) {
+                    mutableUiState.value = CaptureUiState(
+                        stage = CaptureStage.Reviewing(crop.draftId),
+                        qualityWarning = qualityWarning,
+                    )
+                } else {
+                    analyzeProcessedImage(crop.draftId, processed, qualityWarning)
+                }
             }.onFailure {
                 mutableUiState.value = CaptureUiState(
                     stage = crop,
@@ -99,4 +106,81 @@ class CaptureViewModel(
             }
         }
     }
+
+    private fun retryAnalysis() {
+        val draftId = (mutableUiState.value.stage as? CaptureStage.Analyzing)?.draftId
+            ?: (mutableUiState.value.stage as? CaptureStage.Reviewing)?.draftId
+            ?: return
+        val processed = processedImages[draftId] ?: return
+        processingJob = viewModelScope.launch {
+            analyzeProcessedImage(
+                draftId = draftId,
+                processed = processed,
+                qualityWarning = processed.minimumQualityWarning(),
+            )
+        }
+    }
+
+    private suspend fun analyzeProcessedImage(
+        draftId: String,
+        processed: ProcessedCaptureImage,
+        qualityWarning: String?,
+    ) {
+        val gateway = aiGateway ?: return
+        mutableUiState.value = CaptureUiState(
+            stage = CaptureStage.Analyzing(draftId),
+            qualityWarning = qualityWarning,
+        )
+        runCatching {
+            gateway.analyzeImage(
+                AnalyzeImageRequest(
+                    imageBytes = processed.imageBytes,
+                    mimeType = processed.mimeType,
+                    languageInstruction = "请使用简体中文返回题目、答案、解析和错误分析。",
+                ),
+            )
+        }.onSuccess { analyzed ->
+            mutableUiState.value = CaptureUiState(
+                stage = CaptureStage.Reviewing(draftId),
+                qualityWarning = qualityWarning,
+                reviewDraft = analyzed.toReviewDraft(),
+            )
+        }.onFailure { throwable ->
+            mutableUiState.value = CaptureUiState(
+                stage = CaptureStage.Analyzing(draftId),
+                errorMessage = throwable.toAnalysisErrorMessage(),
+                qualityWarning = qualityWarning,
+            )
+        }
+    }
+
+    private fun AnalyzedQuestion.toReviewDraft(): CaptureReviewDraft =
+        CaptureReviewDraft(
+            subject = subject,
+            questionText = questionText,
+            answerText = answerText,
+            analysis = analysis,
+            wrongAnswerText = wrongAnswerText,
+            mistakeStatus = mistakeStatus,
+            mistakeAnalysis = mistakeAnalysis,
+        )
+
+    private fun ProcessedCaptureImage.minimumQualityWarning(): String? =
+        if (reachedMinimumQuality) {
+            "图片已压缩到最低质量，仍可能影响 AI 识别，请确认题目清晰。"
+        } else {
+            null
+        }
+
+    private fun Throwable.toAnalysisErrorMessage(): String =
+        when (this) {
+            AiGatewayException.Authentication -> "AI 鉴权失败，请检查 API Key 后重试。"
+            AiGatewayException.RateLimited -> "AI 请求过于频繁，请稍后重试。"
+            AiGatewayException.Timeout -> "AI 分析超时，请重试。"
+            AiGatewayException.NetworkUnavailable -> "网络不可用，无法分析图片，请稍后重试。"
+            is AiGatewayException.InvalidResponse -> "AI 返回内容无法识别，请重试。诊断码：$diagnosticCode"
+            is AiGatewayException.EndpointRejected -> "AI 服务地址被安全策略拒绝：$reason"
+            AiGatewayException.ConfigurationRequired -> "请先配置 AI 服务后再分析图片。"
+            else -> "AI 分析失败，请重试。"
+        }
 }

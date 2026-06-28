@@ -66,7 +66,7 @@ class CaptureProcessingViewModelTest {
     }
 }
 
-private class RecordingImageProcessor(
+class RecordingImageProcessor(
     private val processed: ProcessedCaptureImage = processedImage(),
     private val progressValues: List<Int> = emptyList(),
     private val failure: Throwable? = null,
@@ -84,7 +84,7 @@ private class RecordingImageProcessor(
     }
 }
 
-private fun processedImage(
+fun processedImage(
     reachedMinimumQuality: Boolean = false,
 ) = ProcessedCaptureImage(
     storedImage = StoredImage(
