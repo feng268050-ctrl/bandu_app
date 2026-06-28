@@ -54,6 +54,7 @@ fun CaptureReviewScreen(
                         selected = draft.collectionId == collection.id,
                         onClick = { onAction(CaptureAction.SelectReviewCollection(collection.id)) },
                         label = { Text(collection.name) },
+                        modifier = Modifier.testTag("$REVIEW_COLLECTION_PREFIX${collection.id.value}"),
                     )
                 }
             }
@@ -118,7 +119,9 @@ fun CaptureReviewScreen(
                 }
                 Button(
                     onClick = { onAction(CaptureAction.SaveReview) },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag(REVIEW_SAVE_TAG),
                 ) {
                     Text("保存")
                 }
@@ -155,3 +158,5 @@ internal const val REVIEW_MISTAKE_ANALYSIS_TAG = "capture-review-mistake-analysi
 internal const val REVIEW_GRADE_TAG = "capture-review-grade"
 internal const val REVIEW_NOTES_TAG = "capture-review-notes"
 internal const val REVIEW_TAG_PREFIX = "capture-review-tag-"
+internal const val REVIEW_COLLECTION_PREFIX = "capture-review-collection-"
+internal const val REVIEW_SAVE_TAG = "capture-review-save"

@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bandu.tiji.core.common.id.RandomUuidGenerator
 import com.bandu.tiji.core.common.id.UuidGenerator
+import com.bandu.tiji.core.model.collection.CollectionSummary
 import com.bandu.tiji.core.model.erroritem.ErrorItemDraft
 import com.bandu.tiji.core.model.navigation.NavigationIntent
+import com.bandu.tiji.core.model.tag.TagSummary
 import com.bandu.tiji.domain.ai.AiGatewayException
 import com.bandu.tiji.domain.ai.AnalyzeImageRequest
 import com.bandu.tiji.domain.ai.AnalyzedQuestion
@@ -28,8 +30,15 @@ class CaptureViewModel(
     private val draftFiles: CaptureDraftFiles = NoOpCaptureDraftFiles(),
     private val pendingOperationCoordinator: PendingOperationCoordinator = PendingOperationCoordinator(),
     private val uuidGenerator: UuidGenerator = RandomUuidGenerator(),
+    initialCollections: List<CollectionSummary> = emptyList(),
+    initialTags: List<TagSummary> = emptyList(),
 ) : ViewModel() {
-    private val mutableUiState = MutableStateFlow(CaptureUiState())
+    private val mutableUiState = MutableStateFlow(
+        CaptureUiState(
+            availableCollections = initialCollections,
+            availableTags = initialTags,
+        ),
+    )
     val uiState: StateFlow<CaptureUiState> = mutableUiState.asStateFlow()
 
     private val mutableEffects = Channel<CaptureEffect>(Channel.BUFFERED)
@@ -53,7 +62,7 @@ class CaptureViewModel(
             }
             is CaptureAction.ImageSelected -> {
                 val draftId = uuidGenerator.newUuid()
-                mutableUiState.value = CaptureUiState(
+                mutableUiState.value = newUiState(
                     stage = CaptureStage.Crop(
                         draftId = draftId,
                         tempUri = action.uri,
@@ -96,7 +105,7 @@ class CaptureViewModel(
         val crop = mutableUiState.value.stage as? CaptureStage.Crop ?: return
         if (processingJob?.isActive == true) return
         processingJob = viewModelScope.launch {
-            mutableUiState.value = CaptureUiState(
+            mutableUiState.value = newUiState(
                 stage = CaptureStage.Processing(
                     draftId = crop.draftId,
                     progress = 0,
@@ -118,7 +127,7 @@ class CaptureViewModel(
                 processedImages[crop.draftId] = processed
                 val qualityWarning = processed.minimumQualityWarning()
                 if (aiGateway == null) {
-                    mutableUiState.value = CaptureUiState(
+                    mutableUiState.value = newUiState(
                         stage = CaptureStage.Reviewing(crop.draftId),
                         qualityWarning = qualityWarning,
                     )
@@ -127,7 +136,7 @@ class CaptureViewModel(
                 }
             }.onFailure {
                 cleanupDraft(crop.draftId)
-                mutableUiState.value = CaptureUiState(
+                mutableUiState.value = newUiState(
                     stage = crop,
                     errorMessage = "图片处理失败，请重试",
                 )
@@ -169,7 +178,7 @@ class CaptureViewModel(
         qualityWarning: String?,
     ) {
         val gateway = aiGateway ?: return
-        mutableUiState.value = CaptureUiState(
+        mutableUiState.value = newUiState(
             stage = CaptureStage.Analyzing(draftId),
             qualityWarning = qualityWarning,
         )
@@ -185,7 +194,7 @@ class CaptureViewModel(
             if (pendingOperationCoordinator.peek() == PendingAiOperation.AnalyzeCapture(draftId)) {
                 pendingOperationCoordinator.clear()
             }
-            mutableUiState.value = CaptureUiState(
+            mutableUiState.value = newUiState(
                 stage = CaptureStage.Reviewing(draftId),
                 qualityWarning = qualityWarning,
                 reviewDraft = analyzed.toReviewDraft(),
@@ -195,7 +204,7 @@ class CaptureViewModel(
                 pendingOperationCoordinator.save(PendingAiOperation.AnalyzeCapture(draftId))
                 mutableEffects.trySend(CaptureEffect.Navigate(NavigationIntent.OpenAiSettings))
             }
-            mutableUiState.value = CaptureUiState(
+            mutableUiState.value = newUiState(
                 stage = CaptureStage.Analyzing(draftId),
                 errorMessage = throwable.toAnalysisErrorMessage(),
                 qualityWarning = qualityWarning,
@@ -314,6 +323,21 @@ class CaptureViewModel(
             CaptureStage.SelectSource,
             -> null
         }
+
+    private fun newUiState(
+        stage: CaptureStage,
+        errorMessage: String? = null,
+        qualityWarning: String? = null,
+        reviewDraft: CaptureReviewDraft? = null,
+    ): CaptureUiState =
+        CaptureUiState(
+            stage = stage,
+            errorMessage = errorMessage,
+            qualityWarning = qualityWarning,
+            reviewDraft = reviewDraft,
+            availableCollections = mutableUiState.value.availableCollections,
+            availableTags = mutableUiState.value.availableTags,
+        )
 
     private companion object {
         const val MAX_REVIEW_TAGS = 5
