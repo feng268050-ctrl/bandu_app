@@ -3,6 +3,8 @@ package com.bandu.tiji.feature.capture
 sealed interface CaptureStage {
     data object SelectSource : CaptureStage
 
+    data object Camera : CaptureStage
+
     data class Crop(
         val draftId: String,
         val tempUri: String,
@@ -59,6 +61,7 @@ sealed interface CaptureStage {
 data class CaptureUiState(
     val stage: CaptureStage = CaptureStage.SelectSource,
     val errorMessage: String? = null,
+    val qualityWarning: String? = null,
 )
 
 sealed interface CaptureAction {
