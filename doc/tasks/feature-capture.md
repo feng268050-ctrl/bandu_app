@@ -25,5 +25,5 @@
 
 ## 模块完成条件
 
-- [ ] `:feature:capture:testDebugUnitTest` 和仪器测试通过。
-- [ ] 模块不直接依赖具体 AI Provider 或 Storage 实现。
+- [x] `:feature:capture:testDebugUnitTest` 和仪器测试通过。
+- [x] 模块不直接依赖具体 AI Provider 或 Storage 实现。
