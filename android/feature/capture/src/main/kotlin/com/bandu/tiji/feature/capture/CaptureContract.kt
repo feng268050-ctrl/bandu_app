@@ -71,4 +71,6 @@ sealed interface CaptureAction {
 
 sealed interface CaptureEffect {
     data object NavigateBack : CaptureEffect
+
+    data object LaunchPhotoPicker : CaptureEffect
 }
