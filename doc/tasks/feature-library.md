@@ -25,5 +25,5 @@
 
 ## 模块完成条件
 
-- [ ] `:feature:library:testDebugUnitTest`、Compose 测试和性能场景通过。
-- [ ] 不实现打印、导出或回收站。
+- [x] `:feature:library:testDebugUnitTest`、Compose 测试和性能场景通过。
+- [x] 不实现打印、导出或回收站。

@@ -17,8 +17,8 @@
 | 指标 | 数量 |
 | --- | ---: |
 | 模块总数 | 22 |
-| 已完成 | 18 |
-| 进行中 | 4 |
+| 已完成 | 19 |
+| 进行中 | 3 |
 | 未开始 | 0 |
 
 ## 第 1 批：工程与稳定模型
@@ -77,15 +77,15 @@
 ## 第 6 批：纯本地用户功能
 
 - [x] [`:feature:home`](./feature-home.md) - 首页
-- [ ] [`:feature:library`](./feature-library.md) - 题集与错题
+- [x] [`:feature:library`](./feature-library.md) - 题集与错题
 - [x] [`:feature:tags`](./feature-tags.md) - 标签
 - [x] [`:feature:stats`](./feature-stats.md) - 统计
 
 批次完成标准：
 
-- [ ] 无网络时四个 Feature 均可正常使用。
-- [ ] Feature 之间没有直接 Gradle 依赖。
-- [ ] 5000 条错题的列表和筛选性能达到设计门槛。
+- [x] 无网络时四个 Feature 均可正常使用。
+- [x] Feature 之间没有直接 Gradle 依赖。
+- [x] 5000 条错题的列表和筛选性能达到设计门槛。
 
 ## 第 7 批：AI 用户功能
 
