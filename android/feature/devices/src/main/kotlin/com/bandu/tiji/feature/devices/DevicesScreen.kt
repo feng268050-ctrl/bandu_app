@@ -221,11 +221,46 @@ fun DevicesScreen(
                         BanduCard(modifier = Modifier.fillMaxWidth()) {
                             Text(device.displayName)
                             Text("身份指纹：${device.publicKeyFingerprint}")
+                            Button(
+                                onClick = { onAction(DevicesAction.RequestSendAllData(device)) },
+                                modifier = Modifier.testTag("send-device-${device.deviceId}"),
+                            ) {
+                                Text("发送全部数据")
+                            }
                             TextButton(
                                 onClick = { onAction(DevicesAction.RequestForgetDevice(device)) },
                                 modifier = Modifier.testTag("forget-device-${device.deviceId}"),
                             ) {
                                 Text("解除配对")
+                            }
+                        }
+                    }
+                }
+                uiState.sendConfirmation?.let { pending ->
+                    item {
+                        BanduCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(SEND_CONFIRMATION_TAG),
+                        ) {
+                            Text("发送全部数据", style = MaterialTheme.typography.titleMedium)
+                            Text("目标设备：${pending.target.displayName}")
+                            Text("这是完整复制，不是同步。")
+                            Text("源设备的数据会保留，不会被删除。")
+                            Text("目标设备现有学习数据会被完整替换，不会与源数据合并。")
+                            pending.errorMessage?.let { Text(it) }
+                            Button(
+                                onClick = { onAction(DevicesAction.ConfirmSendAllData) },
+                                enabled = !pending.isSending,
+                                modifier = Modifier.testTag(SEND_CONFIRM_TAG),
+                            ) {
+                                Text(if (pending.isSending) "发送中" else "确认发送")
+                            }
+                            TextButton(
+                                onClick = { onAction(DevicesAction.DismissSendAllData) },
+                                enabled = !pending.isSending,
+                            ) {
+                                Text("取消")
                             }
                         }
                     }
@@ -270,6 +305,8 @@ internal const val PAIRING_CONFIRM_TAG = "devices-pairing-confirm"
 internal const val PAIRING_REJECT_TAG = "devices-pairing-reject"
 internal const val FORGET_DEVICE_CONFIRMATION_TAG = "devices-forget-confirmation"
 internal const val FORGET_DEVICE_CONFIRM_TAG = "devices-forget-confirm"
+internal const val SEND_CONFIRMATION_TAG = "devices-send-confirmation"
+internal const val SEND_CONFIRM_TAG = "devices-send-confirm"
 
 @Composable
 private fun DeviceSectionTitle(title: String) {

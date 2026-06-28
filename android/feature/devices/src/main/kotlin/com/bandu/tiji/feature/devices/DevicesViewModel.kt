@@ -10,6 +10,7 @@ import com.bandu.tiji.domain.transfer.PairingResult
 import com.bandu.tiji.domain.transfer.TransferFailureCode
 import com.bandu.tiji.domain.usecase.transfer.CreateReceiveCodeUseCase
 import com.bandu.tiji.domain.usecase.transfer.ForgetDeviceUseCase
+import com.bandu.tiji.domain.usecase.transfer.SendAllDataUseCase
 import com.bandu.tiji.domain.usecase.transfer.StartDiscoveryUseCase
 import com.bandu.tiji.domain.usecase.transfer.StopDiscoveryUseCase
 import kotlinx.coroutines.Job
@@ -41,6 +42,7 @@ class DevicesViewModel(
     private val stopDiscovery = StopDiscoveryUseCase(repository)
     private val createReceiveCode = CreateReceiveCodeUseCase(repository)
     private val forgetDevice = ForgetDeviceUseCase(repository)
+    private val sendAllData = SendAllDataUseCase(repository)
 
     init {
         observeDevices()
@@ -85,6 +87,15 @@ class DevicesViewModel(
             DevicesAction.ConfirmForgetDevice -> confirmForgetDevice()
             DevicesAction.DismissForgetDevice -> {
                 mutableUiState.value = mutableUiState.value.copy(forgetDevice = null)
+            }
+            is DevicesAction.RequestSendAllData -> {
+                mutableUiState.value = mutableUiState.value.copy(
+                    sendConfirmation = SendConfirmationUiState(action.target),
+                )
+            }
+            DevicesAction.ConfirmSendAllData -> confirmSendAllData()
+            DevicesAction.DismissSendAllData -> {
+                mutableUiState.value = mutableUiState.value.copy(sendConfirmation = null)
             }
         }
     }
@@ -296,6 +307,28 @@ class DevicesViewModel(
                     forgetDevice = pending.copy(
                         isForgetting = false,
                         errorMessage = "无法解除配对，请稍后重试。",
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun confirmSendAllData() {
+        val pending = mutableUiState.value.sendConfirmation ?: return
+        if (pending.isSending) return
+        mutableUiState.value = mutableUiState.value.copy(
+            sendConfirmation = pending.copy(isSending = true, errorMessage = null),
+        )
+        commandJob?.cancel()
+        commandJob = viewModelScope.launch {
+            when (sendAllData(pending.target)) {
+                is AppResult.Success -> mutableUiState.value = mutableUiState.value.copy(
+                    sendConfirmation = null,
+                )
+                is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
+                    sendConfirmation = pending.copy(
+                        isSending = false,
+                        errorMessage = "无法开始迁移，请稍后重试。",
                     ),
                 )
             }

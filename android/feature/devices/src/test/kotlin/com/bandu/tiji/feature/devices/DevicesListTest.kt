@@ -63,6 +63,24 @@ class DevicesListViewModelTest {
         assertThat(viewModel.uiState.value.forgetDevice).isNull()
         assertThat(viewModel.uiState.value.trustedDevices).isEmpty()
     }
+
+    @Test
+    fun `send all data waits for explicit source impact confirmation`() = runTest {
+        val target = TrustedDevice("trusted-1", "新手机", "AA:BB:CC")
+        val repository = FakeDeviceTransferRepository(initialTrustedDevices = listOf(target))
+        val viewModel = DevicesViewModel(repository, "本机", "LOCAL")
+        advanceUntilIdle()
+
+        viewModel.onAction(DevicesAction.RequestSendAllData(target))
+        assertThat(repository.sendTargets).isEmpty()
+        assertThat(viewModel.uiState.value.sendConfirmation?.target).isEqualTo(target)
+
+        viewModel.onAction(DevicesAction.ConfirmSendAllData)
+        advanceUntilIdle()
+
+        assertThat(repository.sendTargets).containsExactly(target)
+        assertThat(viewModel.uiState.value.sendConfirmation).isNull()
+    }
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -126,6 +144,40 @@ class DevicesListScreenTest {
 
         composeRule.runOnIdle {
             assertThat(actions).contains(DevicesAction.ConfirmForgetDevice)
+        }
+    }
+
+    @Test
+    fun `send confirmation states source retained and target replaced`() {
+        val target = TrustedDevice("trusted-1", "新手机", "AA:BB:CC")
+        val actions = mutableListOf<DevicesAction>()
+        composeRule.setContent {
+            BanduTijiTheme {
+                DevicesScreen(
+                    uiState = DevicesUiState(
+                        localDeviceName = "我的手机",
+                        localFingerprint = "LOCAL",
+                        trustedDevices = listOf(target),
+                        sendConfirmation = SendConfirmationUiState(target),
+                        isLoading = false,
+                    ),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("devices-list").performScrollToIndex(6)
+        composeRule.onNodeWithTag(SEND_CONFIRMATION_TAG)
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("源设备的数据会保留，不会被删除。")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("目标设备现有学习数据会被完整替换，不会与源数据合并。")
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(SEND_CONFIRM_TAG).performClick()
+
+        composeRule.runOnIdle {
+            assertThat(actions).contains(DevicesAction.ConfirmSendAllData)
         }
     }
 }

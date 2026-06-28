@@ -18,6 +18,7 @@ data class DevicesUiState(
     val pairingDialog: PairingDialogUiState? = null,
     val pairingConfirmation: PairingConfirmationUiState? = null,
     val forgetDevice: ForgetDeviceUiState? = null,
+    val sendConfirmation: SendConfirmationUiState? = null,
 )
 
 data class ReceiveModeUiState(
@@ -57,6 +58,12 @@ data class ForgetDeviceUiState(
     val errorMessage: String? = null,
 )
 
+data class SendConfirmationUiState(
+    val target: TrustedDevice,
+    val isSending: Boolean = false,
+    val errorMessage: String? = null,
+)
+
 sealed interface DevicesAction {
     data object Retry : DevicesAction
 
@@ -93,6 +100,14 @@ sealed interface DevicesAction {
     data object ConfirmForgetDevice : DevicesAction
 
     data object DismissForgetDevice : DevicesAction
+
+    data class RequestSendAllData(
+        val target: TrustedDevice,
+    ) : DevicesAction
+
+    data object ConfirmSendAllData : DevicesAction
+
+    data object DismissSendAllData : DevicesAction
 }
 
 sealed interface DevicesEffect
