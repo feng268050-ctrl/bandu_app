@@ -4,6 +4,7 @@ import com.bandu.tiji.core.model.enums.MistakeStatus
 import com.bandu.tiji.core.model.enums.PaperLevel
 import com.bandu.tiji.core.model.id.CollectionId
 import com.bandu.tiji.core.model.id.TagId
+import com.bandu.tiji.core.model.navigation.NavigationIntent
 
 sealed interface CaptureStage {
     data object SelectSource : CaptureStage
@@ -110,4 +111,8 @@ sealed interface CaptureEffect {
     data object NavigateBack : CaptureEffect
 
     data object LaunchPhotoPicker : CaptureEffect
+
+    data class Navigate(
+        val intent: NavigationIntent,
+    ) : CaptureEffect
 }

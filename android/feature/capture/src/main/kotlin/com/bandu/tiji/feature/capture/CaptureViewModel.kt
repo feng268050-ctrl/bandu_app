@@ -4,9 +4,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bandu.tiji.core.common.id.RandomUuidGenerator
 import com.bandu.tiji.core.common.id.UuidGenerator
+import com.bandu.tiji.core.model.navigation.NavigationIntent
 import com.bandu.tiji.domain.ai.AiGatewayException
 import com.bandu.tiji.domain.ai.AnalyzeImageRequest
 import com.bandu.tiji.domain.ai.AnalyzedQuestion
+import com.bandu.tiji.domain.pending.PendingAiOperation
+import com.bandu.tiji.domain.pending.PendingOperationCoordinator
 import com.bandu.tiji.domain.repository.AiTutorGateway
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -19,6 +22,7 @@ import kotlinx.coroutines.launch
 class CaptureViewModel(
     private val imageProcessor: ProcessCaptureImageUseCase = DeterministicCaptureImageProcessor(),
     private val aiGateway: AiTutorGateway? = null,
+    private val pendingOperationCoordinator: PendingOperationCoordinator = PendingOperationCoordinator(),
     private val uuidGenerator: UuidGenerator = RandomUuidGenerator(),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(CaptureUiState())
@@ -146,6 +150,10 @@ class CaptureViewModel(
                 reviewDraft = analyzed.toReviewDraft(),
             )
         }.onFailure { throwable ->
+            if (throwable == AiGatewayException.ConfigurationRequired) {
+                pendingOperationCoordinator.save(PendingAiOperation.AnalyzeCapture(draftId))
+                mutableEffects.trySend(CaptureEffect.Navigate(NavigationIntent.OpenAiSettings))
+            }
             mutableUiState.value = CaptureUiState(
                 stage = CaptureStage.Analyzing(draftId),
                 errorMessage = throwable.toAnalysisErrorMessage(),
