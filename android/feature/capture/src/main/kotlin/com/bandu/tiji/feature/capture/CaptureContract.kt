@@ -66,6 +66,14 @@ sealed interface CaptureAction {
 
     data object ChoosePhoto : CaptureAction
 
+    data class ImageSelected(
+        val uri: String,
+    ) : CaptureAction
+
+    data object RotateCropClockwise : CaptureAction
+
+    data object ConfirmCrop : CaptureAction
+
     data object Cancel : CaptureAction
 }
 
