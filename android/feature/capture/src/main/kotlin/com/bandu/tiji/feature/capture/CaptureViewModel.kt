@@ -63,6 +63,22 @@ class CaptureViewModel(
             CaptureAction.ConfirmCrop -> processCurrentCrop()
             CaptureAction.RetryAnalysis -> retryAnalysis()
             CaptureAction.ResumePendingOperation -> resumePendingOperation()
+            is CaptureAction.UpdateReviewDraft -> {
+                mutableUiState.value = mutableUiState.value.copy(reviewDraft = action.draft.trimmedToTagLimit())
+            }
+            is CaptureAction.SelectReviewCollection -> {
+                updateReviewDraft { it.copy(collectionId = action.collectionId) }
+            }
+            is CaptureAction.ToggleReviewTag -> {
+                updateReviewDraft { draft ->
+                    val selected = draft.tagIds
+                    when {
+                        action.tagId in selected -> draft.copy(tagIds = selected - action.tagId)
+                        selected.size >= MAX_REVIEW_TAGS -> draft
+                        else -> draft.copy(tagIds = selected + action.tagId)
+                    }
+                }
+            }
             CaptureAction.Cancel -> {
                 processingJob?.cancel()
                 mutableEffects.trySend(CaptureEffect.NavigateBack)
@@ -191,6 +207,14 @@ class CaptureViewModel(
             mistakeAnalysis = mistakeAnalysis,
         )
 
+    private fun updateReviewDraft(transform: (CaptureReviewDraft) -> CaptureReviewDraft) {
+        val current = mutableUiState.value.reviewDraft ?: return
+        mutableUiState.value = mutableUiState.value.copy(reviewDraft = transform(current).trimmedToTagLimit())
+    }
+
+    private fun CaptureReviewDraft.trimmedToTagLimit(): CaptureReviewDraft =
+        if (tagIds.size <= MAX_REVIEW_TAGS) this else copy(tagIds = tagIds.take(MAX_REVIEW_TAGS))
+
     private fun ProcessedCaptureImage.minimumQualityWarning(): String? =
         if (reachedMinimumQuality) {
             "图片已压缩到最低质量，仍可能影响 AI 识别，请确认题目清晰。"
@@ -209,4 +233,8 @@ class CaptureViewModel(
             AiGatewayException.ConfigurationRequired -> "请先配置 AI 服务后再分析图片。"
             else -> "AI 分析失败，请重试。"
         }
+
+    private companion object {
+        const val MAX_REVIEW_TAGS = 5
+    }
 }

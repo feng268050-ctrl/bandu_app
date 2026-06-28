@@ -1,10 +1,12 @@
 package com.bandu.tiji.feature.capture
 
+import com.bandu.tiji.core.model.collection.CollectionSummary
 import com.bandu.tiji.core.model.enums.MistakeStatus
 import com.bandu.tiji.core.model.enums.PaperLevel
 import com.bandu.tiji.core.model.id.CollectionId
 import com.bandu.tiji.core.model.id.TagId
 import com.bandu.tiji.core.model.navigation.NavigationIntent
+import com.bandu.tiji.core.model.tag.TagSummary
 
 sealed interface CaptureStage {
     data object SelectSource : CaptureStage
@@ -69,6 +71,8 @@ data class CaptureUiState(
     val errorMessage: String? = null,
     val qualityWarning: String? = null,
     val reviewDraft: CaptureReviewDraft? = null,
+    val availableCollections: List<CollectionSummary> = emptyList(),
+    val availableTags: List<TagSummary> = emptyList(),
 )
 
 data class CaptureReviewDraft(
@@ -105,6 +109,18 @@ sealed interface CaptureAction {
     data object RetryAnalysis : CaptureAction
 
     data object ResumePendingOperation : CaptureAction
+
+    data class UpdateReviewDraft(
+        val draft: CaptureReviewDraft,
+    ) : CaptureAction
+
+    data class SelectReviewCollection(
+        val collectionId: CollectionId,
+    ) : CaptureAction
+
+    data class ToggleReviewTag(
+        val tagId: TagId,
+    ) : CaptureAction
 
     data object Cancel : CaptureAction
 }
