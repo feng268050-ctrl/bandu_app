@@ -25,6 +25,7 @@ class CaptureViewModel(
     private val imageProcessor: ProcessCaptureImageUseCase = DeterministicCaptureImageProcessor(),
     private val aiGateway: AiTutorGateway? = null,
     private val errorItemRepository: ErrorItemRepository? = null,
+    private val draftFiles: CaptureDraftFiles = NoOpCaptureDraftFiles(),
     private val pendingOperationCoordinator: PendingOperationCoordinator = PendingOperationCoordinator(),
     private val uuidGenerator: UuidGenerator = RandomUuidGenerator(),
 ) : ViewModel() {
@@ -84,6 +85,7 @@ class CaptureViewModel(
             }
             CaptureAction.SaveReview -> saveReview()
             CaptureAction.Cancel -> {
+                cleanupCurrentDraft()
                 processingJob?.cancel()
                 mutableEffects.trySend(CaptureEffect.NavigateBack)
             }
@@ -124,6 +126,7 @@ class CaptureViewModel(
                     analyzeProcessedImage(crop.draftId, processed, qualityWarning)
                 }
             }.onFailure {
+                cleanupDraft(crop.draftId)
                 mutableUiState.value = CaptureUiState(
                     stage = crop,
                     errorMessage = "图片处理失败，请重试",
@@ -259,6 +262,7 @@ class CaptureViewModel(
                     ),
                 )
             }.onSuccess { id ->
+                draftFiles.markSaved(stage.draftId)
                 mutableEffects.trySend(CaptureEffect.Navigate(NavigationIntent.OpenErrorItem(id.value)))
             }.onFailure {
                 mutableUiState.value = mutableUiState.value.copy(
@@ -286,6 +290,29 @@ class CaptureViewModel(
             is AiGatewayException.EndpointRejected -> "AI 服务地址被安全策略拒绝：$reason"
             AiGatewayException.ConfigurationRequired -> "请先配置 AI 服务后再分析图片。"
             else -> "AI 分析失败，请重试。"
+        }
+
+    private fun cleanupCurrentDraft() {
+        currentDraftId()?.let(::cleanupDraft)
+    }
+
+    private fun cleanupDraft(draftId: String) {
+        processedImages.remove(draftId)
+        viewModelScope.launch {
+            draftFiles.cleanupDraft(draftId)
+        }
+    }
+
+    private fun currentDraftId(): String? =
+        when (val stage = mutableUiState.value.stage) {
+            is CaptureStage.Crop -> stage.draftId
+            is CaptureStage.Processing -> stage.draftId
+            is CaptureStage.Analyzing -> stage.draftId
+            is CaptureStage.Reviewing -> stage.draftId
+            is CaptureStage.Saving -> stage.draftId
+            CaptureStage.Camera,
+            CaptureStage.SelectSource,
+            -> null
         }
 
     private companion object {
