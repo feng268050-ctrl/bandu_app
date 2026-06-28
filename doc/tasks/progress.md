@@ -17,8 +17,8 @@
 | 指标 | 数量 |
 | --- | ---: |
 | 模块总数 | 22 |
-| 已完成 | 20 |
-| 进行中 | 2 |
+| 已完成 | 21 |
+| 进行中 | 1 |
 | 未开始 | 0 |
 
 ## 第 1 批：工程与稳定模型
@@ -103,7 +103,7 @@
 
 - [x] [`:transfer:protocol`](./transfer-protocol.md) - Protobuf、SRP、加密和状态机
 - [ ] [`:transfer:runtime`](./transfer-runtime.md) - NSD、TCP、续传和原子导入
-- [ ] [`:feature:devices`](./feature-devices.md) - 设备与迁移 UI
+- [x] [`:feature:devices`](./feature-devices.md) - 设备与迁移 UI
 
 批次完成标准：
 

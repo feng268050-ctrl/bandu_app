@@ -24,5 +24,5 @@
 
 ## 模块完成条件
 
-- [ ] `:feature:devices:testDebugUnitTest` 和 Compose 测试通过。
-- [ ] UI 不实现自动同步或后台持续扫描入口。
+- [x] `:feature:devices:testDebugUnitTest` 和 Compose 测试通过。
+- [x] UI 不实现自动同步或后台持续扫描入口。
