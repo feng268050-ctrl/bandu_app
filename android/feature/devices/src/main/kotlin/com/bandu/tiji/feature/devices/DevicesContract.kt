@@ -108,6 +108,10 @@ sealed interface DevicesAction {
     data object ConfirmSendAllData : DevicesAction
 
     data object DismissSendAllData : DevicesAction
+
+    data object AcceptIncomingTransfer : DevicesAction
+
+    data object RejectIncomingTransfer : DevicesAction
 }
 
 sealed interface DevicesEffect

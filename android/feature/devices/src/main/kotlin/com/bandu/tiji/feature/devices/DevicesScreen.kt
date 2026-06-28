@@ -19,6 +19,7 @@ import com.bandu.tiji.core.designsystem.component.BanduErrorState
 import com.bandu.tiji.core.designsystem.component.BanduLoadingState
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
+import com.bandu.tiji.domain.transfer.TransferState
 
 @Composable
 fun DevicesScreen(
@@ -265,6 +266,35 @@ fun DevicesScreen(
                         }
                     }
                 }
+                (uiState.transferState as? TransferState.AwaitingOfferConfirmation)?.let { state ->
+                    item {
+                        BanduCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(INCOMING_TRANSFER_CONFIRMATION_TAG),
+                        ) {
+                            Text("接收数据迁移", style = MaterialTheme.typography.titleMedium)
+                            Text("来源设备：${state.offer.sourceDeviceName}")
+                            Text("记录数：${state.offer.totalRecords}")
+                            Text("文件数：${state.offer.totalFiles}")
+                            Text("总大小：${formatBytes(state.offer.totalBytes)}")
+                            Text("接收后，本机现有学习数据会被完整替换。")
+                            Text("迁移成功后，本机 API Key 会被清除，需要重新配置。")
+                            Button(
+                                onClick = { onAction(DevicesAction.AcceptIncomingTransfer) },
+                                modifier = Modifier.testTag(INCOMING_ACCEPT_TAG),
+                            ) {
+                                Text("确认接收")
+                            }
+                            TextButton(
+                                onClick = { onAction(DevicesAction.RejectIncomingTransfer) },
+                                modifier = Modifier.testTag(INCOMING_REJECT_TAG),
+                            ) {
+                                Text("拒绝")
+                            }
+                        }
+                    }
+                }
                 uiState.forgetDevice?.let { pending ->
                     item {
                         BanduCard(
@@ -307,6 +337,9 @@ internal const val FORGET_DEVICE_CONFIRMATION_TAG = "devices-forget-confirmation
 internal const val FORGET_DEVICE_CONFIRM_TAG = "devices-forget-confirm"
 internal const val SEND_CONFIRMATION_TAG = "devices-send-confirmation"
 internal const val SEND_CONFIRM_TAG = "devices-send-confirm"
+internal const val INCOMING_TRANSFER_CONFIRMATION_TAG = "devices-incoming-confirmation"
+internal const val INCOMING_ACCEPT_TAG = "devices-incoming-accept"
+internal const val INCOMING_REJECT_TAG = "devices-incoming-reject"
 
 @Composable
 private fun DeviceSectionTitle(title: String) {
@@ -315,3 +348,10 @@ private fun DeviceSectionTitle(title: String) {
         style = MaterialTheme.typography.titleLarge,
     )
 }
+
+internal fun formatBytes(bytes: Long): String =
+    when {
+        bytes < 1_024L -> "$bytes B"
+        bytes < 1_024L * 1_024L -> "${bytes / 1_024L} KB"
+        else -> "${bytes / (1_024L * 1_024L)} MB"
+    }

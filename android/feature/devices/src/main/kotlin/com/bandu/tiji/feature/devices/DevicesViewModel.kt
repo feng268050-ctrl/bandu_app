@@ -8,8 +8,11 @@ import com.bandu.tiji.core.common.time.Clock
 import com.bandu.tiji.core.common.time.SystemClock
 import com.bandu.tiji.domain.transfer.PairingResult
 import com.bandu.tiji.domain.transfer.TransferFailureCode
+import com.bandu.tiji.domain.transfer.TransferState
+import com.bandu.tiji.domain.usecase.transfer.AcceptTransferUseCase
 import com.bandu.tiji.domain.usecase.transfer.CreateReceiveCodeUseCase
 import com.bandu.tiji.domain.usecase.transfer.ForgetDeviceUseCase
+import com.bandu.tiji.domain.usecase.transfer.RejectTransferUseCase
 import com.bandu.tiji.domain.usecase.transfer.SendAllDataUseCase
 import com.bandu.tiji.domain.usecase.transfer.StartDiscoveryUseCase
 import com.bandu.tiji.domain.usecase.transfer.StopDiscoveryUseCase
@@ -43,6 +46,8 @@ class DevicesViewModel(
     private val createReceiveCode = CreateReceiveCodeUseCase(repository)
     private val forgetDevice = ForgetDeviceUseCase(repository)
     private val sendAllData = SendAllDataUseCase(repository)
+    private val acceptTransfer = AcceptTransferUseCase(repository)
+    private val rejectTransfer = RejectTransferUseCase(repository)
 
     init {
         observeDevices()
@@ -97,6 +102,8 @@ class DevicesViewModel(
             DevicesAction.DismissSendAllData -> {
                 mutableUiState.value = mutableUiState.value.copy(sendConfirmation = null)
             }
+            DevicesAction.AcceptIncomingTransfer -> acceptIncomingTransfer()
+            DevicesAction.RejectIncomingTransfer -> rejectIncomingTransfer()
         }
     }
 
@@ -332,6 +339,32 @@ class DevicesViewModel(
                     ),
                 )
             }
+        }
+    }
+
+    private fun acceptIncomingTransfer() {
+        val offer = (mutableUiState.value.transferState as? TransferState.AwaitingOfferConfirmation)
+            ?.offer ?: return
+        commandJob?.cancel()
+        commandJob = viewModelScope.launch {
+            val message = when (acceptTransfer(offer.sessionId)) {
+                is AppResult.Success -> null
+                is AppResult.Failure -> "无法接收迁移，请稍后重试。"
+            }
+            mutableUiState.value = mutableUiState.value.copy(commandErrorMessage = message)
+        }
+    }
+
+    private fun rejectIncomingTransfer() {
+        val offer = (mutableUiState.value.transferState as? TransferState.AwaitingOfferConfirmation)
+            ?.offer ?: return
+        commandJob?.cancel()
+        commandJob = viewModelScope.launch {
+            val message = when (rejectTransfer(offer.sessionId)) {
+                is AppResult.Success -> null
+                is AppResult.Failure -> "无法拒绝迁移，请稍后重试。"
+            }
+            mutableUiState.value = mutableUiState.value.copy(commandErrorMessage = message)
         }
     }
 }
