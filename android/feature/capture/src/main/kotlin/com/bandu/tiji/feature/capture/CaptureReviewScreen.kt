@@ -117,7 +117,7 @@ fun CaptureReviewScreen(
                     Text("取消")
                 }
                 Button(
-                    onClick = { },
+                    onClick = { onAction(CaptureAction.SaveReview) },
                     modifier = Modifier.weight(1f),
                 ) {
                     Text("保存")

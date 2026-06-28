@@ -122,6 +122,8 @@ sealed interface CaptureAction {
         val tagId: TagId,
     ) : CaptureAction
 
+    data object SaveReview : CaptureAction
+
     data object Cancel : CaptureAction
 }
 

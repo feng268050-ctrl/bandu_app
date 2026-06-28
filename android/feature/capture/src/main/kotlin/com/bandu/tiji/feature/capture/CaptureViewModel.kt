@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bandu.tiji.core.common.id.RandomUuidGenerator
 import com.bandu.tiji.core.common.id.UuidGenerator
+import com.bandu.tiji.core.model.erroritem.ErrorItemDraft
 import com.bandu.tiji.core.model.navigation.NavigationIntent
 import com.bandu.tiji.domain.ai.AiGatewayException
 import com.bandu.tiji.domain.ai.AnalyzeImageRequest
@@ -11,6 +12,7 @@ import com.bandu.tiji.domain.ai.AnalyzedQuestion
 import com.bandu.tiji.domain.pending.PendingAiOperation
 import com.bandu.tiji.domain.pending.PendingOperationCoordinator
 import com.bandu.tiji.domain.repository.AiTutorGateway
+import com.bandu.tiji.domain.repository.ErrorItemRepository
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +24,7 @@ import kotlinx.coroutines.launch
 class CaptureViewModel(
     private val imageProcessor: ProcessCaptureImageUseCase = DeterministicCaptureImageProcessor(),
     private val aiGateway: AiTutorGateway? = null,
+    private val errorItemRepository: ErrorItemRepository? = null,
     private val pendingOperationCoordinator: PendingOperationCoordinator = PendingOperationCoordinator(),
     private val uuidGenerator: UuidGenerator = RandomUuidGenerator(),
 ) : ViewModel() {
@@ -79,6 +82,7 @@ class CaptureViewModel(
                     }
                 }
             }
+            CaptureAction.SaveReview -> saveReview()
             CaptureAction.Cancel -> {
                 processingJob?.cancel()
                 mutableEffects.trySend(CaptureEffect.NavigateBack)
@@ -214,6 +218,56 @@ class CaptureViewModel(
 
     private fun CaptureReviewDraft.trimmedToTagLimit(): CaptureReviewDraft =
         if (tagIds.size <= MAX_REVIEW_TAGS) this else copy(tagIds = tagIds.take(MAX_REVIEW_TAGS))
+
+    private fun saveReview() {
+        val stage = mutableUiState.value.stage as? CaptureStage.Reviewing ?: return
+        val draft = mutableUiState.value.reviewDraft ?: return
+        val repository = errorItemRepository ?: run {
+            mutableUiState.value = mutableUiState.value.copy(errorMessage = "无法保存错题，请稍后重试。")
+            return
+        }
+        val collectionId = draft.collectionId ?: run {
+            mutableUiState.value = mutableUiState.value.copy(errorMessage = "请选择题集后保存。")
+            return
+        }
+        val processed = processedImages[stage.draftId] ?: run {
+            mutableUiState.value = mutableUiState.value.copy(errorMessage = "图片尚未处理完成，请重试。")
+            return
+        }
+        if (processingJob?.isActive == true) return
+        processingJob = viewModelScope.launch {
+            mutableUiState.value = mutableUiState.value.copy(
+                stage = CaptureStage.Saving(stage.draftId),
+                errorMessage = null,
+            )
+            runCatching {
+                repository.create(
+                    ErrorItemDraft(
+                        collectionId = collectionId,
+                        image = processed.storedImage,
+                        questionText = draft.questionText,
+                        answerText = draft.answerText,
+                        analysis = draft.analysis,
+                        wrongAnswerText = draft.wrongAnswerText,
+                        mistakeStatus = draft.mistakeStatus,
+                        mistakeAnalysis = draft.mistakeAnalysis,
+                        subject = draft.subject,
+                        tagIds = draft.tagIds,
+                        gradeSemester = draft.gradeSemester,
+                        paperLevel = draft.paperLevel,
+                        notes = draft.notes,
+                    ),
+                )
+            }.onSuccess { id ->
+                mutableEffects.trySend(CaptureEffect.Navigate(NavigationIntent.OpenErrorItem(id.value)))
+            }.onFailure {
+                mutableUiState.value = mutableUiState.value.copy(
+                    stage = CaptureStage.Reviewing(stage.draftId),
+                    errorMessage = "保存错题失败，请检查字段后重试。",
+                )
+            }
+        }
+    }
 
     private fun ProcessedCaptureImage.minimumQualityWarning(): String? =
         if (reachedMinimumQuality) {
