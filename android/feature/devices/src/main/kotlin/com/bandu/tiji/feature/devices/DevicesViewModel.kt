@@ -77,6 +77,15 @@ class DevicesViewModel(
                 mutableUiState.value = mutableUiState.value.copy(pairingConfirmation = null)
             }
             DevicesAction.RejectPairingIdentity -> rejectPairingIdentity()
+            is DevicesAction.RequestForgetDevice -> {
+                mutableUiState.value = mutableUiState.value.copy(
+                    forgetDevice = ForgetDeviceUiState(action.device),
+                )
+            }
+            DevicesAction.ConfirmForgetDevice -> confirmForgetDevice()
+            DevicesAction.DismissForgetDevice -> {
+                mutableUiState.value = mutableUiState.value.copy(forgetDevice = null)
+            }
         }
     }
 
@@ -265,6 +274,28 @@ class DevicesViewModel(
                     pairingConfirmation = confirmation.copy(
                         isRejecting = false,
                         errorMessage = "无法取消信任，请稍后重试。",
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun confirmForgetDevice() {
+        val pending = mutableUiState.value.forgetDevice ?: return
+        if (pending.isForgetting) return
+        mutableUiState.value = mutableUiState.value.copy(
+            forgetDevice = pending.copy(isForgetting = true, errorMessage = null),
+        )
+        commandJob?.cancel()
+        commandJob = viewModelScope.launch {
+            when (forgetDevice(pending.device.deviceId)) {
+                is AppResult.Success -> mutableUiState.value = mutableUiState.value.copy(
+                    forgetDevice = null,
+                )
+                is AppResult.Failure -> mutableUiState.value = mutableUiState.value.copy(
+                    forgetDevice = pending.copy(
+                        isForgetting = false,
+                        errorMessage = "无法解除配对，请稍后重试。",
                     ),
                 )
             }

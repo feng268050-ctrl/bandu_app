@@ -221,6 +221,39 @@ fun DevicesScreen(
                         BanduCard(modifier = Modifier.fillMaxWidth()) {
                             Text(device.displayName)
                             Text("身份指纹：${device.publicKeyFingerprint}")
+                            TextButton(
+                                onClick = { onAction(DevicesAction.RequestForgetDevice(device)) },
+                                modifier = Modifier.testTag("forget-device-${device.deviceId}"),
+                            ) {
+                                Text("解除配对")
+                            }
+                        }
+                    }
+                }
+                uiState.forgetDevice?.let { pending ->
+                    item {
+                        BanduCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(FORGET_DEVICE_CONFIRMATION_TAG),
+                        ) {
+                            Text("解除配对", style = MaterialTheme.typography.titleMedium)
+                            Text("确定解除与 ${pending.device.displayName} 的配对吗？")
+                            Text("解除后需要重新输入 6 位配对码才能迁移。")
+                            pending.errorMessage?.let { Text(it) }
+                            Button(
+                                onClick = { onAction(DevicesAction.ConfirmForgetDevice) },
+                                enabled = !pending.isForgetting,
+                                modifier = Modifier.testTag(FORGET_DEVICE_CONFIRM_TAG),
+                            ) {
+                                Text(if (pending.isForgetting) "解除中" else "确认解除")
+                            }
+                            TextButton(
+                                onClick = { onAction(DevicesAction.DismissForgetDevice) },
+                                enabled = !pending.isForgetting,
+                            ) {
+                                Text("取消")
+                            }
                         }
                     }
                 }
@@ -235,6 +268,8 @@ internal const val PAIRING_SUBMIT_TAG = "devices-pairing-submit"
 internal const val PAIRING_CONFIRMATION_TAG = "devices-pairing-confirmation"
 internal const val PAIRING_CONFIRM_TAG = "devices-pairing-confirm"
 internal const val PAIRING_REJECT_TAG = "devices-pairing-reject"
+internal const val FORGET_DEVICE_CONFIRMATION_TAG = "devices-forget-confirmation"
+internal const val FORGET_DEVICE_CONFIRM_TAG = "devices-forget-confirm"
 
 @Composable
 private fun DeviceSectionTitle(title: String) {
