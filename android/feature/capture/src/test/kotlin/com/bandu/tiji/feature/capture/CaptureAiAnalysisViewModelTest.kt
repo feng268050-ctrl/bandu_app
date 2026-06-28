@@ -86,7 +86,7 @@ class CaptureAiAnalysisViewModelTest {
     }
 }
 
-private fun analyzedQuestion(
+fun analyzedQuestion(
     questionText: String = "求 x",
 ) = AnalyzedQuestion(
     subject = "数学",

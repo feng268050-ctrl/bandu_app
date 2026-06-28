@@ -62,6 +62,7 @@ class CaptureViewModel(
             }
             CaptureAction.ConfirmCrop -> processCurrentCrop()
             CaptureAction.RetryAnalysis -> retryAnalysis()
+            CaptureAction.ResumePendingOperation -> resumePendingOperation()
             CaptureAction.Cancel -> {
                 processingJob?.cancel()
                 mutableEffects.trySend(CaptureEffect.NavigateBack)
@@ -125,6 +126,20 @@ class CaptureViewModel(
         }
     }
 
+    private fun resumePendingOperation() {
+        val operation = pendingOperationCoordinator.consumeForResume()
+            as? PendingAiOperation.AnalyzeCapture
+            ?: return
+        val processed = processedImages[operation.draftId] ?: return
+        processingJob = viewModelScope.launch {
+            analyzeProcessedImage(
+                draftId = operation.draftId,
+                processed = processed,
+                qualityWarning = processed.minimumQualityWarning(),
+            )
+        }
+    }
+
     private suspend fun analyzeProcessedImage(
         draftId: String,
         processed: ProcessedCaptureImage,
@@ -144,6 +159,9 @@ class CaptureViewModel(
                 ),
             )
         }.onSuccess { analyzed ->
+            if (pendingOperationCoordinator.peek() == PendingAiOperation.AnalyzeCapture(draftId)) {
+                pendingOperationCoordinator.clear()
+            }
             mutableUiState.value = CaptureUiState(
                 stage = CaptureStage.Reviewing(draftId),
                 qualityWarning = qualityWarning,

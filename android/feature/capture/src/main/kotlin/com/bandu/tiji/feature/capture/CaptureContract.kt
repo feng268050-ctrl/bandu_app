@@ -104,6 +104,8 @@ sealed interface CaptureAction {
 
     data object RetryAnalysis : CaptureAction
 
+    data object ResumePendingOperation : CaptureAction
+
     data object Cancel : CaptureAction
 }
 

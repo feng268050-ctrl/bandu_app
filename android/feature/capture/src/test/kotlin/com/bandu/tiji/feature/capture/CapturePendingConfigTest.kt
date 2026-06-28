@@ -47,4 +47,35 @@ class CapturePendingConfigTest {
         assertThat(viewModel.uiState.value.errorMessage)
             .isEqualTo("请先配置 AI 服务后再分析图片。")
     }
+
+    @Test
+    fun `validated AI configuration resumes same draft analysis only once`() = runTest {
+        val pending = PendingOperationCoordinator()
+        val gateway = FakeAiTutorGateway().apply {
+            enqueueAnalyze(CallScript.Fail(AiGatewayException.ConfigurationRequired))
+            enqueueAnalyze(CallScript.Return(analyzedQuestion(questionText = "恢复后的题目")))
+        }
+        val viewModel = CaptureViewModel(
+            imageProcessor = RecordingImageProcessor(processed = processedImage()),
+            aiGateway = gateway,
+            pendingOperationCoordinator = pending,
+            uuidGenerator = FixedUuidGenerator("draft-resume"),
+        )
+
+        viewModel.onAction(CaptureAction.ImageSelected("content://capture/source"))
+        viewModel.onAction(CaptureAction.ConfirmCrop)
+        advanceUntilIdle()
+
+        viewModel.onAction(CaptureAction.ResumePendingOperation)
+        advanceUntilIdle()
+        viewModel.onAction(CaptureAction.ResumePendingOperation)
+        advanceUntilIdle()
+
+        assertThat(gateway.analyzeRequests).hasSize(2)
+        assertThat(viewModel.uiState.value.stage)
+            .isEqualTo(CaptureStage.Reviewing("draft-resume"))
+        assertThat(viewModel.uiState.value.reviewDraft?.questionText)
+            .isEqualTo("恢复后的题目")
+        assertThat(pending.peek()).isNull()
+    }
 }
