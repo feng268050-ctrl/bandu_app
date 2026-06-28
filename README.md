@@ -59,7 +59,7 @@ docker run -d --name wrong-notebook \
   -p 3000:3000 \
   -v $(pwd)/data:/app/data \
   -v $(pwd)/config:/app/config \
-  ghcr.io/wttwins/wrong-notebook
+  ghcr.io/feng268050-ctrl/bandu_app
 ```
 
 **选项 B：使用 Docker Compose (推荐)**
@@ -68,7 +68,7 @@ docker run -d --name wrong-notebook \
 
 1.  **下载配置文件**：
     ```bash
-    curl -o docker-compose.yml https://raw.githubusercontent.com/wttwins/wrong-notebook/refs/heads/main/docker-compose.yml
+    curl -o docker-compose.yml https://raw.githubusercontent.com/feng268050-ctrl/bandu_app/refs/heads/bandu_app/docker-compose.yml
     ```
 2.  **启动服务**：
     ```bash
@@ -88,8 +88,8 @@ docker run -d --name wrong-notebook \
 #### 1. 克隆仓库
 
 ```bash
-git clone https://github.com/wttwins/wrong-notebook.git
-cd wrong-notebook
+git clone git@github.com:feng268050-ctrl/bandu_app.git
+cd bandu_app
 ```
 
 #### 2. 环境准备

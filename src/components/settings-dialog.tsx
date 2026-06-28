@@ -1508,7 +1508,7 @@ export function SettingsDialog() {
 
                             <div className="flex flex-col sm:flex-row flex-wrap justify-center gap-4 w-full sm:w-auto px-4 sm:px-0">
                                 <Button variant="outline" asChild className="gap-2 w-full sm:w-auto">
-                                    <a href="https://github.com/wttwins/wrong-notebook" target="_blank" rel="noopener noreferrer">
+                                    <a href="https://github.com/feng268050-ctrl/bandu_app" target="_blank" rel="noopener noreferrer">
                                         <Github className="h-4 w-4" />
                                         {t.settings?.about?.github || "GitHub Repository"}
                                         <ExternalLink className="h-3 w-3 ml-1 opacity-50" />
@@ -1516,7 +1516,7 @@ export function SettingsDialog() {
                                 </Button>
 
                                 <Button variant="outline" asChild className="gap-2 w-full sm:w-auto">
-                                    <a href="https://github.com/wttwins/wrong-notebook/releases" target="_blank" rel="noopener noreferrer">
+                                    <a href="https://github.com/feng268050-ctrl/bandu_app/releases" target="_blank" rel="noopener noreferrer">
                                         <ScrollText className="h-4 w-4" />
                                         {t.settings?.about?.releaseNotes || "Release Notes"}
                                         <ExternalLink className="h-3 w-3 ml-1 opacity-50" />
@@ -1524,7 +1524,7 @@ export function SettingsDialog() {
                                 </Button>
 
                                 <Button variant="outline" asChild className="gap-2 w-full sm:w-auto">
-                                    <a href="https://github.com/wttwins/wrong-notebook/issues" target="_blank" rel="noopener noreferrer">
+                                    <a href="https://github.com/feng268050-ctrl/bandu_app/issues" target="_blank" rel="noopener noreferrer">
                                         <MessageSquareText className="h-4 w-4" />
                                         {t.settings?.about?.feedback || "Feedback"}
                                         <ExternalLink className="h-3 w-3 ml-1 opacity-50" />

@@ -62,13 +62,13 @@ git push origin v1.0.0
 services:
   wrong-notebook:
     # 推荐：锁定精确版本
-    image: ghcr.io/wttwins/wrong-notebook:1.0.0
+    image: ghcr.io/feng268050-ctrl/bandu_app:1.0.0
     
     # 或：自动获取补丁更新
-    image: ghcr.io/wttwins/wrong-notebook:1.0
+    image: ghcr.io/feng268050-ctrl/bandu_app:1.0
     
     # 不推荐：始终最新（生产环境慎用）
-    image: ghcr.io/wttwins/wrong-notebook:latest
+    image: ghcr.io/feng268050-ctrl/bandu_app:latest
 ```
 
 ## 常用命令
