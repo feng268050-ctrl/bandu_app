@@ -19,6 +19,7 @@ import com.bandu.tiji.core.designsystem.component.BanduErrorState
 import com.bandu.tiji.core.designsystem.component.BanduLoadingState
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
+import com.bandu.tiji.core.model.transfer.TransferPhase
 import com.bandu.tiji.domain.transfer.TransferState
 
 @Composable
@@ -295,6 +296,25 @@ fun DevicesScreen(
                         }
                     }
                 }
+                transferProgressState(uiState.transferState)?.let { progressState ->
+                    item {
+                        BanduCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(TRANSFER_STATUS_TAG),
+                        ) {
+                            Text("迁移状态", style = MaterialTheme.typography.titleMedium)
+                            Text("阶段：${progressState.phaseLabel}")
+                            Text("总进度：${progressState.percent}%")
+                            Text("已传输：${formatBytes(progressState.transferredBytes)} / ${formatBytes(progressState.totalBytes)}")
+                            Text("速度：${formatBytes(progressState.bytesPerSecond)}/s")
+                            progressState.errorMessage?.let { Text("错误：$it") }
+                            progressState.resumable?.let { resumable ->
+                                Text(if (resumable) "可续传：是" else "可续传：否")
+                            }
+                        }
+                    }
+                }
                 uiState.forgetDevice?.let { pending ->
                     item {
                         BanduCard(
@@ -340,6 +360,7 @@ internal const val SEND_CONFIRM_TAG = "devices-send-confirm"
 internal const val INCOMING_TRANSFER_CONFIRMATION_TAG = "devices-incoming-confirmation"
 internal const val INCOMING_ACCEPT_TAG = "devices-incoming-accept"
 internal const val INCOMING_REJECT_TAG = "devices-incoming-reject"
+internal const val TRANSFER_STATUS_TAG = "devices-transfer-status"
 
 @Composable
 private fun DeviceSectionTitle(title: String) {
@@ -354,4 +375,72 @@ internal fun formatBytes(bytes: Long): String =
         bytes < 1_024L -> "$bytes B"
         bytes < 1_024L * 1_024L -> "${bytes / 1_024L} KB"
         else -> "${bytes / (1_024L * 1_024L)} MB"
+    }
+
+private data class TransferProgressUiState(
+    val phaseLabel: String,
+    val percent: Int,
+    val transferredBytes: Long,
+    val totalBytes: Long,
+    val bytesPerSecond: Long,
+    val errorMessage: String? = null,
+    val resumable: Boolean? = null,
+)
+
+private fun transferProgressState(state: TransferState): TransferProgressUiState? =
+    when (state) {
+        is TransferState.Transferring -> TransferProgressUiState(
+            phaseLabel = state.progress.phase.label(),
+            percent = state.progress.percentComplete,
+            transferredBytes = state.progress.transferredBytes,
+            totalBytes = state.progress.totalBytes,
+            bytesPerSecond = state.progress.bytesPerSecond,
+        )
+        is TransferState.Verifying -> TransferProgressUiState(
+            phaseLabel = "校验中",
+            percent = state.progress,
+            transferredBytes = 0L,
+            totalBytes = 0L,
+            bytesPerSecond = 0L,
+        )
+        TransferState.Committing -> TransferProgressUiState(
+            phaseLabel = "提交中",
+            percent = 100,
+            transferredBytes = 0L,
+            totalBytes = 0L,
+            bytesPerSecond = 0L,
+        )
+        is TransferState.Failed -> TransferProgressUiState(
+            phaseLabel = "失败",
+            percent = 0,
+            transferredBytes = 0L,
+            totalBytes = 0L,
+            bytesPerSecond = 0L,
+            errorMessage = state.code.errorLabel(),
+            resumable = state.resumable,
+        )
+        else -> null
+    }
+
+private fun TransferPhase.label(): String =
+    when (this) {
+        TransferPhase.PAIRING -> "配对中"
+        TransferPhase.OFFER -> "确认中"
+        TransferPhase.TRANSFERRING -> "传输中"
+        TransferPhase.VERIFYING -> "校验中"
+        TransferPhase.COMMITTING -> "提交中"
+        TransferPhase.COMPLETED -> "已完成"
+        TransferPhase.FAILED -> "失败"
+    }
+
+private fun com.bandu.tiji.domain.transfer.TransferFailureCode.errorLabel(): String =
+    when (this) {
+        com.bandu.tiji.domain.transfer.TransferFailureCode.PAIRING_FAILED -> "配对失败"
+        com.bandu.tiji.domain.transfer.TransferFailureCode.PAIRING_EXPIRED -> "配对码过期"
+        com.bandu.tiji.domain.transfer.TransferFailureCode.OFFER_REJECTED -> "对方拒绝迁移"
+        com.bandu.tiji.domain.transfer.TransferFailureCode.CHECKSUM_FAILED -> "数据校验失败"
+        com.bandu.tiji.domain.transfer.TransferFailureCode.NETWORK_INTERRUPTED -> "网络中断"
+        com.bandu.tiji.domain.transfer.TransferFailureCode.PROTOCOL_ERROR -> "协议错误"
+        com.bandu.tiji.domain.transfer.TransferFailureCode.COMMIT_FAILED -> "提交失败"
+        com.bandu.tiji.domain.transfer.TransferFailureCode.CANCELLED -> "已取消"
     }

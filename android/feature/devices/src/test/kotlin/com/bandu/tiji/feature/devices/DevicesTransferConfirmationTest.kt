@@ -8,9 +8,12 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
+import com.bandu.tiji.core.model.transfer.TransferPhase
+import com.bandu.tiji.core.model.transfer.TransferProgress
 import com.bandu.tiji.core.testing.coroutines.MainDispatcherRule
 import com.bandu.tiji.core.testing.fake.FakeDeviceTransferRepository
 import com.bandu.tiji.domain.transfer.TransferOfferSummary
+import com.bandu.tiji.domain.transfer.TransferFailureCode
 import com.bandu.tiji.domain.transfer.TransferState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -81,6 +84,61 @@ class DevicesTransferConfirmationScreenTest {
 
         composeRule.runOnIdle {
             assertThat(actions).contains(DevicesAction.AcceptIncomingTransfer)
+        }
+    }
+
+    @Test
+    fun `transfer status shows phase progress size and speed`() {
+        setTransferStatusContent(
+            TransferState.Transferring(
+                TransferProgress(
+                    phase = TransferPhase.TRANSFERRING,
+                    percentComplete = 40,
+                    transferredBytes = 2_097_152L,
+                    totalBytes = 5_242_880L,
+                    bytesPerSecond = 1_048_576L,
+                ),
+            ),
+        )
+
+        composeRule.onNodeWithTag("devices-list").performScrollToIndex(4)
+        composeRule.onNodeWithTag(TRANSFER_STATUS_TAG)
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("阶段：传输中").assertIsDisplayed()
+        composeRule.onNodeWithText("总进度：40%").assertIsDisplayed()
+        composeRule.onNodeWithText("已传输：2 MB / 5 MB").assertIsDisplayed()
+        composeRule.onNodeWithText("速度：1 MB/s").assertIsDisplayed()
+    }
+
+    @Test
+    fun `transfer failure shows error and resumable state`() {
+        setTransferStatusContent(
+            TransferState.Failed(
+                code = TransferFailureCode.NETWORK_INTERRUPTED,
+                resumable = true,
+            ),
+        )
+
+        composeRule.onNodeWithTag("devices-list").performScrollToIndex(4)
+        composeRule.onNodeWithText("阶段：失败").assertIsDisplayed()
+        composeRule.onNodeWithText("错误：网络中断").assertIsDisplayed()
+        composeRule.onNodeWithText("可续传：是").assertIsDisplayed()
+    }
+
+    private fun setTransferStatusContent(state: TransferState) {
+        composeRule.setContent {
+            BanduTijiTheme {
+                DevicesScreen(
+                    uiState = DevicesUiState(
+                        localDeviceName = "本机",
+                        localFingerprint = "LOCAL",
+                        transferState = state,
+                        isLoading = false,
+                    ),
+                    onAction = {},
+                )
+            }
         }
     }
 }
