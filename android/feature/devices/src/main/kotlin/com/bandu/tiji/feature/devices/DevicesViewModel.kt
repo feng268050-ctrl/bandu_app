@@ -10,6 +10,7 @@ import com.bandu.tiji.domain.transfer.PairingResult
 import com.bandu.tiji.domain.transfer.TransferFailureCode
 import com.bandu.tiji.domain.transfer.TransferState
 import com.bandu.tiji.domain.usecase.transfer.AcceptTransferUseCase
+import com.bandu.tiji.domain.usecase.transfer.CancelTransferUseCase
 import com.bandu.tiji.domain.usecase.transfer.CreateReceiveCodeUseCase
 import com.bandu.tiji.domain.usecase.transfer.ForgetDeviceUseCase
 import com.bandu.tiji.domain.usecase.transfer.RejectTransferUseCase
@@ -48,6 +49,8 @@ class DevicesViewModel(
     private val sendAllData = SendAllDataUseCase(repository)
     private val acceptTransfer = AcceptTransferUseCase(repository)
     private val rejectTransfer = RejectTransferUseCase(repository)
+    private val cancelTransfer = CancelTransferUseCase(repository)
+    private var activeSessionId: String? = null
 
     init {
         observeDevices()
@@ -104,6 +107,8 @@ class DevicesViewModel(
             }
             DevicesAction.AcceptIncomingTransfer -> acceptIncomingTransfer()
             DevicesAction.RejectIncomingTransfer -> rejectIncomingTransfer()
+            DevicesAction.ConfirmFinalTransfer -> confirmFinalTransfer()
+            DevicesAction.CancelTransfer -> cancelTransfer()
         }
     }
 
@@ -128,6 +133,9 @@ class DevicesViewModel(
                     )
                 }
                 .collect { (nearby, trusted, transferState) ->
+                    if (transferState is TransferState.AwaitingOfferConfirmation) {
+                        activeSessionId = transferState.offer.sessionId
+                    }
                     mutableUiState.value = mutableUiState.value.copy(
                         nearbyDevices = nearby,
                         trustedDevices = trusted,
@@ -363,6 +371,29 @@ class DevicesViewModel(
             val message = when (rejectTransfer(offer.sessionId)) {
                 is AppResult.Success -> null
                 is AppResult.Failure -> "无法拒绝迁移，请稍后重试。"
+            }
+            mutableUiState.value = mutableUiState.value.copy(commandErrorMessage = message)
+        }
+    }
+
+    private fun confirmFinalTransfer() {
+        val sessionId = activeSessionId ?: return
+        commandJob?.cancel()
+        commandJob = viewModelScope.launch {
+            val message = when (acceptTransfer(sessionId)) {
+                is AppResult.Success -> null
+                is AppResult.Failure -> "无法确认迁移，请稍后重试。"
+            }
+            mutableUiState.value = mutableUiState.value.copy(commandErrorMessage = message)
+        }
+    }
+
+    private fun cancelTransfer() {
+        commandJob?.cancel()
+        commandJob = viewModelScope.launch {
+            val message = when (cancelTransfer.invoke()) {
+                is AppResult.Success -> null
+                is AppResult.Failure -> "无法取消迁移，请稍后重试。"
             }
             mutableUiState.value = mutableUiState.value.copy(commandErrorMessage = message)
         }

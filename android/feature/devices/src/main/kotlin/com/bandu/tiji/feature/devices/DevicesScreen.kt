@@ -312,6 +312,41 @@ fun DevicesScreen(
                             progressState.resumable?.let { resumable ->
                                 Text(if (resumable) "可续传：是" else "可续传：否")
                             }
+                            if (uiState.transferState is TransferState.Failed) {
+                                Text("迁移未完成，目标设备原数据仍可用。")
+                            } else {
+                                TextButton(
+                                    onClick = { onAction(DevicesAction.CancelTransfer) },
+                                    modifier = Modifier.testTag(TRANSFER_CANCEL_TAG),
+                                ) {
+                                    Text("取消迁移")
+                                }
+                            }
+                        }
+                    }
+                }
+                if (uiState.transferState is TransferState.AwaitingFinalConfirmation) {
+                    item {
+                        BanduCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag(FINAL_CONFIRMATION_TAG),
+                        ) {
+                            Text("最终确认", style = MaterialTheme.typography.titleMedium)
+                            Text("双方确认后，目标设备才会切换到新数据。")
+                            Text("确认前取消或失败，目标设备原数据仍可用。")
+                            Button(
+                                onClick = { onAction(DevicesAction.ConfirmFinalTransfer) },
+                                modifier = Modifier.testTag(FINAL_CONFIRM_TAG),
+                            ) {
+                                Text("最终确认")
+                            }
+                            TextButton(
+                                onClick = { onAction(DevicesAction.CancelTransfer) },
+                                modifier = Modifier.testTag(FINAL_CANCEL_TAG),
+                            ) {
+                                Text("取消迁移")
+                            }
                         }
                     }
                 }
@@ -361,6 +396,10 @@ internal const val INCOMING_TRANSFER_CONFIRMATION_TAG = "devices-incoming-confir
 internal const val INCOMING_ACCEPT_TAG = "devices-incoming-accept"
 internal const val INCOMING_REJECT_TAG = "devices-incoming-reject"
 internal const val TRANSFER_STATUS_TAG = "devices-transfer-status"
+internal const val TRANSFER_CANCEL_TAG = "devices-transfer-cancel"
+internal const val FINAL_CONFIRMATION_TAG = "devices-final-confirmation"
+internal const val FINAL_CONFIRM_TAG = "devices-final-confirm"
+internal const val FINAL_CANCEL_TAG = "devices-final-cancel"
 
 @Composable
 private fun DeviceSectionTitle(title: String) {

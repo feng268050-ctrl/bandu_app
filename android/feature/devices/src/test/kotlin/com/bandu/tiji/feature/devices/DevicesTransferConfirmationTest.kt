@@ -47,6 +47,26 @@ class DevicesTransferConfirmationViewModelTest {
         assertThat(repository.acceptedSessionIds).containsExactly("session-1")
         assertThat(repository.rejectedSessionIds).containsExactly("session-1")
     }
+
+    @Test
+    fun `final confirmation reuses active session and cancel is explicit`() = runTest {
+        val offer = offer()
+        val repository = FakeDeviceTransferRepository(
+            initialTransferState = TransferState.AwaitingOfferConfirmation(offer),
+        )
+        val viewModel = DevicesViewModel(repository, "本机", "LOCAL")
+        advanceUntilIdle()
+        repository.emitTransferState(TransferState.AwaitingFinalConfirmation)
+        advanceUntilIdle()
+
+        viewModel.onAction(DevicesAction.ConfirmFinalTransfer)
+        advanceUntilIdle()
+        viewModel.onAction(DevicesAction.CancelTransfer)
+        advanceUntilIdle()
+
+        assertThat(repository.acceptedSessionIds).containsExactly("session-1")
+        assertThat(repository.cancelTransferCalls).isEqualTo(1)
+    }
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -124,6 +144,42 @@ class DevicesTransferConfirmationScreenTest {
         composeRule.onNodeWithText("阶段：失败").assertIsDisplayed()
         composeRule.onNodeWithText("错误：网络中断").assertIsDisplayed()
         composeRule.onNodeWithText("可续传：是").assertIsDisplayed()
+        composeRule.onNodeWithText("迁移未完成，目标设备原数据仍可用。")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun `final confirmation exposes confirm and cancel actions with safe data copy`() {
+        val actions = mutableListOf<DevicesAction>()
+        composeRule.setContent {
+            BanduTijiTheme {
+                DevicesScreen(
+                    uiState = DevicesUiState(
+                        localDeviceName = "本机",
+                        localFingerprint = "LOCAL",
+                        transferState = TransferState.AwaitingFinalConfirmation,
+                        isLoading = false,
+                    ),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("devices-list").performScrollToIndex(4)
+        composeRule.onNodeWithTag(FINAL_CONFIRMATION_TAG)
+            .performScrollTo()
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("确认前取消或失败，目标设备原数据仍可用。")
+            .assertIsDisplayed()
+        composeRule.onNodeWithTag(FINAL_CONFIRM_TAG).performClick()
+        composeRule.onNodeWithTag(FINAL_CANCEL_TAG).performClick()
+
+        composeRule.runOnIdle {
+            assertThat(actions).containsAtLeast(
+                DevicesAction.ConfirmFinalTransfer,
+                DevicesAction.CancelTransfer,
+            )
+        }
     }
 
     private fun setTransferStatusContent(state: TransferState) {
