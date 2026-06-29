@@ -1,7 +1,17 @@
 package com.bandu.tiji.transfer.runtime
 
+import com.bandu.tiji.core.common.time.Clock
+import com.bandu.tiji.domain.transfer.DiscoveryMode
+import com.bandu.tiji.domain.transfer.NearbyDevice
+import com.bandu.tiji.domain.transfer.PairingResult
+import com.bandu.tiji.domain.transfer.TransferFailureCode
+import com.bandu.tiji.domain.transfer.TransferState
+import com.bandu.tiji.domain.transfer.TrustedDevice
+import com.bandu.tiji.transfer.runtime.trust.InMemoryTrustedPeerStore
 import com.google.common.truth.Truth.assertThat
 import java.io.File
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class TransferRuntimeApiTest {
@@ -22,5 +32,87 @@ class TransferRuntimeApiTest {
             filesDirectory = File("build/runtime-test"),
             serviceType = "_other._tcp.",
         )
+    }
+
+    @Test
+    fun `pairing code creates trust and forget removes it`() = runTest {
+        val runtime = TransferRuntime(clock = MutableClock(1_000L))
+        val code = runtime.createReceiveCode()
+        val peer = NearbyDevice("peer-a", "旧手机", DiscoveryMode.PAIR)
+
+        val result = runtime.pair(peer, code.code)
+
+        assertThat(result).isEqualTo(PairingResult.Success)
+        val trusted = runtime.observeTrustedDevices().first().single()
+        assertThat(trusted.deviceId).isEqualTo("peer-a")
+        assertThat(trusted.displayName).isEqualTo("旧手机")
+        assertThat(trusted.publicKeyFingerprint).hasLength(64)
+
+        runtime.forgetDevice("peer-a")
+
+        assertThat(runtime.observeTrustedDevices().first()).isEmpty()
+    }
+
+    @Test
+    fun `expired pairing code fails without trusting peer`() = runTest {
+        val clock = MutableClock(1_000L)
+        val runtime = TransferRuntime(clock = clock)
+        val code = runtime.createReceiveCode()
+        clock.advance(TransferRuntimeConfig.PAIRING_CODE_LIFETIME_MILLIS + 1)
+
+        val result = runtime.pair(NearbyDevice("peer-a", "旧手机", DiscoveryMode.PAIR), code.code)
+
+        assertThat(result).isEqualTo(PairingResult.Failure(TransferFailureCode.PAIRING_EXPIRED))
+        assertThat(runtime.observeTrustedDevices().first()).isEmpty()
+    }
+
+    @Test
+    fun `five wrong pairing attempts lock code issuance`() = runTest {
+        val runtime = TransferRuntime(clock = MutableClock(1_000L))
+        runtime.createReceiveCode()
+        val peer = NearbyDevice("peer-a", "旧手机", DiscoveryMode.PAIR)
+
+        repeat(5) {
+            assertThat(runtime.pair(peer, "000000"))
+                .isEqualTo(PairingResult.Failure(TransferFailureCode.PAIRING_FAILED))
+        }
+
+        assertThat(runCatching { runtime.createReceiveCode() }.exceptionOrNull())
+            .isInstanceOf(IllegalStateException::class.java)
+    }
+
+    @Test
+    fun `sendAll rejects target when trusted identity fingerprint changed`() = runTest {
+        val store = InMemoryTrustedPeerStore(
+            listOf(TrustedDevice("peer-a", "旧手机", "a".repeat(64))),
+        )
+        val runtime = TransferRuntime(clock = MutableClock(1_000L), trustedPeerStore = store)
+
+        runtime.sendAll(TrustedDevice("peer-a", "旧手机", "b".repeat(64)))
+
+        assertThat(runtime.observeTransferState().value)
+            .isEqualTo(TransferState.Failed(TransferFailureCode.PROTOCOL_ERROR, resumable = false))
+    }
+
+    @Test
+    fun `sendAll starts observable transfer for trusted peer`() = runTest {
+        val trusted = TrustedDevice("peer-a", "旧手机", "a".repeat(64))
+        val store = InMemoryTrustedPeerStore(listOf(trusted))
+        val runtime = TransferRuntime(clock = MutableClock(1_000L), trustedPeerStore = store)
+
+        runtime.sendAll(trusted)
+
+        assertThat(runtime.observeTransferState().value)
+            .isInstanceOf(TransferState.Transferring::class.java)
+        assertThat(runtime.activity.value)
+            .isEqualTo(RuntimeActivity.Transfer("session-peer-a-1000", TransferDirection.SEND))
+    }
+}
+
+private class MutableClock(private var now: Long) : Clock {
+    override fun nowEpochMillis(): Long = now
+
+    fun advance(millis: Long) {
+        now += millis
     }
 }

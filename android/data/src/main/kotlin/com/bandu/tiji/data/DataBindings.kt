@@ -51,6 +51,12 @@ import com.bandu.tiji.domain.repository.StatsRepository
 import com.bandu.tiji.domain.repository.TagRepository
 import com.bandu.tiji.domain.repository.TutorRepository
 import com.bandu.tiji.transfer.runtime.TransferRuntime
+import com.bandu.tiji.transfer.runtime.TransferRuntimeConfig
+import com.bandu.tiji.transfer.runtime.discovery.AndroidNsdDiscoveryBackend
+import com.bandu.tiji.transfer.runtime.discovery.NsdPeerDiscovery
+import com.bandu.tiji.transfer.runtime.identity.DeviceIdentityStore
+import com.bandu.tiji.transfer.runtime.transport.LanTcpTransport
+import com.bandu.tiji.transfer.runtime.trust.DevicePreferencesTrustedPeerStore
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -219,7 +225,23 @@ abstract class DataBindingsModule {
 
         @Provides
         @Singleton
-        fun provideTransferRuntime(): TransferRuntime = TransferRuntime()
+        fun provideTransferRuntime(
+            @ApplicationContext context: Context,
+            devicePreferences: DevicePreferencesStore,
+            clock: Clock,
+        ): TransferRuntime {
+            val identityStore = DeviceIdentityStore(devicePreferences)
+            return TransferRuntime(
+                config = TransferRuntimeConfig(File(context.filesDir, "transfer")),
+                clock = clock,
+                localIdentityProvider = {
+                    identityStore.getOrCreate(defaultDisplayName = android.os.Build.MODEL ?: "Android")
+                },
+                discovery = NsdPeerDiscovery(AndroidNsdDiscoveryBackend(context)),
+                trustedPeerStore = DevicePreferencesTrustedPeerStore(devicePreferences),
+                tcpTransport = LanTcpTransport(),
+            )
+        }
 
         @Provides
         @Singleton

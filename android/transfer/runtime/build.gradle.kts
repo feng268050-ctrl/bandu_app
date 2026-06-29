@@ -25,6 +25,7 @@ dependencies {
     implementation(project(":core:storage"))
     implementation(project(":domain"))
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.protobuf.kotlin.lite)
 
     testImplementation(libs.junit)
     testImplementation(libs.truth)

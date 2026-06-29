@@ -1,64 +1,154 @@
 package com.bandu.tiji.transfer.runtime
 
+import com.bandu.tiji.core.common.time.Clock
+import com.bandu.tiji.core.common.time.SystemClock
 import com.bandu.tiji.domain.transfer.DiscoveryMode
 import com.bandu.tiji.domain.transfer.NearbyDevice
 import com.bandu.tiji.domain.transfer.PairingCode
 import com.bandu.tiji.domain.transfer.PairingResult
 import com.bandu.tiji.domain.transfer.TransferFailureCode
+import com.bandu.tiji.domain.transfer.TransferOfferSummary
 import com.bandu.tiji.domain.transfer.TransferState
 import com.bandu.tiji.domain.transfer.TransferSummary
 import com.bandu.tiji.domain.transfer.TrustedDevice
 import com.bandu.tiji.core.model.transfer.TransferPhase
+import com.bandu.tiji.core.model.transfer.TransferProgress
+import com.bandu.tiji.transfer.protocol.identity.IdentityProof
+import com.bandu.tiji.transfer.protocol.pairing.PairingCodePolicy
+import com.bandu.tiji.transfer.protocol.pairing.PairingCodeValidation
+import com.bandu.tiji.transfer.runtime.discovery.NsdPeerDiscovery
+import com.bandu.tiji.transfer.runtime.identity.LocalDeviceIdentity
+import com.bandu.tiji.transfer.runtime.transport.BoundTcpServer
+import com.bandu.tiji.transfer.runtime.transport.LanTcpTransport
+import com.bandu.tiji.transfer.runtime.trust.InMemoryTrustedPeerStore
+import com.bandu.tiji.transfer.runtime.trust.TrustedPeerStore
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-class TransferRuntime {
-    private val nearbyDevices = MutableStateFlow(
-        listOf(NearbyDevice("peer-1", "伴读设备", DiscoveryMode.PAIR)),
-    )
-    private val trustedDevices = MutableStateFlow<List<TrustedDevice>>(emptyList())
+class TransferRuntime(
+    private val config: TransferRuntimeConfig = TransferRuntimeConfig(File("build/runtime")),
+    private val clock: Clock = SystemClock(),
+    private val localIdentityProvider: suspend () -> LocalDeviceIdentity = {
+        LocalDeviceIdentity(
+            deviceId = "local-device",
+            displayName = "Android",
+            keyAlias = "memory",
+            signingPublicKey = byteArrayOf(1, 2, 3),
+            publicKeyFingerprint = "0".repeat(64),
+        )
+    },
+    private val discovery: NsdPeerDiscovery? = null,
+    private val trustedPeerStore: TrustedPeerStore = InMemoryTrustedPeerStore(),
+    private val pairingPolicy: PairingCodePolicy = PairingCodePolicy(clock),
+    private val tcpTransport: LanTcpTransport? = null,
+) : TransferRuntimeApi {
+    private val fallbackNearbyDevices = MutableStateFlow<List<NearbyDevice>>(emptyList())
     private val transferState = MutableStateFlow<TransferState>(TransferState.Idle)
     private val pairingCounter = AtomicInteger(1)
+    private val mutableActivity = MutableStateFlow<RuntimeActivity>(RuntimeActivity.Inactive)
+    private var discoveryServer: BoundTcpServer? = null
+    private var activeSessionId: String? = null
 
-    fun observeNearbyDevices(): StateFlow<List<NearbyDevice>> = nearbyDevices.asStateFlow()
+    override val activity: StateFlow<RuntimeActivity> = mutableActivity.asStateFlow()
 
-    fun observeTrustedDevices(): StateFlow<List<TrustedDevice>> = trustedDevices.asStateFlow()
+    override fun observeNearbyDevices(): Flow<List<NearbyDevice>> =
+        discovery?.nearbyDevices ?: fallbackNearbyDevices.asStateFlow()
 
-    fun observeTransferState(): StateFlow<TransferState> = transferState.asStateFlow()
+    override fun observeTrustedDevices(): Flow<List<TrustedDevice>> =
+        trustedPeerStore.observeTrustedPeers()
 
-    fun startDiscovery() {
-        transferState.value = TransferState.Discovering
-    }
+    override fun observeTransferState(): StateFlow<TransferState> = transferState.asStateFlow()
 
-    fun stopDiscovery() {
-        transferState.value = TransferState.Idle
-    }
-
-    fun createReceiveCode(): PairingCode =
-        PairingCode(
-            code = "12${pairingCounter.getAndIncrement().toString().padStart(4, '0')}",
-            expiresAtEpochMillis = System.currentTimeMillis() + 5 * 60 * 1000,
+    override suspend fun startDiscovery() {
+        val identity = localIdentityProvider()
+        val boundServer = tcpTransport?.openServer()
+        discoveryServer = boundServer
+        discovery?.start(
+            localIdentity = identity,
+            mode = DiscoveryMode.PAIR,
+            port = boundServer?.port ?: DEFAULT_DISCOVERY_PORT,
         )
+        fallbackNearbyDevices.value = emptyList()
+        transferState.value = TransferState.Discovering
+        mutableActivity.value = RuntimeActivity.Discovery(advertising = true, scanning = true)
+    }
 
-    fun pair(device: NearbyDevice, code: String): PairingResult {
-        return if (code.length == 6) {
-            val trusted = TrustedDevice(
-                deviceId = device.discoveryId,
-                displayName = device.displayName,
-                publicKeyFingerprint = "fingerprint-${device.discoveryId}",
+    override suspend fun stopDiscovery() {
+        discovery?.stop()
+        discoveryServer?.close()
+        discoveryServer = null
+        fallbackNearbyDevices.value = emptyList()
+        if (transferState.value is TransferState.Discovering) {
+            transferState.value = TransferState.Idle
+        }
+        mutableActivity.value = RuntimeActivity.Inactive
+    }
+
+    override suspend fun createReceiveCode(): PairingCode {
+        val issued = pairingPolicy.issue() ?: error("Pairing code is temporarily locked")
+        return try {
+            val code = issued.value.concatToString()
+            transferState.value = TransferState.Pairing(
+                peer = NearbyDevice(
+                    discoveryId = "pending-${pairingCounter.getAndIncrement()}",
+                    displayName = "待配对设备",
+                    mode = DiscoveryMode.PAIR,
+                ),
+                expiresAt = issued.expiresAtEpochMillis,
             )
-            trustedDevices.value = trustedDevices.value + trusted
-            PairingResult.Success
-        } else {
-            PairingResult.Failure(TransferFailureCode.PAIRING_FAILED)
+            code to issued.expiresAtEpochMillis
+        } finally {
+            issued.value.fill('\u0000')
+        }.let { (code, expiresAt) ->
+            PairingCode(code = code, expiresAtEpochMillis = expiresAt)
         }
     }
 
-    fun sendAll(target: TrustedDevice) {
+    override suspend fun pair(
+        device: NearbyDevice,
+        code: String,
+    ): PairingResult {
+        val validation = pairingPolicy.validate(code.toCharArray())
+        return when (validation) {
+            PairingCodeValidation.VALID -> {
+                trustedPeerStore.upsert(
+                    TrustedDevice(
+                        deviceId = device.discoveryId,
+                        displayName = device.displayName,
+                        publicKeyFingerprint = IdentityProof.fingerprint(
+                            "runtime-paired-peer:${device.discoveryId}".encodeToByteArray(),
+                        ),
+                    ),
+                )
+                transferState.value = TransferState.Idle
+                PairingResult.Success
+            }
+            PairingCodeValidation.EXPIRED ->
+                PairingResult.Failure(TransferFailureCode.PAIRING_EXPIRED)
+            PairingCodeValidation.INVALID,
+            PairingCodeValidation.LOCKED,
+            -> PairingResult.Failure(TransferFailureCode.PAIRING_FAILED)
+        }
+    }
+
+    override suspend fun sendAll(target: TrustedDevice) {
+        val trusted = trustedPeerStore.find(target.deviceId)
+        if (trusted == null || trusted.publicKeyFingerprint != target.publicKeyFingerprint) {
+            transferState.value = TransferState.Failed(
+                code = TransferFailureCode.PROTOCOL_ERROR,
+                resumable = false,
+            )
+            return
+        }
+        val sessionId = "session-${target.deviceId}-${clock.nowEpochMillis()}"
+        activeSessionId = sessionId
+        mutableActivity.value = RuntimeActivity.Transfer(sessionId, TransferDirection.SEND)
         transferState.value = TransferState.Transferring(
-            progress = com.bandu.tiji.core.model.transfer.TransferProgress(
+            progress = TransferProgress(
                 phase = TransferPhase.TRANSFERRING,
                 percentComplete = 0,
                 transferredBytes = 0L,
@@ -66,28 +156,55 @@ class TransferRuntime {
                 bytesPerSecond = 0L,
             ),
         )
-        transferState.value = TransferState.Completed(
-            TransferSummary(
-                sessionId = "session-${target.deviceId}",
-                transferredBytes = 0L,
-                durationMillis = 1L,
-            ),
-        )
     }
 
-    fun acceptTransfer(sessionId: String) {
-        transferState.value = TransferState.AwaitingFinalConfirmation
+    override suspend fun acceptTransfer(sessionId: String) {
+        if (activeSessionId == null) activeSessionId = sessionId
+        transferState.value = when (transferState.value) {
+            is TransferState.AwaitingOfferConfirmation,
+            is TransferState.Transferring,
+            is TransferState.Verifying,
+            TransferState.AwaitingFinalConfirmation,
+            -> TransferState.AwaitingFinalConfirmation
+            else -> TransferState.Completed(
+                TransferSummary(
+                    sessionId = sessionId,
+                    transferredBytes = 0L,
+                    durationMillis = 1L,
+                ),
+            )
+        }
+        if (transferState.value is TransferState.Completed) {
+            mutableActivity.value = RuntimeActivity.Inactive
+            activeSessionId = null
+        } else {
+            mutableActivity.value = RuntimeActivity.Transfer(sessionId, TransferDirection.RECEIVE)
+        }
     }
 
-    fun rejectTransfer(sessionId: String) {
+    override suspend fun rejectTransfer(sessionId: String) {
         transferState.value = TransferState.Failed(TransferFailureCode.OFFER_REJECTED, resumable = false)
+        mutableActivity.value = RuntimeActivity.Inactive
+        activeSessionId = null
     }
 
-    fun cancelTransfer() {
+    override suspend fun cancelTransfer() {
         transferState.value = TransferState.Failed(TransferFailureCode.CANCELLED, resumable = false)
+        mutableActivity.value = RuntimeActivity.Inactive
+        activeSessionId = null
     }
 
-    fun forgetDevice(deviceId: String) {
-        trustedDevices.value = trustedDevices.value.filterNot { it.deviceId == deviceId }
+    override suspend fun forgetDevice(deviceId: String) {
+        trustedPeerStore.remove(deviceId)
+    }
+
+    fun injectIncomingOffer(offer: TransferOfferSummary) {
+        activeSessionId = offer.sessionId
+        transferState.value = TransferState.AwaitingOfferConfirmation(offer)
+        mutableActivity.value = RuntimeActivity.Transfer(offer.sessionId, TransferDirection.RECEIVE)
+    }
+
+    companion object {
+        private const val DEFAULT_DISCOVERY_PORT = 41_241
     }
 }
