@@ -58,6 +58,51 @@ class NsdPeerDiscoveryTest {
     }
 
     @Test
+    fun `manual endpoint adds private peer only while discovery is active`() = runTest {
+        val backend = FakeNsdDiscoveryBackend()
+        val discovery = NsdPeerDiscovery(backend)
+        val endpoint = parseManualDiscoveryEndpoint("192.168.1.50:41242", defaultPort = 41241)
+
+        discovery.addManualPeer(endpoint)
+        assertThat(discovery.nearbyDevices.value).isEmpty()
+
+        discovery.start(localIdentity(), DiscoveryMode.PAIR, port = 41241)
+        discovery.addManualPeer(endpoint)
+        discovery.addManualPeer(endpoint.toPeer(displayName = "旧手机"))
+
+        assertThat(discovery.nearbyDevices.value).containsExactly(
+            com.bandu.tiji.domain.transfer.NearbyDevice(
+                discoveryId = endpoint.toPeer(displayName = "旧手机").discoveryId,
+                displayName = "旧手机",
+                mode = DiscoveryMode.PAIR,
+            ),
+        )
+
+        discovery.stop()
+
+        assertThat(discovery.nearbyDevices.value).isEmpty()
+    }
+
+    @Test
+    fun `manual endpoint parser accepts local addresses and rejects public targets`() {
+        assertThat(parseManualDiscoveryEndpoint("10.0.2.2", defaultPort = 41241))
+            .isEqualTo(ManualDiscoveryEndpoint("10.0.2.2", 41241))
+        assertThat(parseManualDiscoveryEndpoint("172.16.0.4:50000", defaultPort = 41241))
+            .isEqualTo(ManualDiscoveryEndpoint("172.16.0.4", 50000))
+        assertThat(parseManualDiscoveryEndpoint("[fd00::1]:41242", defaultPort = 41241))
+            .isEqualTo(ManualDiscoveryEndpoint("fd00::1", 41242))
+        assertThat(parseManualDiscoveryEndpoint("fe80::1", defaultPort = 41241))
+            .isEqualTo(ManualDiscoveryEndpoint("fe80::1", 41241))
+
+        assertThat(runCatching { parseManualDiscoveryEndpoint("8.8.8.8", 41241) }.exceptionOrNull())
+            .isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(runCatching { parseManualDiscoveryEndpoint("example.com", 41241) }.exceptionOrNull())
+            .isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(runCatching { parseManualDiscoveryEndpoint("192.168.1.2:70000", 41241) }.exceptionOrNull())
+            .isInstanceOf(IllegalArgumentException::class.java)
+    }
+
+    @Test
     fun `parse rejects wrong service unsupported version and invalid mode`() {
         val txt = mapOf(
             NsdPeerDiscovery.TXT_VERSION to "1",

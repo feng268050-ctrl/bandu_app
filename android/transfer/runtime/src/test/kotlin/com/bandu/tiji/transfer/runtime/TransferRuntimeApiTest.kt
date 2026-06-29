@@ -107,6 +107,24 @@ class TransferRuntimeApiTest {
         assertThat(runtime.activity.value)
             .isEqualTo(RuntimeActivity.Transfer("session-peer-a-1000", TransferDirection.SEND))
     }
+
+    @Test
+    fun `manual discovery target is only accepted during active discovery`() = runTest {
+        val runtime = TransferRuntime(clock = MutableClock(1_000L))
+
+        assertThat(runCatching { runtime.addManualDiscoveryTarget("10.0.2.2") }.exceptionOrNull())
+            .isInstanceOf(IllegalStateException::class.java)
+
+        runtime.startDiscovery()
+        val device = runtime.addManualDiscoveryTarget("10.0.2.2:41241", displayName = "目标设备")
+
+        assertThat(device.displayName).isEqualTo("目标设备")
+        assertThat(runtime.observeNearbyDevices().first()).containsExactly(device)
+
+        runtime.stopDiscovery()
+
+        assertThat(runtime.observeNearbyDevices().first()).isEmpty()
+    }
 }
 
 private class MutableClock(private var now: Long) : Clock {

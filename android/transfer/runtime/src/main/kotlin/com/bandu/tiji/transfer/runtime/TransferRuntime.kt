@@ -17,6 +17,8 @@ import com.bandu.tiji.transfer.protocol.identity.IdentityProof
 import com.bandu.tiji.transfer.protocol.pairing.PairingCodePolicy
 import com.bandu.tiji.transfer.protocol.pairing.PairingCodeValidation
 import com.bandu.tiji.transfer.runtime.discovery.NsdPeerDiscovery
+import com.bandu.tiji.transfer.runtime.discovery.parseManualDiscoveryEndpoint
+import com.bandu.tiji.transfer.runtime.discovery.toNearbyDevice
 import com.bandu.tiji.transfer.runtime.identity.LocalDeviceIdentity
 import com.bandu.tiji.transfer.runtime.transport.BoundTcpServer
 import com.bandu.tiji.transfer.runtime.transport.LanTcpTransport
@@ -86,6 +88,23 @@ class TransferRuntime(
             transferState.value = TransferState.Idle
         }
         mutableActivity.value = RuntimeActivity.Inactive
+    }
+
+    fun addManualDiscoveryTarget(
+        address: String,
+        displayName: String = "手动设备",
+    ): NearbyDevice {
+        check(transferState.value is TransferState.Discovering) {
+            "Manual discovery requires an active discovery session"
+        }
+        val endpoint = parseManualDiscoveryEndpoint(address, DEFAULT_DISCOVERY_PORT)
+        val peer = endpoint.toPeer(displayName = displayName)
+        discovery?.addManualPeer(peer)
+        if (discovery == null) {
+            val current = fallbackNearbyDevices.value.filterNot { it.discoveryId == peer.discoveryId }
+            fallbackNearbyDevices.value = current + peer.toNearbyDevice()
+        }
+        return peer.toNearbyDevice()
     }
 
     override suspend fun createReceiveCode(): PairingCode {

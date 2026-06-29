@@ -3,14 +3,17 @@ package com.bandu.tiji.transfer.runtime.discovery
 import android.content.Context
 import android.net.nsd.NsdManager
 import android.net.nsd.NsdServiceInfo
+import android.net.wifi.WifiManager
 import java.nio.charset.StandardCharsets
 
 class AndroidNsdDiscoveryBackend(
     context: Context,
 ) : NsdDiscoveryBackend {
     private val nsdManager = context.getSystemService(NsdManager::class.java)
+    private val wifiManager = context.applicationContext.getSystemService(WifiManager::class.java)
     private var registrationListener: NsdManager.RegistrationListener? = null
     private var discoveryListener: NsdManager.DiscoveryListener? = null
+    private var multicastLock: WifiManager.MulticastLock? = null
     private val resolving = mutableSetOf<String>()
 
     override var onPeerFound: ((NsdDiscoveredPeer) -> Unit)? = null
@@ -29,7 +32,10 @@ class AndroidNsdDiscoveryBackend(
             override fun onRegistrationFailed(
                 serviceInfo: NsdServiceInfo,
                 errorCode: Int,
-            ) = Unit
+            ) {
+                registrationListener = null
+                releaseMulticastLockIfIdle()
+            }
 
             override fun onServiceUnregistered(serviceInfo: NsdServiceInfo) = Unit
 
@@ -39,6 +45,7 @@ class AndroidNsdDiscoveryBackend(
             ) = Unit
         }
         registrationListener = listener
+        acquireMulticastLock()
         nsdManager.registerService(info, NsdManager.PROTOCOL_DNS_SD, listener)
     }
 
@@ -47,6 +54,7 @@ class AndroidNsdDiscoveryBackend(
             runCatching { nsdManager.unregisterService(listener) }
         }
         registrationListener = null
+        releaseMulticastLockIfIdle()
     }
 
     override fun startDiscovery(serviceType: String) {
@@ -67,6 +75,8 @@ class AndroidNsdDiscoveryBackend(
                 serviceType: String,
                 errorCode: Int,
             ) {
+                discoveryListener = null
+                releaseMulticastLockIfIdle()
                 runCatching { nsdManager.stopServiceDiscovery(this) }
             }
 
@@ -76,6 +86,7 @@ class AndroidNsdDiscoveryBackend(
             ) = Unit
         }
         discoveryListener = listener
+        acquireMulticastLock()
         nsdManager.discoverServices(serviceType, NsdManager.PROTOCOL_DNS_SD, listener)
     }
 
@@ -85,6 +96,23 @@ class AndroidNsdDiscoveryBackend(
         }
         discoveryListener = null
         resolving.clear()
+        releaseMulticastLockIfIdle()
+    }
+
+    private fun acquireMulticastLock() {
+        if (multicastLock?.isHeld == true) return
+        multicastLock = wifiManager?.createMulticastLock("BanduTijiTransferNsd")?.apply {
+            setReferenceCounted(false)
+            acquire()
+        }
+    }
+
+    private fun releaseMulticastLockIfIdle() {
+        if (registrationListener != null || discoveryListener != null) return
+        multicastLock?.let { lock ->
+            if (lock.isHeld) runCatching { lock.release() }
+        }
+        multicastLock = null
     }
 
     private fun resolve(serviceInfo: NsdServiceInfo) {

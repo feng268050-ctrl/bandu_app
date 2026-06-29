@@ -23,14 +23,16 @@ class NsdPeerDiscovery(
 
     init {
         backend.onPeerFound = { peer ->
-            if (started) {
-                val localDigest = localDeviceDigest
-                val current = peers.value.filterNot { it.discoveryId == peer.discoveryId }
-                val next = if (peer.discoveryId == localDigest) current else current + peer
-                peers.value = next
-                nearby.value = next.map { it.toNearbyDevice() }
-            }
+            acceptPeer(peer)
         }
+    }
+
+    fun addManualPeer(endpoint: ManualDiscoveryEndpoint) {
+        acceptPeer(endpoint.toPeer(displayName = "手动设备"))
+    }
+
+    fun addManualPeer(peer: NsdDiscoveredPeer) {
+        acceptPeer(peer)
     }
 
     fun start(
@@ -68,6 +70,15 @@ class NsdPeerDiscovery(
         backend.unregister()
         peers.value = emptyList()
         nearby.value = emptyList()
+    }
+
+    private fun acceptPeer(peer: NsdDiscoveredPeer) {
+        if (!started) return
+        val localDigest = localDeviceDigest
+        val current = peers.value.filterNot { it.discoveryId == peer.discoveryId }
+        val next = if (peer.discoveryId == localDigest) current else current + peer
+        peers.value = next
+        nearby.value = next.map { it.toNearbyDevice() }
     }
 
     companion object {
