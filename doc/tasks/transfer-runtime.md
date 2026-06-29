@@ -20,7 +20,7 @@
 - [x] `RUNTIME-010` 实现目标端 resume bitmap 持久化和 24 小时过期。验证：进程重启续传测试。
 - [x] `RUNTIME-011` 实现非活动槽批量导入、外键/hash/图片/FTS 健康检查。验证：损坏包拒绝测试。
 - [x] `RUNTIME-012` 实现双方最终确认、活动槽切换、API Key 清除和失败回滚。验证：提交阶段强杀测试。
-- [ ] `RUNTIME-013` 实现 `dataSync` Foreground Service、通知和可观察进度。验证：后台传输仪器测试。
+- [x] `RUNTIME-013` 实现 `dataSync` Foreground Service、通知和可观察进度。验证：后台传输仪器测试。
 - [x] `RUNTIME-014` 实现取消、网络中断、空间不足和协议错误的清理/可恢复策略。验证：故障注入测试。
 - [ ] `RUNTIME-015` 添加完整双设备 E2E：配对、40% 断网、续传、替换、源保留。验证：`AC-DEV-001` 至 `AC-DEV-006`。
 
