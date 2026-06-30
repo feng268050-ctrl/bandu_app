@@ -59,10 +59,6 @@ fun DevicesScreen(
                             Button(onClick = { onAction(DevicesAction.StartReceiveMode) }) {
                                 Text("接收数据")
                             }
-                        } else {
-                            TextButton(onClick = { onAction(DevicesAction.StopReceiveMode) }) {
-                                Text("退出接收模式")
-                            }
                         }
                     }
                 }
@@ -88,6 +84,9 @@ fun DevicesScreen(
                                         },
                                     )
                                 }
+                            }
+                            TextButton(onClick = { onAction(DevicesAction.StopReceiveMode) }) {
+                                Text("取消")
                             }
                         }
                     }

@@ -3,6 +3,7 @@ package com.bandu.tiji.feature.devices
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
 import com.bandu.tiji.core.testing.coroutines.MainDispatcherRule
 import com.bandu.tiji.core.testing.fake.FakeDeviceTransferRepository
@@ -69,6 +70,7 @@ class ReceiveModeScreenTest {
 
     @Test
     fun `expired code is explicit`() {
+        val actions = mutableListOf<DevicesAction>()
         composeRule.setContent {
             BanduTijiTheme {
                 DevicesScreen(
@@ -83,12 +85,18 @@ class ReceiveModeScreenTest {
                         ),
                         isLoading = false,
                     ),
-                    onAction = {},
+                    onAction = actions::add,
                 )
             }
         }
 
         composeRule.onNodeWithText("配对码：123456").assertIsDisplayed()
         composeRule.onNodeWithText("配对码已过期").assertIsDisplayed()
+        composeRule.onNodeWithText("取消").assertIsDisplayed()
+        composeRule.onNodeWithText("取消").performClick()
+
+        composeRule.runOnIdle {
+            assertThat(actions).containsExactly(DevicesAction.StopReceiveMode)
+        }
     }
 }

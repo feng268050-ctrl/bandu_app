@@ -1,6 +1,7 @@
 package com.bandu.tiji.feature.profile
 
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -41,6 +42,7 @@ class ProfileOverviewTest {
 
     @Test
     fun `overview shows saved student profile summary first`() {
+        val actions = mutableListOf<ProfileAction>()
         composeRule.setContent {
             BanduTijiTheme {
                 ProfileScreen(
@@ -50,14 +52,29 @@ class ProfileOverviewTest {
                             educationStage = "初中",
                             grade = 2,
                         ),
+                        aiDraft = AiConfigurationDraftState(
+                            displayName = "Gemini",
+                            analysisModel = "gemini-vision",
+                            tutorModel = "gemini-tutor",
+                        ),
+                        isAiConfigurationActive = true,
+                        deviceName = "Bandu Pixel",
                     ),
-                    onAction = {},
+                    onAction = actions::add,
                 )
             }
         }
 
-        composeRule.onNodeWithText("昵称：小明").assertIsDisplayed()
-        composeRule.onNodeWithText("教育阶段：初中").assertIsDisplayed()
-        composeRule.onNodeWithText("年级：2年级").assertIsDisplayed()
+        composeRule.onNodeWithText("小").assertIsDisplayed()
+        composeRule.onNodeWithText("小明").assertIsDisplayed()
+        composeRule.onNodeWithText("初中 · 2年级").assertIsDisplayed()
+        composeRule.onNodeWithText("模型配置：Gemini · gemini-vision / gemini-tutor")
+            .assertIsDisplayed()
+        composeRule.onNodeWithText("设备名称：Bandu Pixel").assertIsDisplayed()
+        composeRule.onNodeWithText("小明").assertHasNoClickAction()
+
+        composeRule.runOnIdle {
+            assertThat(actions).isEmpty()
+        }
     }
 }
