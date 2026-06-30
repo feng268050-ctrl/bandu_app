@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.bandu.tiji.core.designsystem.chart.BanduBarChart
+import com.bandu.tiji.core.designsystem.component.BanduBackNavigation
 import com.bandu.tiji.core.designsystem.component.BanduCard
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
 import com.bandu.tiji.core.designsystem.chart.BanduChartDatum
@@ -27,10 +28,14 @@ fun StatsScreen(
     uiState: StatsUiState,
     onAction: (StatsAction) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     BanduPageScaffold(
         title = "统计",
         modifier = modifier,
+        navigation = onBack?.let { back ->
+            { BanduBackNavigation(onBack = back) }
+        },
     ) { contentPadding ->
         LazyColumn(
             modifier = Modifier

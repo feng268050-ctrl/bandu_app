@@ -15,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
+import com.bandu.tiji.core.designsystem.component.BanduBackNavigation
 import com.bandu.tiji.core.designsystem.component.BanduCard
 import com.bandu.tiji.core.designsystem.component.BanduDangerConfirmationDialog
 import com.bandu.tiji.core.designsystem.component.BanduErrorState
@@ -48,6 +49,9 @@ fun ErrorItemDetailScreen(
     BanduPageScaffold(
         title = "错题详情",
         modifier = modifier,
+        navigation = {
+            BanduBackNavigation(onBack = { onAction(ErrorItemDetailAction.NavigateBack) })
+        },
         actions = {
             if (uiState.item != null) {
                 TextButton(onClick = { onAction(ErrorItemDetailAction.OpenEditor) }) {

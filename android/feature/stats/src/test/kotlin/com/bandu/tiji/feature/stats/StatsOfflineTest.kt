@@ -46,7 +46,7 @@ class StatsOfflineTest {
         )
         composeRule.setContent {
             BanduTijiTheme {
-                StatsRoute(viewModel)
+                StatsRoute(viewModel, onBack = {})
             }
         }
 

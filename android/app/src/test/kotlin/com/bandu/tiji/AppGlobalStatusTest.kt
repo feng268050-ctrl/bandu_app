@@ -41,7 +41,7 @@ class AppGlobalStatusTest {
         }
 
         composeRule.onNodeWithText("正在迁移数据 40%").assertIsDisplayed()
-        composeRule.onNodeWithText("首页 - 伴读题集").assertIsDisplayed()
+        composeRule.onNodeWithText("欢迎使用伴读题集").assertIsDisplayed()
     }
 
     @Test

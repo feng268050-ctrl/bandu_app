@@ -57,7 +57,7 @@ class TransferRuntime(
 
     override val activity: StateFlow<RuntimeActivity> = mutableActivity.asStateFlow()
 
-    override fun observeNearbyDevices(): Flow<List<NearbyDevice>> =
+    override fun observeNearbyDevices(): StateFlow<List<NearbyDevice>> =
         discovery?.nearbyDevices ?: fallbackNearbyDevices.asStateFlow()
 
     override fun observeTrustedDevices(): Flow<List<TrustedDevice>> =

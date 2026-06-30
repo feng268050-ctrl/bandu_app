@@ -1,9 +1,7 @@
 package com.bandu.tiji
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -12,32 +10,105 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewmodel.CreationExtras
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
+import com.bandu.tiji.core.model.erroritem.ErrorItemQuery
+import com.bandu.tiji.core.model.id.CollectionId
+import com.bandu.tiji.core.model.id.ErrorItemId
+import com.bandu.tiji.core.model.id.TutorSessionId
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
+import com.bandu.tiji.domain.repository.AiConfigurationRepository
+import com.bandu.tiji.domain.repository.AiTutorGateway
+import com.bandu.tiji.domain.repository.CollectionRepository
+import com.bandu.tiji.domain.repository.DeviceTransferRepository
+import com.bandu.tiji.domain.repository.ErrorItemRepository
+import com.bandu.tiji.domain.repository.ExerciseRepository
+import com.bandu.tiji.domain.repository.ProfileRepository
+import com.bandu.tiji.domain.repository.StatsRepository
+import com.bandu.tiji.domain.repository.TagRepository
+import com.bandu.tiji.domain.repository.TutorRepository
+import com.bandu.tiji.feature.capture.CaptureEffect
+import com.bandu.tiji.feature.capture.CaptureFlowScreen
+import com.bandu.tiji.feature.capture.CaptureViewModel
+import com.bandu.tiji.feature.capture.PhotoPickerLauncher
+import com.bandu.tiji.feature.devices.DevicesRoute
+import com.bandu.tiji.feature.devices.DevicesViewModel
+import com.bandu.tiji.feature.home.HomeRoute
+import com.bandu.tiji.feature.home.HomeViewModel
+import com.bandu.tiji.feature.library.CollectionListRoute
+import com.bandu.tiji.feature.library.CollectionListViewModel
+import com.bandu.tiji.feature.library.ErrorItemDetailRoute
+import com.bandu.tiji.feature.library.ErrorItemDetailViewModel
+import com.bandu.tiji.feature.library.ErrorItemListRoute
+import com.bandu.tiji.feature.library.ErrorItemListViewModel
+import com.bandu.tiji.feature.profile.ProfileRoute
+import com.bandu.tiji.feature.profile.ProfileAction
+import com.bandu.tiji.feature.profile.ProfileSection
+import com.bandu.tiji.feature.profile.ProfileViewModel
+import com.bandu.tiji.feature.stats.StatsRoute
+import com.bandu.tiji.feature.stats.StatsViewModel
+import com.bandu.tiji.feature.tags.TagsRoute
+import com.bandu.tiji.feature.tags.TagsViewModel
+import com.bandu.tiji.feature.tutor.TutorSessionRoute
+import com.bandu.tiji.feature.tutor.TutorSessionViewModel
+import com.bandu.tiji.feature.tutor.TutorSessionsRoute
+import com.bandu.tiji.feature.tutor.TutorSessionsViewModel
+import com.bandu.tiji.navigation.AiSettingsDestination
 import com.bandu.tiji.navigation.CaptureDestination
+import com.bandu.tiji.navigation.CollectionDestination
 import com.bandu.tiji.navigation.DevicesDestination
+import com.bandu.tiji.navigation.ErrorItemDetailDestination
 import com.bandu.tiji.navigation.HomeDestination
+import com.bandu.tiji.navigation.LibraryDestination
 import com.bandu.tiji.navigation.ProfileDestination
+import com.bandu.tiji.navigation.StatsDestination
+import com.bandu.tiji.navigation.TagsDestination
 import com.bandu.tiji.navigation.TopLevelDestination
 import com.bandu.tiji.navigation.TopLevelNavigationBar
+import com.bandu.tiji.navigation.TutorSessionDestination
 import com.bandu.tiji.navigation.TutorSessionsDestination
+import com.bandu.tiji.navigation.toAppDestination
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
 
 @Composable
 fun BanduTijiApp(
     uiState: AppUiState = AppUiState(),
 ) {
     BanduTijiTheme {
+        val context = LocalContext.current.applicationContext
+        val dependencies = remember(context) {
+            EntryPointAccessors.fromApplication(
+                context,
+                AppDependencies::class.java,
+            )
+        }
         val navController = rememberNavController()
         val snackbarHostState = androidx.compose.runtime.remember { SnackbarHostState() }
+        val profileViewModel = appViewModel("profile") {
+            ProfileViewModel(
+                profileRepository = dependencies.profileRepository(),
+                aiConfigurationRepository = dependencies.aiConfigurationRepository(),
+            )
+        }
         val backStackEntry by navController.currentBackStackEntryAsState()
         val currentDestination = backStackEntry?.destination
         val selectedDestination = when {
@@ -69,6 +140,9 @@ fun BanduTijiApp(
                     TopLevelNavigationBar(
                         selectedDestination = selectedDestination,
                         onNavigate = { destination ->
+                            if (destination == ProfileDestination) {
+                                profileViewModel.onAction(ProfileAction.Back)
+                            }
                             navController.navigate(destination) {
                                 popUpTo(HomeDestination) {
                                     saveState = true
@@ -87,19 +161,171 @@ fun BanduTijiApp(
                 modifier = Modifier.padding(innerPadding),
             ) {
                 composable<HomeDestination> {
-                    PlaceholderScreen(title = "首页")
+                    val viewModel = appViewModel("home") {
+                        HomeViewModel(dependencies.profileRepository())
+                    }
+                    HomeRoute(
+                        viewModel = viewModel,
+                        onNavigate = { intent ->
+                            navController.navigate(intent.toAppDestination())
+                        },
+                    )
                 }
                 composable<DevicesDestination> {
-                    PlaceholderScreen(title = "设备")
+                    val viewModel = appViewModel("devices") {
+                        DevicesViewModel(
+                            repository = dependencies.deviceTransferRepository(),
+                            localDeviceName = android.os.Build.MODEL ?: "Android",
+                            localFingerprint = "本机",
+                        )
+                    }
+                    DevicesRoute(viewModel)
                 }
                 composable<CaptureDestination> {
-                    PlaceholderScreen(title = "新增")
+                    val viewModel = appViewModel("capture") {
+                        CaptureViewModel(
+                            aiGateway = dependencies.aiTutorGateway(),
+                            errorItemRepository = dependencies.errorItemRepository(),
+                        )
+                    }
+                    CaptureRoute(
+                        viewModel = viewModel,
+                        onNavigate = { intent ->
+                            navController.navigate(intent.toAppDestination())
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
                 }
                 composable<TutorSessionsDestination> {
-                    PlaceholderScreen(title = "AI辅导")
+                    val viewModel = appViewModel("tutor-sessions") {
+                        TutorSessionsViewModel(dependencies.tutorRepository())
+                    }
+                    TutorSessionsRoute(
+                        viewModel = viewModel,
+                        onOpenSession = { sessionId ->
+                            navController.navigate(
+                                TutorSessionDestination(
+                                    sessionId = sessionId.value,
+                                    errorItemId = null,
+                                ),
+                            )
+                        },
+                    )
                 }
                 composable<ProfileDestination> {
-                    PlaceholderScreen(title = "我的")
+                    ProfileRoute(profileViewModel)
+                }
+                composable<LibraryDestination> {
+                    val viewModel = appViewModel("library") {
+                        CollectionListViewModel(dependencies.collectionRepository())
+                    }
+                    CollectionListRoute(
+                        viewModel = viewModel,
+                        onNavigate = { intent ->
+                            navController.navigate(intent.toAppDestination())
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<CollectionDestination> { entry ->
+                    val route = entry.toRoute<CollectionDestination>()
+                    val viewModel = appViewModel("collection-${route.collectionId}") {
+                        ErrorItemListViewModel(
+                            repository = dependencies.errorItemRepository(),
+                            collectionRepository = dependencies.collectionRepository(),
+                            tagRepository = dependencies.tagRepository(),
+                            initialQuery = ErrorItemQuery(
+                                collectionId = CollectionId(route.collectionId),
+                            ),
+                        )
+                    }
+                    ErrorItemListRoute(
+                        viewModel = viewModel,
+                        onNavigate = { intent ->
+                            navController.navigate(intent.toAppDestination())
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<TagsDestination> {
+                    val viewModel = appViewModel("tags") {
+                        TagsViewModel(dependencies.tagRepository())
+                    }
+                    TagsRoute(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<StatsDestination> {
+                    val viewModel = appViewModel("stats") {
+                        StatsViewModel(dependencies.statsRepository())
+                    }
+                    StatsRoute(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<ErrorItemDetailDestination> { entry ->
+                    val route = entry.toRoute<ErrorItemDetailDestination>()
+                    val viewModel = appViewModel("error-item-${route.errorItemId}") {
+                        ErrorItemDetailViewModel(
+                            repository = dependencies.errorItemRepository(),
+                            errorItemId = ErrorItemId(route.errorItemId),
+                            collectionRepository = dependencies.collectionRepository(),
+                            tagRepository = dependencies.tagRepository(),
+                        )
+                    }
+                    ErrorItemDetailRoute(
+                        viewModel = viewModel,
+                        onNavigate = { intent ->
+                            navController.navigate(intent.toAppDestination())
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+                composable<TutorSessionDestination> { entry ->
+                    val route = entry.toRoute<TutorSessionDestination>()
+                    val sessionId = route.sessionId
+                    if (sessionId == null) {
+                        val viewModel = appViewModel("tutor-sessions") {
+                            TutorSessionsViewModel(dependencies.tutorRepository())
+                        }
+                        TutorSessionsRoute(
+                            viewModel = viewModel,
+                            onOpenSession = { id ->
+                                navController.navigate(
+                                    TutorSessionDestination(
+                                        sessionId = id.value,
+                                        errorItemId = route.errorItemId,
+                                    ),
+                                )
+                            },
+                        )
+                    } else {
+                        val viewModel = appViewModel("tutor-session-$sessionId") {
+                            TutorSessionViewModel(
+                                tutorRepository = dependencies.tutorRepository(),
+                                sessionId = TutorSessionId(sessionId),
+                                aiTutorGateway = dependencies.aiTutorGateway(),
+                                exerciseRepository = dependencies.exerciseRepository(),
+                            )
+                        }
+                        TutorSessionRoute(
+                            viewModel = viewModel,
+                            onBack = { navController.popBackStack() },
+                            onOpenAiConfiguration = {
+                                navController.navigate(AiSettingsDestination)
+                            },
+                        )
+                    }
+                }
+                composable<AiSettingsDestination> {
+                    LaunchedEffect(profileViewModel) {
+                        profileViewModel.onAction(
+                            ProfileAction.OpenSection(ProfileSection.AI),
+                        )
+                    }
+                    ProfileRoute(profileViewModel)
                 }
             }
         }
@@ -146,13 +372,67 @@ private fun MigrationStatusBar(state: MigrationUiState) {
 }
 
 @Composable
-private fun PlaceholderScreen(title: String) {
-    Surface(modifier = Modifier.fillMaxSize()) {
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(text = "$title - ${stringResource(R.string.app_name)}")
+private fun CaptureRoute(
+    viewModel: CaptureViewModel,
+    onNavigate: (com.bandu.tiji.core.model.navigation.NavigationIntent) -> Unit,
+    onBack: () -> Unit,
+) {
+    val uiState by viewModel.uiState.collectAsState()
+    var showPhotoPicker by remember { mutableStateOf(false) }
+    LaunchedEffect(viewModel) {
+        viewModel.effects.collect { effect ->
+            when (effect) {
+                CaptureEffect.LaunchPhotoPicker -> showPhotoPicker = true
+                CaptureEffect.NavigateBack -> onBack()
+                is CaptureEffect.Navigate -> onNavigate(effect.intent)
+            }
         }
     }
+    CaptureFlowScreen(
+        uiState = uiState,
+        onAction = viewModel::onAction,
+    )
+    if (showPhotoPicker) {
+        PhotoPickerLauncher(
+            onPicked = { uri ->
+                showPhotoPicker = false
+                viewModel.onAction(com.bandu.tiji.feature.capture.CaptureAction.ImageSelected(uri))
+            },
+            onCancelled = {
+                showPhotoPicker = false
+            },
+        )
+    }
+}
+
+@Composable
+private inline fun <reified VM : ViewModel> appViewModel(
+    key: String,
+    crossinline create: () -> VM,
+): VM {
+    val factory = remember(key) {
+        object : ViewModelProvider.Factory {
+            @Suppress("UNCHECKED_CAST")
+            override fun <T : ViewModel> create(
+                modelClass: Class<T>,
+                extras: CreationExtras,
+            ): T = create() as T
+        }
+    }
+    return viewModel(key = key, factory = factory)
+}
+
+@EntryPoint
+@InstallIn(SingletonComponent::class)
+interface AppDependencies {
+    fun profileRepository(): ProfileRepository
+    fun collectionRepository(): CollectionRepository
+    fun errorItemRepository(): ErrorItemRepository
+    fun tagRepository(): TagRepository
+    fun statsRepository(): StatsRepository
+    fun tutorRepository(): TutorRepository
+    fun exerciseRepository(): ExerciseRepository
+    fun aiConfigurationRepository(): AiConfigurationRepository
+    fun aiTutorGateway(): AiTutorGateway
+    fun deviceTransferRepository(): DeviceTransferRepository
 }

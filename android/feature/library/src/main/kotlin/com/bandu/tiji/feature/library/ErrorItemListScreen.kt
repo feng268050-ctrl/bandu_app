@@ -29,6 +29,7 @@ import coil3.compose.AsyncImage
 import coil3.request.CachePolicy
 import coil3.request.ImageRequest
 import androidx.compose.ui.platform.LocalContext
+import com.bandu.tiji.core.designsystem.component.BanduBackNavigation
 import com.bandu.tiji.core.designsystem.component.BanduCard
 import com.bandu.tiji.core.designsystem.component.BanduDangerConfirmationDialog
 import com.bandu.tiji.core.designsystem.component.BanduEmptyState
@@ -49,10 +50,14 @@ fun ErrorItemListScreen(
     onAction: (ErrorItemListAction) -> Unit,
     modifier: Modifier = Modifier,
     thumbnailModel: (String) -> Any? = { it },
+    onBack: (() -> Unit)? = null,
 ) {
     BanduPageScaffold(
         title = "错题",
         modifier = modifier,
+        navigation = onBack?.let { back ->
+            { BanduBackNavigation(onBack = back) }
+        },
     ) { contentPadding ->
         Column(
             modifier = Modifier

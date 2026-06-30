@@ -23,7 +23,11 @@ fun ProfileScreen(
     modifier: Modifier = Modifier,
 ) {
     when (val section = uiState.currentSection) {
-        null -> ProfileOverview(onAction = onAction, modifier = modifier)
+        null -> ProfileOverview(
+            uiState = uiState,
+            onAction = onAction,
+            modifier = modifier,
+        )
         ProfileSection.STUDENT -> StudentProfileScreen(
             uiState = uiState,
             onAction = onAction,
@@ -54,6 +58,7 @@ fun ProfileScreen(
 
 @Composable
 private fun ProfileOverview(
+    uiState: ProfileUiState,
     onAction: (ProfileAction) -> Unit,
     modifier: Modifier,
 ) {
@@ -65,6 +70,21 @@ private fun ProfileOverview(
                 .padding(BanduSpacing.PageHorizontal),
             verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
         ) {
+            uiState.studentSummary?.let { summary ->
+                item {
+                    BanduCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("profile-student-summary"),
+                    ) {
+                        Text("昵称：${summary.nickname.ifBlank { "未设置" }}")
+                        Text("教育阶段：${summary.educationStage ?: "未设置"}")
+                        Text(
+                            "年级：${summary.grade?.let { "${it}年级" } ?: "未设置"}",
+                        )
+                    }
+                }
+            }
             items(ProfileSection.entries, key = ProfileSection::name) { section ->
                 BanduCard(
                     modifier = Modifier

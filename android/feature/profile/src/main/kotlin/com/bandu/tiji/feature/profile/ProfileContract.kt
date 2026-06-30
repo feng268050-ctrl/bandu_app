@@ -18,7 +18,9 @@ enum class ProfileSection(
 data class ProfileUiState(
     val currentSection: ProfileSection? = null,
     val studentDraft: StudentProfileDraft = StudentProfileDraft(),
+    val studentSummary: StudentProfileSummary? = null,
     val studentErrorMessage: String? = null,
+    val studentStatusMessage: String? = null,
     val isSavingStudent: Boolean = false,
     val deviceName: String = "",
     val deviceNameErrorMessage: String? = null,
@@ -64,6 +66,12 @@ data class StudentProfileDraft(
     val nickname: String = "",
     val educationStage: String? = null,
     val enrollmentYear: String = "",
+)
+
+data class StudentProfileSummary(
+    val nickname: String,
+    val educationStage: String?,
+    val grade: Int?,
 )
 
 val EducationStages = listOf("小学", "初中", "高中")

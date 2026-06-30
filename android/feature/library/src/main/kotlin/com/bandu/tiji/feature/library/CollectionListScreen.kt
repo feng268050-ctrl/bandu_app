@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.platform.testTag
+import com.bandu.tiji.core.designsystem.component.BanduBackNavigation
 import com.bandu.tiji.core.designsystem.component.BanduCard
 import com.bandu.tiji.core.designsystem.component.BanduDangerConfirmationDialog
 import com.bandu.tiji.core.designsystem.component.BanduEmptyState
@@ -33,10 +34,14 @@ fun CollectionListScreen(
     uiState: CollectionListUiState,
     onAction: (CollectionListAction) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     BanduPageScaffold(
         title = "题集",
         modifier = modifier,
+        navigation = onBack?.let { back ->
+            { BanduBackNavigation(onBack = back) }
+        },
         actions = {
             TextButton(onClick = { onAction(CollectionListAction.RequestCreate) }) {
                 Text("新建题集")

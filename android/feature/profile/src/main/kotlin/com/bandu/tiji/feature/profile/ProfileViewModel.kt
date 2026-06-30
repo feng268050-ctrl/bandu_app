@@ -26,13 +26,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.receiveAsFlow
+import java.time.Instant
+import java.time.ZoneId
 
 class ProfileViewModel(
     private val profileRepository: ProfileRepository,
     private val deviceNameStore: DeviceNameStore = InMemoryDeviceNameStore(),
     private val aiConfigurationRepository: AiConfigurationRepository =
         EmptyAiConfigurationRepository,
-    clock: Clock = SystemClock(),
+    private val clock: Clock = SystemClock(),
     private val updateStudentProfile: UpdateStudentProfileUseCase =
         UpdateStudentProfileUseCase(profileRepository, clock),
     private val saveAiConfiguration: SaveAndActivateAiConfigurationUseCase =
@@ -62,6 +64,7 @@ class ProfileViewModel(
                             educationStage = profile.educationStage,
                             enrollmentYear = profile.enrollmentYear?.toString().orEmpty(),
                         ),
+                        studentSummary = profile.toSummary(),
                     )
                 }
             }
@@ -468,6 +471,7 @@ class ProfileViewModel(
             it.copy(
                 studentDraft = it.studentDraft.transform(),
                 studentErrorMessage = null,
+                studentStatusMessage = null,
             )
         }
     }
@@ -483,7 +487,11 @@ class ProfileViewModel(
             return
         }
         mutableUiState.update {
-            it.copy(isSavingStudent = true, studentErrorMessage = null)
+            it.copy(
+                isSavingStudent = true,
+                studentErrorMessage = null,
+                studentStatusMessage = null,
+            )
         }
         viewModelScope.launch {
             val result = updateStudentProfile(
@@ -500,6 +508,10 @@ class ProfileViewModel(
                         is AppResult.Success -> null
                         is AppResult.Failure -> result.error.toStudentMessage()
                     },
+                    studentStatusMessage = when (result) {
+                        is AppResult.Success -> "学生资料已保存"
+                        is AppResult.Failure -> null
+                    },
                 )
             }
         }
@@ -511,6 +523,22 @@ class ProfileViewModel(
         } else {
             "无法保存学生资料"
         }
+
+    private fun StudentProfile.toSummary(): StudentProfileSummary? {
+        if (nickname.isBlank() && educationStage.isNullOrBlank() && enrollmentYear == null) {
+            return null
+        }
+        return StudentProfileSummary(
+            nickname = nickname,
+            educationStage = educationStage,
+            grade = enrollmentYear?.let { currentYear() - it },
+        )
+    }
+
+    private fun currentYear(): Int =
+        Instant.ofEpochMilli(clock.nowEpochMillis())
+            .atZone(ZoneId.systemDefault())
+            .year
 
     companion object {
         const val MAX_DEVICE_NAME_LENGTH = 40

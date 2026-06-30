@@ -23,7 +23,7 @@ class LibraryRoutesTest {
         val viewModel = CollectionListViewModel(FakeCollectionRepository())
         composeRule.setContent {
             BanduTijiTheme {
-                CollectionListRoute(viewModel = viewModel, onNavigate = {})
+                CollectionListRoute(viewModel = viewModel, onNavigate = {}, onBack = {})
             }
         }
 
@@ -35,7 +35,7 @@ class LibraryRoutesTest {
         val viewModel = ErrorItemListViewModel(FakeErrorItemRepository())
         composeRule.setContent {
             BanduTijiTheme {
-                ErrorItemListRoute(viewModel = viewModel, onNavigate = {})
+                ErrorItemListRoute(viewModel = viewModel, onNavigate = {}, onBack = {})
             }
         }
 

@@ -7,10 +7,12 @@ import androidx.compose.runtime.getValue
 @Composable
 fun TagsRoute(
     viewModel: TagsViewModel,
+    onBack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     TagsScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
+        onBack = onBack,
     )
 }

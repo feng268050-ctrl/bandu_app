@@ -19,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.bandu.tiji.core.designsystem.component.BanduBackNavigation
 import com.bandu.tiji.core.designsystem.component.BanduCard
 import com.bandu.tiji.core.designsystem.component.BanduEmptyState
 import com.bandu.tiji.core.designsystem.component.BanduErrorState
@@ -34,10 +35,14 @@ fun TagsScreen(
     uiState: TagsUiState,
     onAction: (TagsAction) -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
 ) {
     BanduPageScaffold(
         title = "标签",
         modifier = modifier,
+        navigation = onBack?.let { back ->
+            { BanduBackNavigation(onBack = back) }
+        },
         actions = {
             TextButton(
                 onClick = { onAction(TagsAction.OpenCreate(parentId = null)) },

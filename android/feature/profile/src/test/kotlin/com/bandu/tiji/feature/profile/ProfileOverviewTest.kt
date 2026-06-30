@@ -38,4 +38,26 @@ class ProfileOverviewTest {
             )
         }
     }
+
+    @Test
+    fun `overview shows saved student profile summary first`() {
+        composeRule.setContent {
+            BanduTijiTheme {
+                ProfileScreen(
+                    ProfileUiState(
+                        studentSummary = StudentProfileSummary(
+                            nickname = "小明",
+                            educationStage = "初中",
+                            grade = 2,
+                        ),
+                    ),
+                    onAction = {},
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("昵称：小明").assertIsDisplayed()
+        composeRule.onNodeWithText("教育阶段：初中").assertIsDisplayed()
+        composeRule.onNodeWithText("年级：2年级").assertIsDisplayed()
+    }
 }

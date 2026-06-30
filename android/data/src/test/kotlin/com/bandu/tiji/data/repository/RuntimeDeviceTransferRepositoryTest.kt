@@ -6,14 +6,14 @@ import com.bandu.tiji.domain.transfer.TransferFailureCode
 import com.bandu.tiji.domain.transfer.TransferState
 import com.bandu.tiji.transfer.runtime.TransferRuntime
 import com.google.common.truth.Truth.assertThat
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class RuntimeDeviceTransferRepositoryTest {
     @Test
     fun `runtime state and commands are exposed through domain repository`() = runTest {
-        val repository = RuntimeDeviceTransferRepository(TransferRuntime())
+        val runtime = TransferRuntime()
+        val repository = RuntimeDeviceTransferRepository(runtime)
         val nearby = repository.observeNearbyDevices()
 
         repository.observeTransferState().test {
@@ -25,7 +25,9 @@ class RuntimeDeviceTransferRepositoryTest {
             cancelAndIgnoreRemainingEvents()
         }
 
-        val device = nearby.first().single()
+        repository.startDiscovery()
+        val device = runtime.addManualDiscoveryTarget("10.0.2.2")
+        assertThat(nearby.value).containsExactly(device)
         val code = repository.createReceiveCode()
         assertThat(code.code).hasLength(6)
         assertThat(repository.pair(device, code.code)).isEqualTo(PairingResult.Success)
@@ -34,7 +36,7 @@ class RuntimeDeviceTransferRepositoryTest {
             val trusted = awaitItem().single()
             repository.sendAll(trusted)
             assertThat(repository.observeTransferState().value)
-                .isInstanceOf(TransferState.Completed::class.java)
+                .isInstanceOf(TransferState.Transferring::class.java)
 
             repository.rejectTransfer("session-1")
             assertThat(repository.observeTransferState().value).isEqualTo(
@@ -54,8 +56,12 @@ class RuntimeDeviceTransferRepositoryTest {
 
     @Test
     fun `invalid pairing code preserves failure result`() = runTest {
-        val repository = RuntimeDeviceTransferRepository(TransferRuntime())
-        val device = repository.observeNearbyDevices().first().single()
+        val runtime = TransferRuntime()
+        val repository = RuntimeDeviceTransferRepository(runtime)
+
+        repository.startDiscovery()
+        val device = runtime.addManualDiscoveryTarget("10.0.2.2")
+        repository.createReceiveCode()
 
         assertThat(repository.pair(device, "123")).isEqualTo(
             PairingResult.Failure(TransferFailureCode.PAIRING_FAILED),

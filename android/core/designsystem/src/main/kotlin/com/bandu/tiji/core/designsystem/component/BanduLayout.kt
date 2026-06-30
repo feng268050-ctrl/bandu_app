@@ -18,13 +18,29 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.bandu.tiji.core.designsystem.theme.BanduBorders
 import com.bandu.tiji.core.designsystem.theme.BanduElevation
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
+
+@Composable
+fun BanduBackNavigation(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    TextButton(
+        onClick = onBack,
+        modifier = modifier.testTag("page-back"),
+    ) {
+        Text("返回")
+    }
+}
 
 @Composable
 fun BanduPageScaffold(

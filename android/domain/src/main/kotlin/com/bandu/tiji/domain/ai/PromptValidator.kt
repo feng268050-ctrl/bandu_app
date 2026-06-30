@@ -48,7 +48,7 @@ class PromptValidator {
     companion object {
         const val MAX_TEMPLATE_BYTES = 64 * 1024
 
-        private val PLACEHOLDER_REGEX = Regex("""\{\{[a-z_]+}}""")
+        private val PLACEHOLDER_REGEX = Regex("""\{\{[a-z_]+\}\}""")
 
         private val REQUIRED_PLACEHOLDERS = mapOf(
             PromptType.ANALYZE_IMAGE to setOf(

@@ -74,6 +74,25 @@ class CollectionListScreenTest {
         }
     }
 
+    @Test
+    fun `back navigation dispatches callback`() {
+        var backCount = 0
+        composeRule.setContent {
+            BanduTijiTheme {
+                CollectionListScreen(
+                    uiState = CollectionListUiState(isLoading = false),
+                    onAction = {},
+                    onBack = { backCount += 1 },
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("返回").performClick()
+        composeRule.runOnIdle {
+            assertThat(backCount).isEqualTo(1)
+        }
+    }
+
     private fun setContent(uiState: CollectionListUiState) {
         composeRule.setContent {
             BanduTijiTheme {

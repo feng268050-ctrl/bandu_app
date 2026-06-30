@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.FilterChip
@@ -16,8 +17,14 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.platform.LocalTextToolbar
+import androidx.compose.ui.platform.TextToolbar
+import androidx.compose.ui.platform.TextToolbarStatus
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import com.bandu.tiji.core.designsystem.component.BanduPageScaffold
 import com.bandu.tiji.core.designsystem.theme.BanduSpacing
@@ -65,23 +72,26 @@ internal fun AiConfigurationScreen(
                 label = { Text("Base URL") },
                 singleLine = true,
             )
-            OutlinedTextField(
-                value = uiState.aiDraft.apiKeyInput,
-                onValueChange = { onAction(ProfileAction.UpdateAiApiKey(it)) },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("API Key") },
-                placeholder = {
-                    Text(
-                        if (uiState.aiDraft.hasSavedApiKey) {
-                            "已安全保存，输入新值可替换"
-                        } else {
-                            "请输入 API Key"
-                        },
-                    )
-                },
-                visualTransformation = PasswordVisualTransformation(),
-                singleLine = true,
-            )
+            CompositionLocalProvider(LocalTextToolbar provides DisabledTextToolbar) {
+                OutlinedTextField(
+                    value = uiState.aiDraft.apiKeyInput,
+                    onValueChange = { onAction(ProfileAction.UpdateAiApiKey(it)) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("API Key") },
+                    placeholder = {
+                        Text(
+                            if (uiState.aiDraft.hasSavedApiKey) {
+                                "已安全保存，输入新值可替换"
+                            } else {
+                                "请输入 API Key"
+                            },
+                        )
+                    },
+                    visualTransformation = PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                )
+            }
             if (uiState.aiDraft.hasSavedApiKey) {
                 Text("已保存：••••••••")
             }
@@ -211,4 +221,18 @@ private fun PromptType.profileLabel(): String = when (this) {
     PromptType.TUTOR -> "辅导"
     PromptType.GENERATE_EXERCISE -> "变式题生成"
     PromptType.GRADE_EXERCISE -> "练习批改"
+}
+
+private object DisabledTextToolbar : TextToolbar {
+    override val status: TextToolbarStatus = TextToolbarStatus.Hidden
+
+    override fun showMenu(
+        rect: Rect,
+        onCopyRequested: (() -> Unit)?,
+        onPasteRequested: (() -> Unit)?,
+        onCutRequested: (() -> Unit)?,
+        onSelectAllRequested: (() -> Unit)?,
+    ) = Unit
+
+    override fun hide() = Unit
 }

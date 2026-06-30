@@ -16,7 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 class RuntimeDeviceTransferRepository @Inject constructor(
     private val runtime: TransferRuntime,
 ) : DeviceTransferRepository {
-    override fun observeNearbyDevices(): Flow<List<NearbyDevice>> =
+    override fun observeNearbyDevices(): StateFlow<List<NearbyDevice>> =
         runtime.observeNearbyDevices()
 
     override fun observeTrustedDevices(): Flow<List<TrustedDevice>> =

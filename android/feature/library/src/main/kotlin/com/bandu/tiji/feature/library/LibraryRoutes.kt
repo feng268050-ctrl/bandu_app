@@ -11,6 +11,7 @@ import com.bandu.tiji.core.model.navigation.NavigationIntent
 fun CollectionListRoute(
     viewModel: CollectionListViewModel,
     onNavigate: (NavigationIntent) -> Unit,
+    onBack: () -> Unit,
 ) {
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(viewModel) {
@@ -23,6 +24,7 @@ fun CollectionListRoute(
     CollectionListScreen(
         uiState = uiState,
         onAction = viewModel::onAction,
+        onBack = onBack,
     )
 }
 
@@ -30,6 +32,7 @@ fun CollectionListRoute(
 fun ErrorItemListRoute(
     viewModel: ErrorItemListViewModel,
     onNavigate: (NavigationIntent) -> Unit,
+    onBack: () -> Unit,
     thumbnailModel: (String) -> Any? = { it },
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -46,6 +49,7 @@ fun ErrorItemListRoute(
         items = items,
         onAction = viewModel::onAction,
         thumbnailModel = thumbnailModel,
+        onBack = onBack,
     )
 }
 

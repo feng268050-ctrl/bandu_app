@@ -63,6 +63,9 @@ internal fun StudentProfileScreen(
                     { Text(message) }
                 },
             )
+            uiState.studentStatusMessage?.let { message ->
+                Text(message)
+            }
             Button(
                 onClick = { onAction(ProfileAction.SaveStudentProfile) },
                 enabled = !uiState.isSavingStudent,

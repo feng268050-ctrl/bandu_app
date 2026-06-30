@@ -21,6 +21,6 @@ class BanduTijiAppTest {
             BanduTijiApp()
         }
 
-        composeRule.onNodeWithText("伴读题集", substring = true).assertIsDisplayed()
+        composeRule.onNodeWithText("伴读题集").assertIsDisplayed()
     }
 }
