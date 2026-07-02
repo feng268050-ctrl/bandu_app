@@ -19,6 +19,8 @@ import com.bandu.tiji.domain.usecase.aiconfig.SavePromptUseCase
 import com.bandu.tiji.domain.usecase.profile.UpdateStudentProfileUseCase
 import com.bandu.tiji.domain.usecase.profile.ClearLearningDataUseCase
 import com.bandu.tiji.domain.usecase.profile.FactoryResetUseCase
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +34,7 @@ import java.time.ZoneId
 class ProfileViewModel(
     private val profileRepository: ProfileRepository,
     private val deviceNameStore: DeviceNameStore = InMemoryDeviceNameStore(),
+    private val avatarStore: ProfileAvatarStore = InMemoryProfileAvatarStore(),
     private val aiConfigurationRepository: AiConfigurationRepository =
         EmptyAiConfigurationRepository,
     private val clock: Clock = SystemClock(),
@@ -45,6 +48,8 @@ class ProfileViewModel(
     private val clearLearningData: ClearLearningDataUseCase =
         ClearLearningDataUseCase(profileRepository),
     private val factoryReset: FactoryResetUseCase = FactoryResetUseCase(profileRepository),
+    private val remoteAdbDebugController: RemoteAdbDebugController =
+        NoOpRemoteAdbDebugController,
     aboutInfo: AboutInfo = AboutInfo(),
     private val pendingOperations: PendingOperationCoordinator =
         PendingOperationCoordinator(),
@@ -53,6 +58,7 @@ class ProfileViewModel(
     val uiState: StateFlow<ProfileUiState> = mutableUiState.asStateFlow()
     private val mutableEffects = Channel<ProfileEffect>(Channel.BUFFERED)
     val effects = mutableEffects.receiveAsFlow()
+    private var remoteAdbAutoDisableJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -80,6 +86,19 @@ class ProfileViewModel(
             }
         }
         viewModelScope.launch {
+            avatarStore.observeAvatar().collect { avatar ->
+                mutableUiState.update {
+                    it.copy(
+                        avatar = ProfileAvatarUiState(
+                            backgroundIndex = avatar.backgroundIndex
+                                .floorMod(AVATAR_BACKGROUND_COUNT),
+                            imageUri = avatar.imageUri,
+                        ),
+                    )
+                }
+            }
+        }
+        viewModelScope.launch {
             aiConfigurationRepository.observeActiveConfiguration().collect { configuration ->
                 configuration ?: return@collect
                 mutableUiState.update {
@@ -98,12 +117,25 @@ class ProfileViewModel(
                 }
             }
         }
+        viewModelScope.launch {
+            remoteAdbDebugController.observeState().collect { state ->
+                mutableUiState.update {
+                    it.copy(
+                        remoteAdbDebug = it.remoteAdbDebug.withRuntimeState(state),
+                    )
+                }
+            }
+        }
     }
 
     fun onAction(action: ProfileAction) {
         when (action) {
-            is ProfileAction.OpenSection ->
+            is ProfileAction.OpenSection -> {
                 mutableUiState.update { it.copy(currentSection = action.section) }
+                if (action.section == ProfileSection.ABOUT) {
+                    refreshRemoteAdbDebug()
+                }
+            }
             ProfileAction.Back ->
                 mutableUiState.update { it.copy(currentSection = null) }
             is ProfileAction.UpdateNickname -> updateStudentDraft {
@@ -116,6 +148,11 @@ class ProfileViewModel(
                 copy(enrollmentYear = action.value.filter(Char::isDigit).take(4))
             }
             ProfileAction.SaveStudentProfile -> saveStudentProfile()
+            is ProfileAction.SelectAvatarBackground -> selectAvatarBackground(action.index)
+            ProfileAction.RequestAvatarImagePicker ->
+                mutableEffects.trySend(ProfileEffect.LaunchAvatarImagePicker)
+            is ProfileAction.UpdateAvatarImage -> updateAvatarImage(action.uri)
+            ProfileAction.ClearAvatarImage -> clearAvatarImage()
             is ProfileAction.UpdateDeviceName -> updateDeviceName(action.value)
             is ProfileAction.SelectAiProvider -> selectAiProvider(action.value)
             is ProfileAction.UpdateAiDisplayName -> updateAiDraft {
@@ -230,6 +267,187 @@ class ProfileViewModel(
                 }
             }
             ProfileAction.ConfirmFactoryReset -> confirmFactoryReset()
+            ProfileAction.RefreshRemoteAdbDebug -> refreshRemoteAdbDebug()
+            ProfileAction.RequestEnableRemoteAdbDebug -> requestEnableRemoteAdbDebug()
+            ProfileAction.ConfirmEnableRemoteAdbDebug -> enableRemoteAdbDebug()
+            ProfileAction.DismissRemoteAdbDebugConfirmation ->
+                mutableUiState.update {
+                    it.copy(
+                        remoteAdbDebug = it.remoteAdbDebug.copy(
+                            showEnableConfirmation = false,
+                        ),
+                    )
+                }
+            ProfileAction.DisableRemoteAdbDebug -> disableRemoteAdbDebug()
+        }
+    }
+
+    private fun refreshRemoteAdbDebug() {
+        if (mutableUiState.value.remoteAdbDebug.isWorking) return
+        viewModelScope.launch {
+            val state = remoteAdbDebugController.refresh()
+            mutableUiState.update { current ->
+                current.copy(
+                    remoteAdbDebug = current.remoteAdbDebug
+                        .withRuntimeState(state)
+                        .copy(
+                            errorMessage = null,
+                            statusMessage = null,
+                            expiresAtEpochMillis = current.remoteAdbDebug.expiresAtEpochMillis
+                                ?.takeIf { state.isEnabled },
+                        ),
+                )
+            }
+        }
+    }
+
+    private fun requestEnableRemoteAdbDebug() {
+        if (mutableUiState.value.remoteAdbDebug.isWorking) return
+        mutableUiState.update {
+            it.copy(
+                remoteAdbDebug = it.remoteAdbDebug.copy(
+                    showEnableConfirmation = true,
+                    errorMessage = null,
+                    statusMessage = null,
+                ),
+            )
+        }
+    }
+
+    private fun enableRemoteAdbDebug() {
+        if (mutableUiState.value.remoteAdbDebug.isWorking) return
+        mutableUiState.update {
+            it.copy(
+                remoteAdbDebug = it.remoteAdbDebug.copy(
+                    isWorking = true,
+                    showEnableConfirmation = true,
+                    errorMessage = null,
+                    statusMessage = null,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            when (val result = remoteAdbDebugController.enable(DEFAULT_REMOTE_ADB_PORT)) {
+                is RemoteAdbDebugOperationResult.Success -> {
+                    val expiresAt = clock.nowEpochMillis() + REMOTE_ADB_TTL_MILLIS
+                    remoteAdbAutoDisableJob?.cancel()
+                    remoteAdbAutoDisableJob = launch {
+                        delay(REMOTE_ADB_TTL_MILLIS)
+                        remoteAdbDebugController.disable()
+                        mutableUiState.update { current ->
+                            current.copy(
+                                remoteAdbDebug = current.remoteAdbDebug.copy(
+                                    isWorking = false,
+                                    isEnabled = false,
+                                    statusMessage = "ADB 远程调试已自动关闭",
+                                    expiresAtEpochMillis = null,
+                                ),
+                            )
+                        }
+                    }
+                    mutableUiState.update { current ->
+                        current.copy(
+                            remoteAdbDebug = current.remoteAdbDebug
+                                .withRuntimeState(result.state)
+                                .copy(
+                                    isWorking = false,
+                                    showEnableConfirmation = true,
+                                    statusMessage = "ADB 远程调试已开启",
+                                    errorMessage = null,
+                                    expiresAtEpochMillis = expiresAt,
+                                ),
+                        )
+                    }
+                }
+                is RemoteAdbDebugOperationResult.Unsupported -> {
+                    remoteAdbAutoDisableJob?.cancel()
+                    mutableUiState.update { current ->
+                        current.copy(
+                            remoteAdbDebug = current.remoteAdbDebug
+                                .withRuntimeState(result.state)
+                                .copy(
+                                    isWorking = false,
+                                    showEnableConfirmation = true,
+                                    errorMessage = result.reason,
+                                    statusMessage = null,
+                                    expiresAtEpochMillis = null,
+                                ),
+                        )
+                    }
+                }
+                is RemoteAdbDebugOperationResult.Failure -> {
+                    remoteAdbAutoDisableJob?.cancel()
+                    mutableUiState.update { current ->
+                        current.copy(
+                            remoteAdbDebug = current.remoteAdbDebug
+                                .withRuntimeState(result.state)
+                                .copy(
+                                    isWorking = false,
+                                    showEnableConfirmation = true,
+                                    errorMessage = result.message,
+                                    statusMessage = null,
+                                    expiresAtEpochMillis = null,
+                                ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private fun disableRemoteAdbDebug() {
+        if (mutableUiState.value.remoteAdbDebug.isWorking) return
+        remoteAdbAutoDisableJob?.cancel()
+        mutableUiState.update {
+            it.copy(
+                remoteAdbDebug = it.remoteAdbDebug.copy(
+                    isWorking = true,
+                    errorMessage = null,
+                    statusMessage = null,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            when (val result = remoteAdbDebugController.disable()) {
+                is RemoteAdbDebugOperationResult.Success -> mutableUiState.update { current ->
+                    current.copy(
+                        remoteAdbDebug = current.remoteAdbDebug
+                            .withRuntimeState(result.state)
+                            .copy(
+                                isWorking = false,
+                                showEnableConfirmation = true,
+                                statusMessage = "ADB 远程调试已关闭",
+                                errorMessage = null,
+                                expiresAtEpochMillis = null,
+                            ),
+                    )
+                }
+                is RemoteAdbDebugOperationResult.Unsupported -> mutableUiState.update { current ->
+                    current.copy(
+                        remoteAdbDebug = current.remoteAdbDebug
+                            .withRuntimeState(result.state)
+                            .copy(
+                                isWorking = false,
+                                showEnableConfirmation = true,
+                                errorMessage = result.reason,
+                                statusMessage = null,
+                                expiresAtEpochMillis = null,
+                            ),
+                    )
+                }
+                is RemoteAdbDebugOperationResult.Failure -> mutableUiState.update { current ->
+                    current.copy(
+                        remoteAdbDebug = current.remoteAdbDebug
+                            .withRuntimeState(result.state)
+                            .copy(
+                                isWorking = false,
+                                showEnableConfirmation = true,
+                                errorMessage = result.message,
+                                statusMessage = null,
+                            ),
+                    )
+                }
+            }
         }
     }
 
@@ -466,6 +684,56 @@ class ProfileViewModel(
         }
     }
 
+    private fun selectAvatarBackground(index: Int) {
+        saveAvatar(
+            ProfileAvatarPreferences(
+                backgroundIndex = index.floorMod(AVATAR_BACKGROUND_COUNT),
+                imageUri = null,
+            ),
+        )
+    }
+
+    private fun updateAvatarImage(uri: String) {
+        val normalized = uri.trim()
+        if (normalized.isEmpty()) return
+        saveAvatar(
+            ProfileAvatarPreferences(
+                backgroundIndex = mutableUiState.value.avatar.backgroundIndex,
+                imageUri = normalized,
+            ),
+        )
+    }
+
+    private fun clearAvatarImage() {
+        saveAvatar(
+            ProfileAvatarPreferences(
+                backgroundIndex = mutableUiState.value.avatar.backgroundIndex,
+                imageUri = null,
+            ),
+        )
+    }
+
+    private fun saveAvatar(avatar: ProfileAvatarPreferences) {
+        val normalized = avatar.copy(
+            backgroundIndex = avatar.backgroundIndex.floorMod(AVATAR_BACKGROUND_COUNT),
+            imageUri = avatar.imageUri?.takeIf(String::isNotBlank),
+        )
+        mutableUiState.update {
+            it.copy(
+                avatar = ProfileAvatarUiState(
+                    backgroundIndex = normalized.backgroundIndex,
+                    imageUri = normalized.imageUri,
+                ),
+            )
+        }
+        viewModelScope.launch {
+            avatarStore.saveAvatar(normalized)
+        }
+    }
+
+    private fun Int.floorMod(divisor: Int): Int =
+        ((this % divisor) + divisor) % divisor
+
     private fun updateStudentDraft(transform: StudentProfileDraft.() -> StudentProfileDraft) {
         mutableUiState.update {
             it.copy(
@@ -524,6 +792,22 @@ class ProfileViewModel(
             "无法保存学生资料"
         }
 
+    private fun RemoteAdbDebugUiState.withRuntimeState(
+        state: RemoteAdbDebugRuntimeState,
+    ): RemoteAdbDebugUiState =
+        copy(
+            isSupported = state.isSupported,
+            isEnabled = state.isEnabled,
+            port = state.port,
+            ipAddress = state.ipAddress,
+            unsupportedReason = state.unsupportedReason,
+            expiresAtEpochMillis = if (state.isEnabled) {
+                expiresAtEpochMillis
+            } else {
+                null
+            },
+        )
+
     private fun StudentProfile.toSummary(): StudentProfileSummary? {
         if (nickname.isBlank() && educationStage.isNullOrBlank() && enrollmentYear == null) {
             return null
@@ -542,7 +826,9 @@ class ProfileViewModel(
 
     companion object {
         const val MAX_DEVICE_NAME_LENGTH = 40
+        const val AVATAR_BACKGROUND_COUNT = 6
         const val CLEAR_LEARNING_CONFIRMATION_TEXT = "清除学习数据"
         const val FACTORY_RESET_CONFIRMATION_TEXT = "恢复出厂设置"
+        const val REMOTE_ADB_TTL_MILLIS = 30L * 60L * 1000L
     }
 }

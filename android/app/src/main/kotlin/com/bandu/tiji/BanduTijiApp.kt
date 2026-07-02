@@ -33,6 +33,8 @@ import com.bandu.tiji.core.model.id.CollectionId
 import com.bandu.tiji.core.model.id.ErrorItemId
 import com.bandu.tiji.core.model.id.TutorSessionId
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
+import com.bandu.tiji.core.storage.preferences.DevicePreferencesStore
+import com.bandu.tiji.core.storage.preferences.PortablePreferencesStore
 import com.bandu.tiji.domain.repository.AiConfigurationRepository
 import com.bandu.tiji.domain.repository.AiTutorGateway
 import com.bandu.tiji.domain.repository.CollectionRepository
@@ -59,6 +61,7 @@ import com.bandu.tiji.feature.library.ErrorItemListRoute
 import com.bandu.tiji.feature.library.ErrorItemListViewModel
 import com.bandu.tiji.feature.profile.ProfileRoute
 import com.bandu.tiji.feature.profile.ProfileAction
+import com.bandu.tiji.feature.profile.AboutInfo
 import com.bandu.tiji.feature.profile.ProfileSection
 import com.bandu.tiji.feature.profile.ProfileViewModel
 import com.bandu.tiji.feature.stats.StatsRoute
@@ -104,9 +107,19 @@ fun BanduTijiApp(
         val navController = rememberNavController()
         val snackbarHostState = androidx.compose.runtime.remember { SnackbarHostState() }
         val profileViewModel = appViewModel("profile") {
+            val defaultDeviceName = android.os.Build.MODEL ?: "Android"
             ProfileViewModel(
                 profileRepository = dependencies.profileRepository(),
+                deviceNameStore = DevicePreferencesDeviceNameStore(
+                    preferences = dependencies.devicePreferencesStore(),
+                    fallbackName = defaultDeviceName,
+                ),
+                avatarStore = PortableProfileAvatarStore(
+                    preferences = dependencies.portablePreferencesStore(),
+                ),
                 aiConfigurationRepository = dependencies.aiConfigurationRepository(),
+                remoteAdbDebugController = AndroidRemoteAdbDebugController(context),
+                aboutInfo = AboutInfo(versionName = BuildConfig.VERSION_NAME),
             )
         }
         val backStackEntry by navController.currentBackStackEntryAsState()
@@ -213,7 +226,7 @@ fun BanduTijiApp(
                     )
                 }
                 composable<ProfileDestination> {
-                    ProfileRoute(profileViewModel)
+                    ProfileRouteWithAvatarPicker(profileViewModel)
                 }
                 composable<LibraryDestination> {
                     val viewModel = appViewModel("library") {
@@ -325,7 +338,7 @@ fun BanduTijiApp(
                             ProfileAction.OpenSection(ProfileSection.AI),
                         )
                     }
-                    ProfileRoute(profileViewModel)
+                    ProfileRouteWithAvatarPicker(profileViewModel)
                 }
             }
         }
@@ -406,6 +419,28 @@ private fun CaptureRoute(
 }
 
 @Composable
+private fun ProfileRouteWithAvatarPicker(
+    viewModel: ProfileViewModel,
+) {
+    var showAvatarPicker by remember { mutableStateOf(false) }
+    ProfileRoute(
+        viewModel = viewModel,
+        onAvatarImagePickerRequested = { showAvatarPicker = true },
+    )
+    if (showAvatarPicker) {
+        PhotoPickerLauncher(
+            onPicked = { uri ->
+                showAvatarPicker = false
+                viewModel.onAction(ProfileAction.UpdateAvatarImage(uri))
+            },
+            onCancelled = {
+                showAvatarPicker = false
+            },
+        )
+    }
+}
+
+@Composable
 private inline fun <reified VM : ViewModel> appViewModel(
     key: String,
     crossinline create: () -> VM,
@@ -425,6 +460,8 @@ private inline fun <reified VM : ViewModel> appViewModel(
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface AppDependencies {
+    fun portablePreferencesStore(): PortablePreferencesStore
+    fun devicePreferencesStore(): DevicePreferencesStore
     fun profileRepository(): ProfileRepository
     fun collectionRepository(): CollectionRepository
     fun errorItemRepository(): ErrorItemRepository

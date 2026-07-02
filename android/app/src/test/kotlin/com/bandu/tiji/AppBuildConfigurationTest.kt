@@ -18,8 +18,8 @@ class AppBuildConfigurationTest {
         val applicationInfo = application.applicationInfo
 
         assertThat(BuildConfig.APPLICATION_ID).isEqualTo("com.bandu.tiji")
-        assertThat(BuildConfig.VERSION_CODE).isEqualTo(1)
-        assertThat(BuildConfig.VERSION_NAME).isEqualTo("1.0.0")
+        assertThat(BuildConfig.VERSION_CODE).isEqualTo(1001)
+        assertThat(BuildConfig.VERSION_NAME).isEqualTo("v0.1.1")
         assertThat(applicationInfo.minSdkVersion).isEqualTo(31)
         assertThat(applicationInfo.targetSdkVersion).isEqualTo(36)
     }

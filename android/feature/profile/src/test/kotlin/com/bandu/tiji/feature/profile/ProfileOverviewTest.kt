@@ -3,6 +3,7 @@ package com.bandu.tiji.feature.profile
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
@@ -75,6 +76,38 @@ class ProfileOverviewTest {
 
         composeRule.runOnIdle {
             assertThat(actions).isEmpty()
+        }
+    }
+
+    @Test
+    fun `avatar menu dispatches avatar actions without making profile summary clickable`() {
+        val actions = mutableListOf<ProfileAction>()
+        composeRule.setContent {
+            BanduTijiTheme {
+                ProfileScreen(
+                    ProfileUiState(
+                        studentSummary = StudentProfileSummary(
+                            nickname = "小明",
+                            educationStage = "初中",
+                            grade = 2,
+                        ),
+                    ),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("小明").assertHasNoClickAction()
+        composeRule.onNodeWithTag("profile-avatar").performClick()
+        composeRule.onNodeWithTag("profile-avatar-image-choice").performClick()
+        composeRule.onNodeWithTag("profile-avatar").performClick()
+        composeRule.onNodeWithTag("profile-avatar-color-2").performClick()
+
+        composeRule.runOnIdle {
+            assertThat(actions).containsExactly(
+                ProfileAction.RequestAvatarImagePicker,
+                ProfileAction.SelectAvatarBackground(2),
+            ).inOrder()
         }
     }
 }

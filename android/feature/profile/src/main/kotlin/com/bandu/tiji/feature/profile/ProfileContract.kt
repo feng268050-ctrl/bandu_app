@@ -24,6 +24,7 @@ data class ProfileUiState(
     val isSavingStudent: Boolean = false,
     val deviceName: String = "",
     val deviceNameErrorMessage: String? = null,
+    val avatar: ProfileAvatarUiState = ProfileAvatarUiState(),
     val aiDraft: AiConfigurationDraftState = AiConfigurationDraftState(),
     val isValidatingAi: Boolean = false,
     val aiValidationMessage: String? = null,
@@ -33,6 +34,7 @@ data class ProfileUiState(
     val showAiDataConsent: Boolean = false,
     val dataManagement: DataManagementState = DataManagementState(),
     val aboutInfo: AboutInfo = AboutInfo(),
+    val remoteAdbDebug: RemoteAdbDebugUiState = RemoteAdbDebugUiState(),
 )
 
 data class AboutInfo(
@@ -54,6 +56,24 @@ data class DataManagementState(
     val statusMessage: String? = null,
 )
 
+data class RemoteAdbDebugUiState(
+    val isSupported: Boolean = false,
+    val isEnabled: Boolean = false,
+    val port: Int = DEFAULT_REMOTE_ADB_PORT,
+    val ipAddress: String? = null,
+    val unsupportedReason: String? = "当前安装形态不支持系统级远程调试",
+    val isWorking: Boolean = false,
+    val showEnableConfirmation: Boolean = false,
+    val errorMessage: String? = null,
+    val statusMessage: String? = null,
+    val expiresAtEpochMillis: Long? = null,
+) {
+    val connectCommand: String?
+        get() = ipAddress
+            ?.takeIf { it.isNotBlank() && isEnabled }
+            ?.let { "adb connect $it:$port" }
+}
+
 data class PromptEditorState(
     val type: PromptType = PromptType.ANALYZE_IMAGE,
     val template: String = PromptDefaults.getValue(PromptType.ANALYZE_IMAGE),
@@ -72,6 +92,11 @@ data class StudentProfileSummary(
     val nickname: String,
     val educationStage: String?,
     val grade: Int?,
+)
+
+data class ProfileAvatarUiState(
+    val backgroundIndex: Int = 0,
+    val imageUri: String? = null,
 )
 
 val EducationStages = listOf("小学", "初中", "高中")
@@ -102,6 +127,14 @@ sealed interface ProfileAction {
     data class UpdateEnrollmentYear(val value: String) : ProfileAction
 
     data object SaveStudentProfile : ProfileAction
+
+    data class SelectAvatarBackground(val index: Int) : ProfileAction
+
+    data object RequestAvatarImagePicker : ProfileAction
+
+    data class UpdateAvatarImage(val uri: String) : ProfileAction
+
+    data object ClearAvatarImage : ProfileAction
 
     data class UpdateDeviceName(val value: String) : ProfileAction
 
@@ -150,10 +183,22 @@ sealed interface ProfileAction {
     data object RequestFactoryReset : ProfileAction
 
     data object ConfirmFactoryReset : ProfileAction
+
+    data object RefreshRemoteAdbDebug : ProfileAction
+
+    data object RequestEnableRemoteAdbDebug : ProfileAction
+
+    data object ConfirmEnableRemoteAdbDebug : ProfileAction
+
+    data object DismissRemoteAdbDebugConfirmation : ProfileAction
+
+    data object DisableRemoteAdbDebug : ProfileAction
 }
 
 sealed interface ProfileEffect {
     data object AiDataConsentGranted : ProfileEffect
+
+    data object LaunchAvatarImagePicker : ProfileEffect
 
     data class ConfigurationActivated(
         val pendingOperation: PendingAiOperation?,

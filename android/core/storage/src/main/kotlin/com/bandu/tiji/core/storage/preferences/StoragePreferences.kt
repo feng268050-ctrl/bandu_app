@@ -20,6 +20,8 @@ data class PortablePreferences(
     val nickname: String = "",
     val educationStage: String? = null,
     val enrollmentYear: Int? = null,
+    val avatarBackgroundIndex: Int = 0,
+    val avatarImageUri: String? = null,
     val providerType: AiProviderType? = null,
     val providerDisplayName: String = "",
     val baseUrl: String = "",
@@ -82,6 +84,8 @@ private object PortableKeys {
     private val nickname = stringPreferencesKey("student_nickname")
     private val educationStage = stringPreferencesKey("education_stage")
     private val enrollmentYear = intPreferencesKey("enrollment_year")
+    private val avatarBackgroundIndex = intPreferencesKey("avatar_background_index")
+    private val avatarImageUri = stringPreferencesKey("avatar_image_uri")
     private val providerType = stringPreferencesKey("provider_type")
     private val providerDisplayName = stringPreferencesKey("provider_display_name")
     private val baseUrl = stringPreferencesKey("base_url")
@@ -97,6 +101,8 @@ private object PortableKeys {
         nickname = preferences[nickname].orEmpty(),
         educationStage = preferences[educationStage],
         enrollmentYear = preferences[enrollmentYear],
+        avatarBackgroundIndex = preferences[avatarBackgroundIndex] ?: 0,
+        avatarImageUri = preferences[avatarImageUri],
         providerType = preferences[providerType]?.let(AiProviderType::valueOf),
         providerDisplayName = preferences[providerDisplayName].orEmpty(),
         baseUrl = preferences[baseUrl].orEmpty(),
@@ -116,6 +122,8 @@ private object PortableKeys {
         preferences[nickname] = value.nickname
         preferences.setOrRemove(educationStage, value.educationStage)
         preferences.setOrRemove(enrollmentYear, value.enrollmentYear)
+        preferences[avatarBackgroundIndex] = value.avatarBackgroundIndex
+        preferences.setOrRemove(avatarImageUri, value.avatarImageUri)
         preferences.setOrRemove(providerType, value.providerType?.name)
         preferences[providerDisplayName] = value.providerDisplayName
         preferences[baseUrl] = value.baseUrl

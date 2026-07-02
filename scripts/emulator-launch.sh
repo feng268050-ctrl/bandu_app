@@ -8,6 +8,9 @@ APP_ACTIVITY="${APP_ACTIVITY:-${APP_ID}/.MainActivity}"
 PRIVAPP_DIR="${PRIVAPP_DIR:-/system/priv-app/BanduTiji}"
 PRIVAPP_APK="${PRIVAPP_APK:-${PRIVAPP_DIR}/BanduTiji.apk}"
 DEBUG_APK="${DEBUG_APK:-${ANDROID_DIR}/app/build/outputs/apk/debug/app-debug.apk}"
+PERM_XML="${PERM_XML:-${ROOT_DIR}/permissions/privapp-permissions-${APP_ID}.xml}"
+EMULATOR_REMOTE_ADB="${EMULATOR_REMOTE_ADB:-1}"
+REMOTE_ADB_PORT="${REMOTE_ADB_PORT:-5555}"
 AVD="${AVD:-Bandu_Tiji_Tablet}"
 EMULATOR_API_LEVEL="${EMULATOR_API_LEVEL:-36}"
 EMULATOR_PORT="${EMULATOR_PORT:-5554}"
@@ -180,6 +183,16 @@ push_privapp() {
   adb_cmd shell restorecon "${PRIVAPP_APK}" >/dev/null 2>&1 || true
 }
 
+push_privapp_permissions() {
+  [[ -f "${PERM_XML}" ]] || die "permission XML not found: ${PERM_XML}"
+  local remote="/system/etc/permissions/$(basename "${PERM_XML}")"
+  echo "== push privapp permissions XML to ${remote}" >&2
+  adb_cmd push "${PERM_XML}" "${remote}" >/dev/null
+  adb_cmd shell chmod 0644 "${remote}"
+  adb_cmd shell chown root:root "${remote}" >/dev/null 2>&1 || true
+  adb_cmd shell restorecon "${remote}" >/dev/null 2>&1 || true
+}
+
 reboot_and_verify() {
   echo "== reboot after system app push" >&2
   adb_cmd reboot
@@ -211,13 +224,32 @@ start_app() {
     || adb_cmd shell settings put global policy_control "immersive.full=*" >/dev/null 2>&1 || true
   adb_cmd shell am force-stop "${APP_ID}" >/dev/null 2>&1 || true
 
-  local out
-  out="$(adb_cmd shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n "${APP_ACTIVITY}" 2>&1 | tr -d '\r' || true)"
+  local out=""
+  for attempt in {1..15}; do
+    out="$(adb_cmd shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n "${APP_ACTIVITY}" 2>&1 | tr -d '\r' || true)"
+    if ! echo "${out}" | grep -qiE 'Too early to start activity|Error type 3|Activity class .* does not exist|Unable to resolve'; then
+      break
+    fi
+    echo "INFO: activity manager not ready; retrying launch (${attempt}/15)" >&2
+    sleep 1
+  done
   [[ -n "${out}" ]] && echo "${out}" >&2
   if echo "${out}" | grep -qiE '(^Error|error type|Activity class .* does not exist|Unable to resolve)'; then
     echo "WARN: explicit activity launch failed; falling back to monkey" >&2
     adb_cmd shell monkey -p "${APP_ID}" -c android.intent.category.LAUNCHER 1 >/dev/null
   fi
+}
+
+enable_emulator_remote_adb() {
+  [[ "${EMULATOR_REMOTE_ADB}" == "1" ]] || return 0
+  [[ "${SERIAL}" == emulator-* ]] || return 0
+  echo "== enable emulator TCP adb (:${REMOTE_ADB_PORT})" >&2
+  if ! adb_cmd tcpip "${REMOTE_ADB_PORT}" >/dev/null 2>&1; then
+    echo "WARN: adb tcpip ${REMOTE_ADB_PORT} failed; remote ADB status may stay disabled" >&2
+    return 0
+  fi
+  sleep 1
+  adb_cmd wait-for-device >/dev/null 2>&1 || true
 }
 
 SDK_ROOT="$(resolve_sdk_root)" || die "ANDROID_SDK_ROOT/ANDROID_HOME is not set and ${HOME}/Library/Android/sdk was not found"
@@ -236,7 +268,9 @@ wait_for_boot
 build_debug_apk
 root_and_remount
 push_privapp
+push_privapp_permissions
 reboot_and_verify
+enable_emulator_remote_adb
 start_app
 
 echo "INFO: emulator is running (pid=${EMULATOR_PID}); close the emulator window to finish." >&2

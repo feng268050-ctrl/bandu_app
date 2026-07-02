@@ -11,12 +11,14 @@ fun ProfileRoute(
     viewModel: ProfileViewModel,
     onAiDataConsentGranted: () -> Unit = {},
     onConfigurationActivated: (PendingAiOperation?) -> Unit = {},
+    onAvatarImagePickerRequested: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
             when (effect) {
                 ProfileEffect.AiDataConsentGranted -> onAiDataConsentGranted()
+                ProfileEffect.LaunchAvatarImagePicker -> onAvatarImagePickerRequested()
                 is ProfileEffect.ConfigurationActivated ->
                     onConfigurationActivated(effect.pendingOperation)
             }

@@ -6,6 +6,24 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+val managedVersionFile = rootProject.layout.projectDirectory.file("../VERSION").asFile
+val managedVersionName = managedVersionFile.readText().trim()
+val managedVersionMatch = Regex("""^v([0-9])\.(0|[1-9][0-9]?)\.(0|[1-9][0-9]{0,2})$""")
+    .matchEntire(managedVersionName)
+    ?: error(
+        "Invalid VERSION '$managedVersionName'. Expected v<major>.<minor>.<patch>, " +
+            "with major 0-9, minor 0-99, patch 0-999.",
+    )
+val managedVersionMajor = managedVersionMatch.groupValues[1].toInt()
+val managedVersionMinor = managedVersionMatch.groupValues[2].toInt()
+val managedVersionPatch = managedVersionMatch.groupValues[3].toInt()
+val managedVersionCode = managedVersionMajor * 100_000 +
+    managedVersionMinor * 1_000 +
+    managedVersionPatch
+check(managedVersionCode > 0) {
+    "VERSION must not be v0.0.0 because Android versionCode must be positive."
+}
+
 android {
     namespace = "com.bandu.tiji"
     compileSdk = libs.versions.compileSdk.get().toInt()
@@ -14,8 +32,8 @@ android {
         applicationId = "com.bandu.tiji"
         minSdk = libs.versions.minSdk.get().toInt()
         targetSdk = libs.versions.targetSdk.get().toInt()
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = managedVersionCode
+        versionName = managedVersionName
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -50,6 +68,7 @@ dependencies {
     implementation(project(":core:common"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:model"))
+    implementation(project(":core:storage"))
     implementation(project(":data"))
     implementation(project(":domain"))
     implementation(project(":feature:capture"))
