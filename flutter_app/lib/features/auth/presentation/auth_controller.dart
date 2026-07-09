@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:bandu_wrong_notebook/features/auth/data/auth_repository.dart';
+import 'package:bandu_wrong_notebook/features/auth/auth_providers.dart';
 import 'package:bandu_wrong_notebook/features/auth/domain/auth_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -42,8 +42,6 @@ class AuthState {
 }
 
 class AuthController extends Notifier<AuthState> {
-  AuthRepository get _repository => ref.read(authRepositoryProvider);
-
   @override
   AuthState build() {
     unawaited(_restoreSession());
@@ -57,7 +55,7 @@ class AuthController extends Notifier<AuthState> {
     state = state.copyWith(isBusy: true, errorMessage: null);
 
     try {
-      final session = await _repository.login(
+      final session = await ref.read(loginUseCaseProvider).call(
         email: email,
         password: password,
       );
@@ -76,13 +74,13 @@ class AuthController extends Notifier<AuthState> {
 
   Future<void> logout() async {
     state = state.copyWith(isBusy: true, errorMessage: null);
-    await _repository.logout();
+    await ref.read(logoutUseCaseProvider).call();
     state = const AuthState(status: AuthStatus.signedOut);
   }
 
   Future<void> _restoreSession() async {
     try {
-      final session = await _repository.restoreSession();
+      final session = await ref.read(restoreSessionUseCaseProvider).call();
       if (session == null) {
         state = const AuthState(status: AuthStatus.signedOut);
       } else {

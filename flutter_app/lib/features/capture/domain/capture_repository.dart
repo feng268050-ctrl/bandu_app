@@ -1,0 +1,9 @@
+import 'package:bandu_wrong_notebook/features/capture/domain/capture_models.dart';
+
+abstract interface class CaptureRepository {
+  Future<String?> takePhoto();
+
+  Future<String?> pickFromGallery();
+
+  Future<AnalyzeResult> analyzeImage(String localImagePath);
+}

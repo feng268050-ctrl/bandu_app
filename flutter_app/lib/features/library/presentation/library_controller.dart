@@ -1,5 +1,5 @@
-import 'package:bandu_wrong_notebook/features/library/data/error_item_repository.dart';
 import 'package:bandu_wrong_notebook/features/library/domain/error_item.dart';
+import 'package:bandu_wrong_notebook/features/library/library_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final libraryControllerProvider =
@@ -8,15 +8,15 @@ final libraryControllerProvider =
 );
 
 class LibraryController extends AsyncNotifier<List<ErrorItemSummary>> {
-  ErrorItemRepository get _repository => ref.read(errorItemRepositoryProvider);
-
   @override
   Future<List<ErrorItemSummary>> build() {
-    return _repository.fetchErrorItems();
+    return ref.read(fetchErrorItemsUseCaseProvider).call();
   }
 
   Future<void> refresh() async {
     state = const AsyncLoading();
-    state = await AsyncValue.guard(_repository.fetchErrorItems);
+    state = await AsyncValue.guard(
+      ref.read(fetchErrorItemsUseCaseProvider).call,
+    );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:bandu_wrong_notebook/features/capture/data/capture_repository.dart';
+import 'package:bandu_wrong_notebook/features/capture/capture_providers.dart';
 import 'package:bandu_wrong_notebook/features/capture/domain/capture_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -6,17 +6,15 @@ final captureControllerProvider =
     NotifierProvider<CaptureController, CaptureUiState>(CaptureController.new);
 
 class CaptureController extends Notifier<CaptureUiState> {
-  CaptureRepository get _repository => ref.read(captureRepositoryProvider);
-
   @override
   CaptureUiState build() => CaptureUiState.initial();
 
   Future<void> takePhoto() async {
-    await _pickImage(_repository.takePhoto);
+    await _pickImage(ref.read(takePhotoUseCaseProvider).call);
   }
 
   Future<void> pickFromGallery() async {
-    await _pickImage(_repository.pickFromGallery);
+    await _pickImage(ref.read(pickCaptureImageUseCaseProvider).call);
   }
 
   Future<void> analyze() async {
@@ -27,7 +25,7 @@ class CaptureController extends Notifier<CaptureUiState> {
 
     state = state.copyWith(phase: CapturePhase.analyzing, errorMessage: null);
     try {
-      final result = await _repository.analyzeImage(path);
+      final result = await ref.read(analyzeCaptureUseCaseProvider).call(path);
       state = state.copyWith(
         phase: CapturePhase.success,
         result: result,

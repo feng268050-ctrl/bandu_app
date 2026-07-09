@@ -1,48 +1,36 @@
-import 'package:bandu_wrong_notebook/core/network/api_client.dart';
 import 'package:bandu_wrong_notebook/core/storage/token_storage.dart';
+import 'package:bandu_wrong_notebook/features/auth/data/auth_api_service.dart';
+import 'package:bandu_wrong_notebook/features/auth/data/auth_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/features/auth/domain/auth_models.dart';
+import 'package:bandu_wrong_notebook/features/auth/domain/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return RemoteAuthRepository(
-    apiClient: ref.watch(apiClientProvider),
+    apiService: ref.watch(authApiServiceProvider),
     tokenStore: ref.watch(tokenStoreProvider),
+    mapper: const AuthDtoMapper(),
   );
 });
 
-abstract interface class AuthRepository {
-  Future<AuthSession> login({
-    required String email,
-    required String password,
-  });
-
-  Future<AuthSession?> restoreSession();
-
-  Future<void> logout();
-}
-
 class RemoteAuthRepository implements AuthRepository {
   const RemoteAuthRepository({
-    required this.apiClient,
+    required this.apiService,
     required this.tokenStore,
+    required this.mapper,
   });
 
-  final ApiClient apiClient;
+  final AuthApiService apiService;
   final TokenStore tokenStore;
+  final AuthDtoMapper mapper;
 
   @override
   Future<AuthSession> login({
     required String email,
     required String password,
   }) async {
-    final data = await apiClient.post<Map<String, Object?>>(
-      '/auth/login',
-      data: {
-        'email': email,
-        'password': password,
-      },
-    );
-    final session = _parseSession(data);
+    final data = await apiService.login(email: email, password: password);
+    final session = mapper.sessionFromJson(data);
     await tokenStore.save(
       TokenPair(
         accessToken: session.accessToken,
@@ -59,8 +47,8 @@ class RemoteAuthRepository implements AuthRepository {
       return null;
     }
 
-    await apiClient.refreshSession();
-    final user = await apiClient.get<Map<String, Object?>>('/users/me');
+    await apiService.refreshSession();
+    final user = mapper.userFromJson(await apiService.currentUser());
     final accessToken = await tokenStore.readAccessToken();
     final nextRefreshToken = await tokenStore.readRefreshToken();
 
@@ -69,7 +57,7 @@ class RemoteAuthRepository implements AuthRepository {
     }
 
     return AuthSession(
-      user: UserProfile.fromJson(user),
+      user: user,
       accessToken: accessToken,
       refreshToken: nextRefreshToken,
     );
@@ -78,22 +66,9 @@ class RemoteAuthRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     try {
-      await apiClient.post<Object?>('/auth/logout');
+      await apiService.logout();
     } finally {
       await tokenStore.clear();
     }
-  }
-
-  AuthSession _parseSession(Map<String, Object?> data) {
-    final userPayload = data['user'];
-    if (userPayload is! Map<String, Object?>) {
-      throw StateError('登录响应缺少 user');
-    }
-
-    return AuthSession(
-      user: UserProfile.fromJson(userPayload),
-      accessToken: data['accessToken']?.toString() ?? '',
-      refreshToken: data['refreshToken']?.toString() ?? '',
-    );
   }
 }

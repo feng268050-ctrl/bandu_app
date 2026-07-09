@@ -16,6 +16,9 @@ class UserProfile {
     required this.email,
     this.name,
     this.avatarUrl,
+    this.educationStage,
+    this.enrollmentYear,
+    this.role,
   });
 
   factory UserProfile.fromJson(Map<String, Object?> json) {
@@ -24,6 +27,14 @@ class UserProfile {
       email: json['email']?.toString() ?? '',
       name: json['name']?.toString(),
       avatarUrl: json['avatarUrl']?.toString(),
+      educationStage: json['educationStage']?.toString(),
+      enrollmentYear: switch (json['enrollmentYear']) {
+        final int value => value,
+        final num value => value.toInt(),
+        final String value => int.tryParse(value),
+        _ => null,
+      },
+      role: json['role']?.toString(),
     );
   }
 
@@ -31,4 +42,7 @@ class UserProfile {
   final String email;
   final String? name;
   final String? avatarUrl;
+  final String? educationStage;
+  final int? enrollmentYear;
+  final String? role;
 }

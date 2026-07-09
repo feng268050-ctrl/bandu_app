@@ -1,11 +1,11 @@
-import 'package:bandu_wrong_notebook/features/library/data/error_item_repository.dart';
 import 'package:bandu_wrong_notebook/features/library/domain/error_item.dart';
+import 'package:bandu_wrong_notebook/features/library/library_providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final errorItemDetailProvider =
     FutureProvider.autoDispose.family<ErrorItemDetail, String>((ref, id) {
-  return ref.watch(errorItemRepositoryProvider).fetchErrorItem(id);
+  return ref.watch(fetchErrorItemDetailUseCaseProvider).call(id);
 });
 
 class ErrorItemDetailPage extends ConsumerWidget {
