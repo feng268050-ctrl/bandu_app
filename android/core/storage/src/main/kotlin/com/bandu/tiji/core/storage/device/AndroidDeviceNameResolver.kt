@@ -35,7 +35,9 @@ class AndroidDeviceNameResolver(
         Settings.Global.getString(appContext.contentResolver, Settings.Global.DEVICE_NAME)
 
     private fun readBluetoothName(): String? =
-        Settings.Secure.getString(appContext.contentResolver, BLUETOOTH_NAME_KEY)
+        runCatching {
+            Settings.Secure.getString(appContext.contentResolver, BLUETOOTH_NAME_KEY)
+        }.getOrNull()
 
     private fun readEmulatorAvdName(): String? =
         listOf(RO_BOOT_AVD_NAME, QEMU_AVD_NAME)
