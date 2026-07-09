@@ -80,7 +80,7 @@ class ProfileOverviewTest {
     }
 
     @Test
-    fun `avatar menu dispatches avatar actions without making profile summary clickable`() {
+    fun `avatar opens editor without making profile summary clickable`() {
         val actions = mutableListOf<ProfileAction>()
         composeRule.setContent {
             BanduTijiTheme {
@@ -99,15 +99,75 @@ class ProfileOverviewTest {
 
         composeRule.onNodeWithText("小明").assertHasNoClickAction()
         composeRule.onNodeWithTag("profile-avatar").performClick()
-        composeRule.onNodeWithTag("profile-avatar-image-choice").performClick()
-        composeRule.onNodeWithTag("profile-avatar").performClick()
+
+        composeRule.runOnIdle {
+            assertThat(actions).containsExactly(
+                ProfileAction.OpenAvatarEditor,
+            )
+        }
+    }
+
+    @Test
+    fun `avatar editor previews colors and saves only after confirm`() {
+        val actions = mutableListOf<ProfileAction>()
+        composeRule.setContent {
+            BanduTijiTheme {
+                ProfileScreen(
+                    ProfileUiState(
+                        studentSummary = StudentProfileSummary(
+                            nickname = "小明",
+                            educationStage = "初中",
+                            grade = 2,
+                        ),
+                        avatarEditor = ProfileAvatarEditorState(
+                            draft = ProfileAvatarUiState(backgroundIndex = 0),
+                        ),
+                    ),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("profile-avatar-preview").assertIsDisplayed()
+        composeRule.onNodeWithTag("profile-avatar-color-10").assertIsDisplayed()
         composeRule.onNodeWithTag("profile-avatar-color-2").performClick()
+        composeRule.onNodeWithText("确认").performClick()
+
+        composeRule.runOnIdle {
+            assertThat(actions).containsExactly(
+                ProfileAction.SelectAvatarBackground(2),
+                ProfileAction.ConfirmAvatar,
+            ).inOrder()
+        }
+    }
+
+    @Test
+    fun `avatar editor image choice launches picker before confirmation`() {
+        val actions = mutableListOf<ProfileAction>()
+        composeRule.setContent {
+            BanduTijiTheme {
+                ProfileScreen(
+                    ProfileUiState(
+                        studentSummary = StudentProfileSummary(
+                            nickname = "小明",
+                            educationStage = "初中",
+                            grade = 2,
+                        ),
+                        avatarEditor = ProfileAvatarEditorState(
+                            draft = ProfileAvatarUiState(backgroundIndex = 0),
+                        ),
+                    ),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("profile-avatar-image-choice").performClick()
 
         composeRule.runOnIdle {
             assertThat(actions).containsExactly(
                 ProfileAction.RequestAvatarImagePicker,
-                ProfileAction.SelectAvatarBackground(2),
-            ).inOrder()
+            )
         }
     }
 }

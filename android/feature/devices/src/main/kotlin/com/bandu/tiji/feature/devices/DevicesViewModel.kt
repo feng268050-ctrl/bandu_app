@@ -19,11 +19,13 @@ import com.bandu.tiji.domain.usecase.transfer.StartDiscoveryUseCase
 import com.bandu.tiji.domain.usecase.transfer.StopDiscoveryUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.launch
 
 class DevicesViewModel(
@@ -31,6 +33,7 @@ class DevicesViewModel(
     localDeviceName: String,
     localFingerprint: String,
     private val clock: Clock = SystemClock(),
+    private val localDeviceNameUpdates: Flow<String> = emptyFlow(),
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(
         DevicesUiState(
@@ -53,6 +56,7 @@ class DevicesViewModel(
     private var activeSessionId: String? = null
 
     init {
+        observeLocalDeviceName()
         observeDevices()
     }
 
@@ -109,6 +113,16 @@ class DevicesViewModel(
             DevicesAction.RejectIncomingTransfer -> rejectIncomingTransfer()
             DevicesAction.ConfirmFinalTransfer -> confirmFinalTransfer()
             DevicesAction.CancelTransfer -> cancelTransfer()
+        }
+    }
+
+    private fun observeLocalDeviceName() {
+        viewModelScope.launch {
+            localDeviceNameUpdates.collect { name ->
+                mutableUiState.value = mutableUiState.value.copy(
+                    localDeviceName = name.ifBlank { mutableUiState.value.localDeviceName },
+                )
+            }
         }
     }
 

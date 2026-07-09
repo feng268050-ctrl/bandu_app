@@ -13,17 +13,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -103,14 +102,10 @@ private fun ProfileOverview(
                     StudentSummaryHeader(
                         summary = summary,
                         avatar = uiState.avatar,
+                        avatarEditor = uiState.avatarEditor,
                         modelConfig = uiState.modelConfigLabel(),
                         deviceName = uiState.deviceName.ifBlank { "未设置" },
-                        onSelectAvatarBackground = { index ->
-                            onAction(ProfileAction.SelectAvatarBackground(index))
-                        },
-                        onPickAvatarImage = {
-                            onAction(ProfileAction.RequestAvatarImagePicker)
-                        },
+                        onAction = onAction,
                         modifier = Modifier
                             .fillMaxWidth()
                             .testTag("profile-student-summary"),
@@ -147,13 +142,12 @@ private fun ProfileOverview(
 private fun StudentSummaryHeader(
     summary: StudentProfileSummary,
     avatar: ProfileAvatarUiState,
+    avatarEditor: ProfileAvatarEditorState?,
     modelConfig: String,
     deviceName: String,
-    onSelectAvatarBackground: (Int) -> Unit,
-    onPickAvatarImage: () -> Unit,
+    onAction: (ProfileAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showAvatarActions by remember { mutableStateOf(false) }
     Row(
         modifier = modifier
             .padding(vertical = BanduSpacing.Large),
@@ -162,7 +156,7 @@ private fun StudentSummaryHeader(
         AvatarButton(
             summary = summary,
             avatar = avatar,
-            onClick = { showAvatarActions = true },
+            onClick = { onAction(ProfileAction.OpenAvatarEditor) },
         )
         androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(BanduSpacing.PageHorizontal))
         Column(
@@ -192,28 +186,28 @@ private fun StudentSummaryHeader(
             )
         }
     }
-    if (showAvatarActions) {
+    avatarEditor?.let { editor ->
         AvatarChoicePanel(
-            avatar = avatar,
-            onDismissRequest = { showAvatarActions = false },
-            onPickAvatarImage = {
-                showAvatarActions = false
-                onPickAvatarImage()
-            },
+            summary = summary,
+            draft = editor.draft,
+            onDismissRequest = { onAction(ProfileAction.DismissAvatarEditor) },
+            onPickAvatarImage = { onAction(ProfileAction.RequestAvatarImagePicker) },
             onSelectAvatarBackground = { index ->
-                showAvatarActions = false
-                onSelectAvatarBackground(index)
+                onAction(ProfileAction.SelectAvatarBackground(index))
             },
+            onConfirm = { onAction(ProfileAction.ConfirmAvatar) },
         )
     }
 }
 
 @Composable
 private fun AvatarChoicePanel(
-    avatar: ProfileAvatarUiState,
+    summary: StudentProfileSummary,
+    draft: ProfileAvatarUiState,
     onDismissRequest: () -> Unit,
     onPickAvatarImage: () -> Unit,
     onSelectAvatarBackground: (Int) -> Unit,
+    onConfirm: () -> Unit,
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Surface(
@@ -222,7 +216,7 @@ private fun AvatarChoicePanel(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .widthIn(min = 280.dp, max = 360.dp)
                     .padding(BanduSpacing.Large),
                 verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
             ) {
@@ -230,13 +224,38 @@ private fun AvatarChoicePanel(
                     text = "头像",
                     style = MaterialTheme.typography.titleLarge,
                 )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("profile-avatar-preview"),
+                    contentAlignment = Alignment.TopCenter,
+                ) {
+                    AvatarCircle(
+                        summary = summary,
+                        avatar = draft,
+                        size = 88.dp,
+                    )
+                }
                 AvatarChoiceRows(
-                    selectedBackgroundIndex = avatar.backgroundIndex
+                    selectedBackgroundIndex = draft.backgroundIndex
                         .floorMod(AvatarBackgroundColors.size)
-                        .takeIf { avatar.imageUri == null },
+                        .takeIf { draft.imageUri == null },
+                    hasSelectedImage = draft.imageUri != null,
                     onPickAvatarImage = onPickAvatarImage,
                     onSelectAvatarBackground = onSelectAvatarBackground,
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = onDismissRequest) {
+                        Text("取消")
+                    }
+                    Button(onClick = onConfirm) {
+                        Text("确认")
+                    }
+                }
             }
         }
     }
@@ -245,38 +264,43 @@ private fun AvatarChoicePanel(
 @Composable
 private fun AvatarChoiceRows(
     selectedBackgroundIndex: Int?,
+    hasSelectedImage: Boolean,
     onPickAvatarImage: () -> Unit,
     onSelectAvatarBackground: (Int) -> Unit,
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ImageAvatarChoice(onClick = onPickAvatarImage)
-            AvatarBackgroundColors.take(3).forEachIndexed { index, color ->
-                TextAvatarColorChoice(
-                    index = index,
-                    color = color,
-                    selected = selectedBackgroundIndex == index,
-                    onClick = { onSelectAvatarBackground(index) },
-                )
-            }
+        val optionsPerRow = 4
+        val colorOptions = AvatarBackgroundColors.mapIndexed { index, color ->
+            AvatarColorOption(index, color)
         }
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(BanduSpacing.CardGap),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            AvatarBackgroundColors.drop(3).forEachIndexed { offset, color ->
-                val index = offset + 3
-                TextAvatarColorChoice(
-                    index = index,
-                    color = color,
-                    selected = selectedBackgroundIndex == index,
-                    onClick = { onSelectAvatarBackground(index) },
-                )
+        val rows = (listOf<AvatarChoiceOption>(AvatarChoiceOption.Image) +
+            colorOptions.map { AvatarChoiceOption.Color(it) })
+            .chunked(optionsPerRow)
+        rows.forEach { rowOptions ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(
+                    BanduSpacing.CardGap,
+                    Alignment.CenterHorizontally,
+                ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                rowOptions.forEach { option ->
+                    when (option) {
+                        AvatarChoiceOption.Image -> ImageAvatarChoice(
+                            selected = hasSelectedImage,
+                            onClick = onPickAvatarImage,
+                        )
+                        is AvatarChoiceOption.Color -> TextAvatarColorChoice(
+                            index = option.value.index,
+                            color = option.value.color,
+                            selected = selectedBackgroundIndex == option.value.index,
+                            onClick = { onSelectAvatarBackground(option.value.index) },
+                        )
+                    }
+                }
             }
         }
     }
@@ -284,16 +308,22 @@ private fun AvatarChoiceRows(
 
 @Composable
 private fun ImageAvatarChoice(
+    selected: Boolean,
     onClick: () -> Unit,
 ) {
+    val borderColor = if (selected) {
+        MaterialTheme.colorScheme.primary
+    } else {
+        MaterialTheme.colorScheme.outline
+    }
     Box(
         modifier = Modifier
             .size(48.dp)
             .clip(CircleShape)
             .background(MaterialTheme.colorScheme.surface)
             .border(
-                width = BanduBorders.Standard,
-                color = MaterialTheme.colorScheme.outline,
+                width = if (selected) 3.dp else BanduBorders.Standard,
+                color = borderColor,
                 shape = CircleShape,
             )
             .clickable(role = Role.Button, onClick = onClick)
@@ -344,17 +374,33 @@ private fun AvatarButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Box(
+    AvatarCircle(
+        summary = summary,
+        avatar = avatar,
+        size = 72.dp,
         modifier = modifier
-            .size(72.dp)
+            .clickable(role = Role.Button, onClick = onClick)
+            .testTag("profile-avatar"),
+    )
+}
+
+@Composable
+private fun AvatarCircle(
+    summary: StudentProfileSummary,
+    avatar: ProfileAvatarUiState,
+    size: androidx.compose.ui.unit.Dp,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = Modifier
+            .size(size)
             .clip(CircleShape)
             .background(
                 color = AvatarBackgroundColors[
                     avatar.backgroundIndex.floorMod(AvatarBackgroundColors.size)
                 ],
             )
-            .clickable(role = Role.Button, onClick = onClick)
-            .testTag("profile-avatar"),
+            .then(modifier),
         contentAlignment = Alignment.Center,
     ) {
         if (avatar.imageUri == null) {
@@ -402,7 +448,23 @@ private val AvatarBackgroundColors = listOf(
     Color(0xFF6B4E9B),
     Color(0xFFB04A5A),
     Color(0xFF4E6FA8),
+    Color(0xFFD65A31),
+    Color(0xFFE1A93B),
+    Color(0xFF2E8B57),
+    Color(0xFF008C8C),
+    Color(0xFF7A4BB3),
 )
 
 private fun Int.floorMod(divisor: Int): Int =
     ((this % divisor) + divisor) % divisor
+
+private data class AvatarColorOption(
+    val index: Int,
+    val color: Color,
+)
+
+private sealed interface AvatarChoiceOption {
+    data object Image : AvatarChoiceOption
+
+    data class Color(val value: AvatarColorOption) : AvatarChoiceOption
+}

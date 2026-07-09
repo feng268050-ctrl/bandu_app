@@ -34,7 +34,7 @@ class DeviceNameViewModelTest {
     }
 
     @Test
-    fun `avatar color and image changes are saved immediately`() = runTest {
+    fun `avatar color and image changes save only after confirmation`() = runTest {
         val avatarStore = RecordingAvatarStore(
             ProfileAvatarPreferences(
                 backgroundIndex = ProfileViewModel.AVATAR_BACKGROUND_COUNT - 1,
@@ -47,21 +47,41 @@ class DeviceNameViewModelTest {
         )
         advanceUntilIdle()
 
+        viewModel.onAction(ProfileAction.OpenAvatarEditor)
+        advanceUntilIdle()
         viewModel.onAction(ProfileAction.SelectAvatarBackground(0))
+        advanceUntilIdle()
+        assertThat(avatarStore.savedAvatars).isEmpty()
+        assertThat(viewModel.uiState.value.avatar.imageUri).isEqualTo("content://old-avatar")
+        assertThat(viewModel.uiState.value.avatarEditor?.draft).isEqualTo(
+            ProfileAvatarUiState(backgroundIndex = 0, imageUri = null),
+        )
+
+        viewModel.onAction(ProfileAction.ConfirmAvatar)
+        advanceUntilIdle()
+        assertThat(avatarStore.savedAvatars).containsExactly(
+            ProfileAvatarPreferences(backgroundIndex = 0, imageUri = null),
+        )
+
+        viewModel.onAction(ProfileAction.OpenAvatarEditor)
         advanceUntilIdle()
         viewModel.onAction(ProfileAction.UpdateAvatarImage("content://new-avatar"))
         advanceUntilIdle()
-        viewModel.onAction(ProfileAction.ClearAvatarImage)
-        advanceUntilIdle()
+        assertThat(avatarStore.savedAvatars).hasSize(1)
+        assertThat(viewModel.uiState.value.avatarEditor?.draft).isEqualTo(
+            ProfileAvatarUiState(backgroundIndex = 0, imageUri = "content://new-avatar"),
+        )
 
+        viewModel.onAction(ProfileAction.ConfirmAvatar)
+        advanceUntilIdle()
         assertThat(avatarStore.savedAvatars).containsExactly(
             ProfileAvatarPreferences(backgroundIndex = 0, imageUri = null),
             ProfileAvatarPreferences(backgroundIndex = 0, imageUri = "content://new-avatar"),
-            ProfileAvatarPreferences(backgroundIndex = 0, imageUri = null),
-        ).inOrder()
-        assertThat(viewModel.uiState.value.avatar).isEqualTo(
-            ProfileAvatarUiState(backgroundIndex = 0, imageUri = null),
         )
+        assertThat(viewModel.uiState.value.avatar).isEqualTo(
+            ProfileAvatarUiState(backgroundIndex = 0, imageUri = "content://new-avatar"),
+        )
+        assertThat(viewModel.uiState.value.avatarEditor).isNull()
     }
 }
 

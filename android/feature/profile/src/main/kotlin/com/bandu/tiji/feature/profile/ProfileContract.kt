@@ -25,6 +25,7 @@ data class ProfileUiState(
     val deviceName: String = "",
     val deviceNameErrorMessage: String? = null,
     val avatar: ProfileAvatarUiState = ProfileAvatarUiState(),
+    val avatarEditor: ProfileAvatarEditorState? = null,
     val aiDraft: AiConfigurationDraftState = AiConfigurationDraftState(),
     val isValidatingAi: Boolean = false,
     val aiValidationMessage: String? = null,
@@ -99,6 +100,10 @@ data class ProfileAvatarUiState(
     val imageUri: String? = null,
 )
 
+data class ProfileAvatarEditorState(
+    val draft: ProfileAvatarUiState,
+)
+
 val EducationStages = listOf("小学", "初中", "高中")
 
 data class AiConfigurationDraftState(
@@ -128,6 +133,8 @@ sealed interface ProfileAction {
 
     data object SaveStudentProfile : ProfileAction
 
+    data object OpenAvatarEditor : ProfileAction
+
     data class SelectAvatarBackground(val index: Int) : ProfileAction
 
     data object RequestAvatarImagePicker : ProfileAction
@@ -135,6 +142,10 @@ sealed interface ProfileAction {
     data class UpdateAvatarImage(val uri: String) : ProfileAction
 
     data object ClearAvatarImage : ProfileAction
+
+    data object ConfirmAvatar : ProfileAction
+
+    data object DismissAvatarEditor : ProfileAction
 
     data class UpdateDeviceName(val value: String) : ProfileAction
 

@@ -33,6 +33,7 @@ import com.bandu.tiji.core.model.id.CollectionId
 import com.bandu.tiji.core.model.id.ErrorItemId
 import com.bandu.tiji.core.model.id.TutorSessionId
 import com.bandu.tiji.core.designsystem.theme.BanduTijiTheme
+import com.bandu.tiji.core.storage.device.AndroidDeviceNameResolver
 import com.bandu.tiji.core.storage.preferences.DevicePreferencesStore
 import com.bandu.tiji.core.storage.preferences.PortablePreferencesStore
 import com.bandu.tiji.domain.repository.AiConfigurationRepository
@@ -108,16 +109,19 @@ fun BanduTijiApp(
                 AppDependencies::class.java,
             )
         }
+        val deviceNameResolver = remember(context) { AndroidDeviceNameResolver(context) }
+        val deviceNameStore = remember(dependencies, deviceNameResolver) {
+            DevicePreferencesDeviceNameStore(
+                preferences = dependencies.devicePreferencesStore(),
+                deviceNameResolver = deviceNameResolver,
+            )
+        }
         val navController = rememberNavController()
         val snackbarHostState = androidx.compose.runtime.remember { SnackbarHostState() }
         val profileViewModel = appViewModel("profile") {
-            val defaultDeviceName = android.os.Build.MODEL ?: "Android"
             ProfileViewModel(
                 profileRepository = dependencies.profileRepository(),
-                deviceNameStore = DevicePreferencesDeviceNameStore(
-                    preferences = dependencies.devicePreferencesStore(),
-                    fallbackName = defaultDeviceName,
-                ),
+                deviceNameStore = deviceNameStore,
                 avatarStore = PortableProfileAvatarStore(
                     preferences = dependencies.portablePreferencesStore(),
                 ),
@@ -192,8 +196,9 @@ fun BanduTijiApp(
                     val viewModel = appViewModel("devices") {
                         DevicesViewModel(
                             repository = dependencies.deviceTransferRepository(),
-                            localDeviceName = android.os.Build.MODEL ?: "Android",
+                            localDeviceName = deviceNameResolver.resolve(),
                             localFingerprint = "本机",
+                            localDeviceNameUpdates = deviceNameStore.observeDeviceName(),
                         )
                     }
                     DevicesRoute(viewModel)

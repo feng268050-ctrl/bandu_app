@@ -148,11 +148,14 @@ class ProfileViewModel(
                 copy(enrollmentYear = action.value.filter(Char::isDigit).take(4))
             }
             ProfileAction.SaveStudentProfile -> saveStudentProfile()
+            ProfileAction.OpenAvatarEditor -> openAvatarEditor()
             is ProfileAction.SelectAvatarBackground -> selectAvatarBackground(action.index)
             ProfileAction.RequestAvatarImagePicker ->
                 mutableEffects.trySend(ProfileEffect.LaunchAvatarImagePicker)
             is ProfileAction.UpdateAvatarImage -> updateAvatarImage(action.uri)
             ProfileAction.ClearAvatarImage -> clearAvatarImage()
+            ProfileAction.ConfirmAvatar -> confirmAvatar()
+            ProfileAction.DismissAvatarEditor -> dismissAvatarEditor()
             is ProfileAction.UpdateDeviceName -> updateDeviceName(action.value)
             is ProfileAction.SelectAiProvider -> selectAiProvider(action.value)
             is ProfileAction.UpdateAiDisplayName -> updateAiDraft {
@@ -684,36 +687,112 @@ class ProfileViewModel(
         }
     }
 
+    private fun openAvatarEditor() {
+        mutableUiState.update {
+            it.copy(
+                avatarEditor = ProfileAvatarEditorState(
+                    draft = it.avatar,
+                ),
+            )
+        }
+    }
+
+    private fun dismissAvatarEditor() {
+        mutableUiState.update {
+            it.copy(avatarEditor = null)
+        }
+    }
+
     private fun selectAvatarBackground(index: Int) {
-        saveAvatar(
-            ProfileAvatarPreferences(
-                backgroundIndex = index.floorMod(AVATAR_BACKGROUND_COUNT),
-                imageUri = null,
-            ),
-        )
+        val normalizedIndex = index.floorMod(AVATAR_BACKGROUND_COUNT)
+        if (mutableUiState.value.avatarEditor != null) {
+            mutableUiState.update {
+                it.copy(
+                    avatarEditor = it.avatarEditor?.copy(
+                        draft = ProfileAvatarUiState(
+                            backgroundIndex = normalizedIndex,
+                            imageUri = null,
+                        ),
+                    ),
+                )
+            }
+        } else {
+            saveAvatar(
+                ProfileAvatarPreferences(
+                    backgroundIndex = normalizedIndex,
+                    imageUri = null,
+                ),
+            )
+        }
     }
 
     private fun updateAvatarImage(uri: String) {
         val normalized = uri.trim()
         if (normalized.isEmpty()) return
-        saveAvatar(
-            ProfileAvatarPreferences(
-                backgroundIndex = mutableUiState.value.avatar.backgroundIndex,
-                imageUri = normalized,
-            ),
-        )
+        val current = mutableUiState.value
+        val backgroundIndex = current.avatarEditor?.draft?.backgroundIndex
+            ?: current.avatar.backgroundIndex
+        if (current.avatarEditor != null) {
+            mutableUiState.update {
+                it.copy(
+                    avatarEditor = it.avatarEditor?.copy(
+                        draft = ProfileAvatarUiState(
+                            backgroundIndex = backgroundIndex,
+                            imageUri = normalized,
+                        ),
+                    ),
+                )
+            }
+        } else {
+            saveAvatar(
+                ProfileAvatarPreferences(
+                    backgroundIndex = backgroundIndex,
+                    imageUri = normalized,
+                ),
+            )
+        }
     }
 
     private fun clearAvatarImage() {
+        val current = mutableUiState.value
+        val backgroundIndex = current.avatarEditor?.draft?.backgroundIndex
+            ?: current.avatar.backgroundIndex
+        if (current.avatarEditor != null) {
+            mutableUiState.update {
+                it.copy(
+                    avatarEditor = it.avatarEditor?.copy(
+                        draft = ProfileAvatarUiState(
+                            backgroundIndex = backgroundIndex,
+                            imageUri = null,
+                        ),
+                    ),
+                )
+            }
+        } else {
+            saveAvatar(
+                ProfileAvatarPreferences(
+                    backgroundIndex = backgroundIndex,
+                    imageUri = null,
+                ),
+            )
+        }
+    }
+
+    private fun confirmAvatar() {
+        val draft = mutableUiState.value.avatarEditor?.draft ?: return
         saveAvatar(
             ProfileAvatarPreferences(
-                backgroundIndex = mutableUiState.value.avatar.backgroundIndex,
-                imageUri = null,
+                backgroundIndex = draft.backgroundIndex,
+                imageUri = draft.imageUri,
             ),
+            closeEditor = true,
         )
     }
 
-    private fun saveAvatar(avatar: ProfileAvatarPreferences) {
+    private fun saveAvatar(
+        avatar: ProfileAvatarPreferences,
+        closeEditor: Boolean = false,
+    ) {
         val normalized = avatar.copy(
             backgroundIndex = avatar.backgroundIndex.floorMod(AVATAR_BACKGROUND_COUNT),
             imageUri = avatar.imageUri?.takeIf(String::isNotBlank),
@@ -724,6 +803,7 @@ class ProfileViewModel(
                     backgroundIndex = normalized.backgroundIndex,
                     imageUri = normalized.imageUri,
                 ),
+                avatarEditor = if (closeEditor) null else it.avatarEditor,
             )
         }
         viewModelScope.launch {
@@ -826,7 +906,7 @@ class ProfileViewModel(
 
     companion object {
         const val MAX_DEVICE_NAME_LENGTH = 40
-        const val AVATAR_BACKGROUND_COUNT = 6
+        const val AVATAR_BACKGROUND_COUNT = 11
         const val CLEAR_LEARNING_CONFIRMATION_TEXT = "清除学习数据"
         const val FACTORY_RESET_CONFIRMATION_TEXT = "恢复出厂设置"
         const val REMOTE_ADB_TTL_MILLIS = 30L * 60L * 1000L

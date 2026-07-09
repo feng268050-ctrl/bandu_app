@@ -12,6 +12,7 @@ import com.bandu.tiji.core.common.time.Clock
 import com.bandu.tiji.core.common.time.SystemClock
 import com.bandu.tiji.core.network.endpoint.DefaultEndpointPolicy
 import com.bandu.tiji.core.network.endpoint.EndpointPolicy
+import com.bandu.tiji.core.storage.device.AndroidDeviceNameResolver
 import com.bandu.tiji.core.storage.db.LearningDatabase
 import com.bandu.tiji.core.storage.db.LearningDatabaseFactory
 import com.bandu.tiji.core.storage.image.ImageOrphanCleanupQueue
@@ -70,6 +71,7 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.first
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -238,11 +240,19 @@ abstract class DataBindingsModule {
             clock: Clock,
         ): TransferRuntime {
             val identityStore = DeviceIdentityStore(devicePreferences)
+            val deviceNameResolver = AndroidDeviceNameResolver(context)
             return TransferRuntime(
                 config = TransferRuntimeConfig(File(context.filesDir, "transfer")),
                 clock = clock,
                 localIdentityProvider = {
-                    identityStore.getOrCreate(defaultDisplayName = android.os.Build.MODEL ?: "Android")
+                    val defaultDisplayName = deviceNameResolver.resolve()
+                    val current = devicePreferences.data.first()
+                    if (deviceNameResolver.shouldReplaceStoredName(current.deviceDisplayName)) {
+                        devicePreferences.replace(
+                            current.copy(deviceDisplayName = defaultDisplayName),
+                        )
+                    }
+                    identityStore.getOrCreate(defaultDisplayName = defaultDisplayName)
                 },
                 discovery = NsdPeerDiscovery(AndroidNsdDiscoveryBackend(context)),
                 trustedPeerStore = DevicePreferencesTrustedPeerStore(devicePreferences),
