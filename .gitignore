@@ -69,3 +69,12 @@ upload_test_output*.txt
 # data
 /data/
 .next-prebuilt/
+
+# Flutter client
+/flutter_app/.dart_tool/
+/flutter_app/.flutter-plugins
+/flutter_app/.flutter-plugins-dependencies
+/flutter_app/.packages
+/flutter_app/build/
+/flutter_app/coverage/
+/flutter_app/.idea/

@@ -60,6 +60,9 @@ class CaptureViewModel(
             CaptureAction.ChoosePhoto -> {
                 mutableEffects.trySend(CaptureEffect.LaunchPhotoPicker)
             }
+            CaptureAction.ImportPdfQuestionBank -> {
+                mutableEffects.trySend(CaptureEffect.Navigate(NavigationIntent.OpenQuestionBanks))
+            }
             is CaptureAction.ImageSelected -> {
                 val draftId = uuidGenerator.newUuid()
                 mutableUiState.value = newUiState(

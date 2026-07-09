@@ -56,6 +56,14 @@ fun CaptureSourceScreen(
                 ) {
                     Text("从相册选择")
                 }
+                OutlinedButton(
+                    onClick = { onAction(CaptureAction.ImportPdfQuestionBank) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag(PDF_SOURCE_TAG),
+                ) {
+                    Text("导入 PDF 题集")
+                }
             }
         }
     }
@@ -63,3 +71,4 @@ fun CaptureSourceScreen(
 
 internal const val CAMERA_SOURCE_TAG = "capture-source-camera"
 internal const val PHOTO_SOURCE_TAG = "capture-source-photo"
+internal const val PDF_SOURCE_TAG = "capture-source-pdf"

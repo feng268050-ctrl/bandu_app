@@ -36,6 +36,9 @@ data object TagsDestination : AppDestination
 data object StatsDestination : AppDestination
 
 @Serializable
+data object QuestionBanksDestination : AppDestination
+
+@Serializable
 data class CollectionDestination(
     val collectionId: String,
 ) : AppDestination

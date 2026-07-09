@@ -36,6 +36,7 @@ import com.bandu.tiji.data.repository.PersistentProfileRepository
 import com.bandu.tiji.data.repository.RoomCollectionRepository
 import com.bandu.tiji.data.repository.RoomErrorItemRepository
 import com.bandu.tiji.data.repository.RoomExerciseRepository
+import com.bandu.tiji.data.repository.RoomQuestionBankRepository
 import com.bandu.tiji.data.repository.RoomStatsRepository
 import com.bandu.tiji.data.repository.RoomTagRepository
 import com.bandu.tiji.data.repository.RoomTutorRepository
@@ -47,6 +48,7 @@ import com.bandu.tiji.domain.repository.DeviceTransferRepository
 import com.bandu.tiji.domain.repository.ErrorItemRepository
 import com.bandu.tiji.domain.repository.ExerciseRepository
 import com.bandu.tiji.domain.repository.ProfileRepository
+import com.bandu.tiji.domain.repository.QuestionBankRepository
 import com.bandu.tiji.domain.repository.StatsRepository
 import com.bandu.tiji.domain.repository.TagRepository
 import com.bandu.tiji.domain.repository.TutorRepository
@@ -101,6 +103,11 @@ abstract class DataBindingsModule {
     abstract fun bindStatsRepository(
         implementation: RoomStatsRepository,
     ): StatsRepository
+
+    @Binds
+    abstract fun bindQuestionBankRepository(
+        implementation: RoomQuestionBankRepository,
+    ): QuestionBankRepository
 
     @Binds
     abstract fun bindProfileRepository(

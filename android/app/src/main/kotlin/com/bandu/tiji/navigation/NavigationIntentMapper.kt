@@ -7,6 +7,7 @@ fun NavigationIntent.toAppDestination(): AppDestination = when (this) {
     NavigationIntent.OpenLibrary -> LibraryDestination
     NavigationIntent.OpenTags -> TagsDestination
     NavigationIntent.OpenStats -> StatsDestination
+    NavigationIntent.OpenQuestionBanks -> QuestionBanksDestination
     is NavigationIntent.OpenCollection -> CollectionDestination(collectionId)
     is NavigationIntent.OpenErrorItem -> ErrorItemDetailDestination(errorItemId)
     is NavigationIntent.OpenTutor -> TutorSessionDestination(

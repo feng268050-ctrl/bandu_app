@@ -76,6 +76,7 @@ dependencies {
     implementation(project(":feature:home"))
     implementation(project(":feature:library"))
     implementation(project(":feature:profile"))
+    implementation(project(":feature:questionbank"))
     implementation(project(":feature:stats"))
     implementation(project(":feature:tags"))
     implementation(project(":feature:tutor"))

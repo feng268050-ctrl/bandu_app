@@ -41,3 +41,31 @@ value class ExerciseId(val value: String) {
         require(value.isNotBlank()) { "ExerciseId must not be blank" }
     }
 }
+
+@JvmInline
+value class QuestionBankId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "QuestionBankId must not be blank" }
+    }
+}
+
+@JvmInline
+value class BankQuestionId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "BankQuestionId must not be blank" }
+    }
+}
+
+@JvmInline
+value class ExamSessionId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "ExamSessionId must not be blank" }
+    }
+}
+
+@JvmInline
+value class ExamAttemptId(val value: String) {
+    init {
+        require(value.isNotBlank()) { "ExamAttemptId must not be blank" }
+    }
+}

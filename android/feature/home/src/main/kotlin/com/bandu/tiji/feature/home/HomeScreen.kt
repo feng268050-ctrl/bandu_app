@@ -129,6 +129,12 @@ private val HomeCards = listOf(
         intent = NavigationIntent.OpenLibrary,
     ),
     HomeCard(
+        title = "PDF 题库",
+        description = "导入 PDF 后随机抽题练习",
+        testTag = "home-card-question-bank",
+        intent = NavigationIntent.OpenQuestionBanks,
+    ),
+    HomeCard(
         title = "标签",
         description = "管理错题分类标签",
         testTag = "home-card-tags",

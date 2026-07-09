@@ -42,6 +42,7 @@ import com.bandu.tiji.domain.repository.DeviceTransferRepository
 import com.bandu.tiji.domain.repository.ErrorItemRepository
 import com.bandu.tiji.domain.repository.ExerciseRepository
 import com.bandu.tiji.domain.repository.ProfileRepository
+import com.bandu.tiji.domain.repository.QuestionBankRepository
 import com.bandu.tiji.domain.repository.StatsRepository
 import com.bandu.tiji.domain.repository.TagRepository
 import com.bandu.tiji.domain.repository.TutorRepository
@@ -64,6 +65,8 @@ import com.bandu.tiji.feature.profile.ProfileAction
 import com.bandu.tiji.feature.profile.AboutInfo
 import com.bandu.tiji.feature.profile.ProfileSection
 import com.bandu.tiji.feature.profile.ProfileViewModel
+import com.bandu.tiji.feature.questionbank.QuestionBankRoute
+import com.bandu.tiji.feature.questionbank.QuestionBankViewModel
 import com.bandu.tiji.feature.stats.StatsRoute
 import com.bandu.tiji.feature.stats.StatsViewModel
 import com.bandu.tiji.feature.tags.TagsRoute
@@ -80,6 +83,7 @@ import com.bandu.tiji.navigation.ErrorItemDetailDestination
 import com.bandu.tiji.navigation.HomeDestination
 import com.bandu.tiji.navigation.LibraryDestination
 import com.bandu.tiji.navigation.ProfileDestination
+import com.bandu.tiji.navigation.QuestionBanksDestination
 import com.bandu.tiji.navigation.StatsDestination
 import com.bandu.tiji.navigation.TagsDestination
 import com.bandu.tiji.navigation.TopLevelDestination
@@ -278,6 +282,15 @@ fun BanduTijiApp(
                         onBack = { navController.popBackStack() },
                     )
                 }
+                composable<QuestionBanksDestination> {
+                    val viewModel = appViewModel("question-banks") {
+                        QuestionBankViewModel(dependencies.questionBankRepository())
+                    }
+                    QuestionBankRoute(
+                        viewModel = viewModel,
+                        onBack = { navController.popBackStack() },
+                    )
+                }
                 composable<ErrorItemDetailDestination> { entry ->
                     val route = entry.toRoute<ErrorItemDetailDestination>()
                     val viewModel = appViewModel("error-item-${route.errorItemId}") {
@@ -463,6 +476,7 @@ interface AppDependencies {
     fun portablePreferencesStore(): PortablePreferencesStore
     fun devicePreferencesStore(): DevicePreferencesStore
     fun profileRepository(): ProfileRepository
+    fun questionBankRepository(): QuestionBankRepository
     fun collectionRepository(): CollectionRepository
     fun errorItemRepository(): ErrorItemRepository
     fun tagRepository(): TagRepository

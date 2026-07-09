@@ -9,6 +9,8 @@ sealed interface NavigationIntent {
 
     data object OpenStats : NavigationIntent
 
+    data object OpenQuestionBanks : NavigationIntent
+
     data class OpenCollection(val collectionId: String) : NavigationIntent
 
     data class OpenErrorItem(val errorItemId: String) : NavigationIntent

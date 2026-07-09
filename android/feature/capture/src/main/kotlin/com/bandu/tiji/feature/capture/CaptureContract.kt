@@ -98,6 +98,8 @@ sealed interface CaptureAction {
 
     data object ChoosePhoto : CaptureAction
 
+    data object ImportPdfQuestionBank : CaptureAction
+
     data class ImageSelected(
         val uri: String,
     ) : CaptureAction
