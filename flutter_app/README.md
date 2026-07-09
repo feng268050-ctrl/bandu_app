@@ -26,4 +26,10 @@ flutter pub get
 flutter run --dart-define=API_BASE_URL=http://10.0.2.2:3000/api/mobile/v1
 ```
 
+Or from the repo root:
+
+```bash
+API_BASE_URL=http://192.168.1.10:3000/api/mobile/v1 make install-app
+```
+
 For a physical device, replace `API_BASE_URL` with the reachable server URL.
