@@ -15,7 +15,6 @@
 - **🔐 用户管理**：支持多用户注册、登录，数据安全隔离。
 - **🛡️ 管理员后台**：提供用户管理功能，可禁用/启用用户、删除违规用户。
 
-
 ## 📸 屏幕截图功能 (HTTPS 设置)
 
 本应用的屏幕截图功能依赖浏览器的安全上下文 (HTTPS)。在 Docker 或局域网环境中使用时，请参考 **[HTTPS 配置指南](doc/HTTPS_SETUP.md)** 启用内置 HTTPS 支持。
@@ -25,6 +24,7 @@
 本项目支持 PWA (Progressive Web App)，您可以将应用添加到手机主屏幕，获得原生应用般的使用体验。
 
 **功能特性**：
+
 - 🚀 **快速启动**：点击主屏幕图标直接打开，无需输入网址。
 - 📱 **沉浸体验**：全屏运行，无浏览器地址栏干扰。
 - 🎨 **原色适配**：应用图标和启动画面适配系统主题。
@@ -33,6 +33,133 @@
 
 - **iPhone / iPad (Safari)**: 点击底部 **分享** 按钮 -> 选择 **"添加到主屏幕"**。
 - **Android (Chrome)**: 点击右上角 **菜单** -> 选择 **"添加到主屏幕"** 或 **"安装应用"**。
+
+## 📲 移动端安装 (Android)
+
+项目包含两个移动端实现：
+
+
+| 客户端            | 目录             | 说明                      |
+| -------------- | -------------- | ----------------------- |
+| **Android 原生** | `android/`     | 当前功能最完整，推荐日常安装使用        |
+| **Flutter**    | `flutter_app/` | 重构中的新客户端，需配合 Mobile API |
+
+
+### 前置条件
+
+1. 手机开启 **USB 调试**，用数据线连接电脑，并在手机上允许调试授权。
+2. 安装 **Android SDK**（含 `adb`）和 **JDK 17**。
+3. 确认设备已连接：
+
+```bash
+adb devices
+```
+
+应看到类似 `xxxxxxxx    device` 的输出。
+
+### 方式一：使用 Make（推荐）
+
+需要 Git Bash / WSL / macOS / Linux 环境，以及 `make` 命令。查看所有命令：
+
+```bash
+make help
+```
+
+#### 安装 Android 原生 App 到手机
+
+构建 debug 包、安装并自动启动：
+
+```bash
+make install-android
+```
+
+`make install-phone` 为同一命令的别名。
+
+仅构建 APK、不安装：
+
+```bash
+make build-debug
+```
+
+跳过构建，仅安装已有 APK：
+
+```bash
+INSTALL_SKIP_BUILD=1 make install-android
+```
+
+多台设备连接时，指定设备序列号：
+
+```bash
+ADB_SERIAL=你的设备序列号 make install-android
+```
+
+#### 安装 Flutter App 到手机
+
+需先安装 [Flutter SDK](https://docs.flutter.dev/get-started/install)，并确保 Next.js 后端已启动：
+
+```bash
+API_BASE_URL=http://192.168.1.10:3000/api/mobile/v1 make install-app
+```
+
+`make flutter-run` 为同一命令的别名。真机请将 `192.168.1.10` 替换为电脑在局域网中的 IP。
+
+### 方式二：直接使用 Gradle / adb（Windows 适用）
+
+不依赖 `make`，在 PowerShell 中执行：
+
+```powershell
+# 设置 Android SDK 路径（按实际安装位置调整）
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+
+# 构建 debug APK
+cd android
+.\gradlew.bat :app:assembleDebug -x test -x lint
+
+# 安装到已连接手机
+adb install -r -d app\build\outputs\apk\debug\app-debug.apk
+```
+
+若提示签名冲突（`INSTALL_FAILED_UPDATE_INCOMPATIBLE`），先卸载旧版再安装：
+
+```powershell
+adb uninstall com.bandu.tiji
+adb install -r -d app\build\outputs\apk\debug\app-debug.apk
+```
+
+### 打包 APK
+
+构建完成后，debug APK 位于：
+
+```text
+android/app/build/outputs/apk/debug/app-debug.apk
+```
+
+可复制到 `dist/` 目录并按版本命名，便于分发：
+
+```bash
+mkdir -p dist
+VERSION=$(cat VERSION)
+COMMIT=$(git rev-parse --short HEAD)
+cp android/app/build/outputs/apk/debug/app-debug.apk \
+  "dist/bandu-tiji-${VERSION}-${COMMIT}-debug.apk"
+```
+
+PowerShell 等效命令：
+
+```powershell
+New-Item -ItemType Directory -Force -Path dist | Out-Null
+$version = (Get-Content VERSION -Raw).Trim()
+$commit = (git rev-parse --short HEAD).Trim()
+Copy-Item android\app\build\outputs\apk\debug\app-debug.apk `
+  "dist\bandu-tiji-$version-$commit-debug.apk"
+```
+
+### 拉取最新代码后重新安装
+
+```bash
+git pull origin mobile-ui
+make install-android
+```
 
 ## 🛠️ 技术栈
 
@@ -66,22 +193,22 @@ docker run -d --name wrong-notebook \
 
 使用 `docker-compose.yml` 文件进行管理。
 
-1.  **下载配置文件**：
-    ```bash
+1. **下载配置文件**：
+  ```bash
     curl -o docker-compose.yml https://raw.githubusercontent.com/feng268050-ctrl/bandu_app/refs/heads/bandu_app/docker-compose.yml
-    ```
-2.  **启动服务**：
-    ```bash
+  ```
+2. **启动服务**：
+  ```bash
     docker-compose up -d
-    ```
-3.  **查看日志**：
-    ```bash
+  ```
+3. **查看日志**：
+  ```bash
     docker-compose logs -f
-    ```
-4.  **停止服务**：
-    ```bash
+  ```
+4. **停止服务**：
+  ```bash
     docker-compose down
-    ```
+  ```
 
 ### 方式二：本地源码运行
 
@@ -112,47 +239,57 @@ cp .env.example .env
 
 **基础配置**
 
-| 环境变量 | 描述 | 默认值 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `DATABASE_URL` | 数据库连接地址 | `file:./dev.db` | SQLite 数据库路径 |
-| `NEXTAUTH_SECRET` | Auth 密钥 | 无 | 用于加密 Session，生产环境建议设置,可以使用 openssl rand -base64 32 生成一个随机字符串作为密钥 |
-| `NEXTAUTH_URL` | 访问地址 | `http://your-domain-name:3000` | 部署后的访问地址 |
-| `AUTH_TRUST_HOST` | 信任主机头 | `true` | 设置为 `true` 时自动推断 URL，适合 Docker/PaaS |
-| `LOG_LEVEL` | 日志级别 | `debug` (开发) / `info` (生产) | 可选值：`trace`, `debug`, `info`, `warn`, `error`, `fatal` |
-| `HTTP_PROXY` | HTTP 代理 | 无 | 设置 HTTP 代理 |
-| `HTTPS_PROXY` | HTTPS 代理 | 无 | 设置 HTTPS 代理 |
+
+| 环境变量              | 描述       | 默认值                            | 说明                                                               |
+| ----------------- | -------- | ------------------------------ | ---------------------------------------------------------------- |
+| `DATABASE_URL`    | 数据库连接地址  | `file:./dev.db`                | SQLite 数据库路径                                                     |
+| `NEXTAUTH_SECRET` | Auth 密钥  | 无                              | 用于加密 Session，生产环境建议设置,可以使用 openssl rand -base64 32 生成一个随机字符串作为密钥 |
+| `NEXTAUTH_URL`    | 访问地址     | `http://your-domain-name:3000` | 部署后的访问地址                                                         |
+| `AUTH_TRUST_HOST` | 信任主机头    | `true`                         | 设置为 `true` 时自动推断 URL，适合 Docker/PaaS                              |
+| `LOG_LEVEL`       | 日志级别     | `debug` (开发) / `info` (生产)     | 可选值：`trace`, `debug`, `info`, `warn`, `error`, `fatal`           |
+| `HTTP_PROXY`      | HTTP 代理  | 无                              | 设置 HTTP 代理                                                       |
+| `HTTPS_PROXY`     | HTTPS 代理 | 无                              | 设置 HTTPS 代理                                                      |
+
 
 **AI 配置**
 
-| 环境变量 | 描述 | 默认值 | 说明 |
-| :--- | :--- | :--- | :--- |
+
+| 环境变量          | 描述     | 默认值      | 说明                             |
+| ------------- | ------ | -------- | ------------------------------ |
 | `AI_PROVIDER` | AI 提供商 | `gemini` | 可选 `gemini`、`openai` 或 `azure` |
+
 
 **Gemini 配置**
 
-| 环境变量 | 描述 | 默认值 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `GOOGLE_API_KEY` | Gemini API Key | 无 | 使用 Gemini 时必填，从 [Google AI Studio](https://aistudio.google.com/apikey) 获取 |
-| `GEMINI_BASE_URL` | Gemini API 地址 | 无 | 可选，默认 `https://generativelanguage.googleapis.com`，通常无需修改 |
-| `GEMINI_MODEL` | Gemini 模型 | `gemini-2.5-flash` | 可选，如 `gemini-2.5-pro`、`gemini-3.0-flash` 等 |
+
+| 环境变量              | 描述             | 默认值                | 说明                                                                        |
+| ----------------- | -------------- | ------------------ | ------------------------------------------------------------------------- |
+| `GOOGLE_API_KEY`  | Gemini API Key | 无                  | 使用 Gemini 时必填，从 [Google AI Studio](https://aistudio.google.com/apikey) 获取 |
+| `GEMINI_BASE_URL` | Gemini API 地址  | 无                  | 可选，默认 `https://generativelanguage.googleapis.com`，通常无需修改                  |
+| `GEMINI_MODEL`    | Gemini 模型      | `gemini-2.5-flash` | 可选，如 `gemini-2.5-pro`、`gemini-3.0-flash` 等                                |
+
 
 **OpenAI 配置**
 
-| 环境变量 | 描述 | 默认值 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `OPENAI_API_KEY` | OpenAI API Key | 无 | 使用 OpenAI 时必填，从 [OpenAI Platform](https://platform.openai.com/api-keys) 获取 |
-| `OPENAI_BASE_URL` | OpenAI API 地址 | 无 | 可选，默认 `https://api.openai.com/v1`；使用第三方兼容服务时填写对应地址 |
-| `OPENAI_MODEL` | OpenAI 模型 | `gpt-4o` | 可选，如 `gpt-4-turbo`、`o3`、`o4-mini` 等 |
+
+| 环境变量              | 描述             | 默认值      | 说明                                                                         |
+| ----------------- | -------------- | -------- | -------------------------------------------------------------------------- |
+| `OPENAI_API_KEY`  | OpenAI API Key | 无        | 使用 OpenAI 时必填，从 [OpenAI Platform](https://platform.openai.com/api-keys) 获取 |
+| `OPENAI_BASE_URL` | OpenAI API 地址  | 无        | 可选，默认 `https://api.openai.com/v1`；使用第三方兼容服务时填写对应地址                         |
+| `OPENAI_MODEL`    | OpenAI 模型      | `gpt-4o` | 可选，如 `gpt-4-turbo`、`o3`、`o4-mini` 等                                        |
+
 
 **Azure OpenAI 配置**
 
-| 环境变量 | 描述 | 默认值 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `AZURE_OPENAI_API_KEY` | Azure API Key | 无 | 使用 Azure OpenAI 时必填，从 Azure 门户获取 |
-| `AZURE_OPENAI_ENDPOINT` | Azure Endpoint | 无 | Azure 资源端点，如 `https://xxx.openai.azure.com` |
-| `AZURE_OPENAI_DEPLOYMENT` | 部署名称 | 无 | Azure 中配置的部署名称，如 `gpt-4o` |
-| `AZURE_OPENAI_API_VERSION` | API 版本 | `2024-02-15-preview` | 可选，Azure API 版本 |
-| `AZURE_OPENAI_MODEL` | Azure 模型 | `gpt-4o` | 可选，显示用的模型名称 |
+
+| 环境变量                       | 描述             | 默认值                  | 说明                                          |
+| -------------------------- | -------------- | -------------------- | ------------------------------------------- |
+| `AZURE_OPENAI_API_KEY`     | Azure API Key  | 无                    | 使用 Azure OpenAI 时必填，从 Azure 门户获取            |
+| `AZURE_OPENAI_ENDPOINT`    | Azure Endpoint | 无                    | Azure 资源端点，如 `https://xxx.openai.azure.com` |
+| `AZURE_OPENAI_DEPLOYMENT`  | 部署名称           | 无                    | Azure 中配置的部署名称，如 `gpt-4o`                   |
+| `AZURE_OPENAI_API_VERSION` | API 版本         | `2024-02-15-preview` | 可选，Azure API 版本                             |
+| `AZURE_OPENAI_MODEL`       | Azure 模型       | `gpt-4o`             | 可选，显示用的模型名称                                 |
+
 
 #### 5. 初始化数据库
 
@@ -164,6 +301,7 @@ npx prisma db seed
 #### 6. 管理员账户
 
 默认管理员账户：
+
 - **邮箱**: `admin@localhost`
 - **密码**: `123456`
 
@@ -181,12 +319,12 @@ npm run dev
 
 本项目支持动态配置 AI 模型，无需重启服务器。
 
-1.  **进入设置**：点击首页右上角的设置图标。
-2.  **选择提供商**：支持 Google Gemini、OpenAI 和 **Azure OpenAI**。
-3.  **填写参数**：
-    *   **通用参数**: API Key、Base URL（或 Endpoint）、Model Name（或 Deployment Name）。
-    *   **Azure 特有**: Deployment Name（部署名称）、API Version（API 版本）。
-4.  **保存生效**：点击保存后即刻生效。
+1. **进入设置**：点击首页右上角的设置图标。
+2. **选择提供商**：支持 Google Gemini、OpenAI 和 **Azure OpenAI**。
+3. **填写参数**：
+  - **通用参数**: API Key、Base URL（或 Endpoint）、Model Name（或 Deployment Name）。
+  - **Azure 特有**: Deployment Name（部署名称）、API Version（API 版本）。
+4. **保存生效**：点击保存后即刻生效。
 
 > **注意**：网页配置会保存到 `config/app-config.json` 文件中，该文件的优先级高于 `.env` 环境变量。
 
@@ -196,31 +334,37 @@ npm run dev
 
 #### Google Gemini
 
-| 参数 | 获取方式 |
-| :--- | :--- |
-| API Key | [Google AI Studio](https://aistudio.google.com/apikey) → 创建 API Key |
-| Base URL | 默认 `https://generativelanguage.googleapis.com`，通常无需修改 |
-| 模型 | `gemini-2.5-flash`（推荐）、`gemini-2.5-pro`、`gemini-3.0-flash` 等 |
+
+| 参数       | 获取方式                                                                |
+| -------- | ------------------------------------------------------------------- |
+| API Key  | [Google AI Studio](https://aistudio.google.com/apikey) → 创建 API Key |
+| Base URL | 默认 `https://generativelanguage.googleapis.com`，通常无需修改               |
+| 模型       | `gemini-2.5-flash`（推荐）、`gemini-2.5-pro`、`gemini-3.0-flash` 等        |
+
 
 #### OpenAI
 
-| 参数 | 获取方式 |
-| :--- | :--- |
-| API Key | [OpenAI Platform](https://platform.openai.com/api-keys) → Create new secret key |
-| Base URL | 默认 `https://api.openai.com/v1` |
-| 模型 | `gpt-4o`（推荐）、`gpt-4-turbo`、`o3`、`o4-mini` 等 |
+
+| 参数       | 获取方式                                                                            |
+| -------- | ------------------------------------------------------------------------------- |
+| API Key  | [OpenAI Platform](https://platform.openai.com/api-keys) → Create new secret key |
+| Base URL | 默认 `https://api.openai.com/v1`                                                  |
+| 模型       | `gpt-4o`（推荐）、`gpt-4-turbo`、`o3`、`o4-mini` 等                                     |
+
 
 > **兼容模式**：OpenAI 提供商兼容所有支持 OpenAI API 格式的第三方服务。只需将 Base URL 改为对应服务地址，即可使用硅基流动、智谱 GLM、月之暗面 Kimi、通义千问 DashScope 等平台的模型。模型名称需填写对应平台的完整模型 ID。
 
 #### Azure OpenAI
 
-| 参数 | 获取方式 |
-| :--- | :--- |
-| API Key | Azure 门户 → 你的 OpenAI 资源 → 密钥和终结点 |
+
+| 参数       | 获取方式                                                           |
+| -------- | -------------------------------------------------------------- |
+| API Key  | Azure 门户 → 你的 OpenAI 资源 → 密钥和终结点                               |
 | Endpoint | Azure 门户 → 你的 OpenAI 资源 → 终结点，如 `https://xxx.openai.azure.com` |
-| 部署名称 | Azure 中配置的模型部署名称，如 `gpt-4o` |
-| API 版本 | 默认 `2024-02-15-preview` |
-| 模型 | 显示用的模型名称，如 `gpt-4o` |
+| 部署名称     | Azure 中配置的模型部署名称，如 `gpt-4o`                                    |
+| API 版本   | 默认 `2024-02-15-preview`                                        |
+| 模型       | 显示用的模型名称，如 `gpt-4o`                                            |
+
 
 ## 🛠️ 实用脚本
 
