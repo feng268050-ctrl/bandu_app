@@ -22,6 +22,8 @@ interface QuestionBankRepository {
 
     suspend fun addQuestion(draft: BankQuestionDraft): BankQuestionId
 
+    suspend fun addQuestions(drafts: List<BankQuestionDraft>): List<BankQuestionId>
+
     suspend fun createExam(bankId: QuestionBankId, questionCount: Int): ExamSessionId
 
     suspend fun submitAnswer(attemptId: ExamAttemptId, userAnswer: String)

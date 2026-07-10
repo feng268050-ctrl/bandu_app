@@ -5,8 +5,8 @@ import org.junit.Test
 
 class PromptTypeTest {
     @Test
-    fun `all four prompt types expose required placeholders`() {
-        assertThat(PromptType.ALL).hasSize(4)
+    fun `all prompt types expose required placeholders`() {
+        assertThat(PromptType.ALL).hasSize(5)
         assertThat(PromptType.ANALYZE_IMAGE.requiredPlaceholders).containsExactly(
             "{{language_instruction}}",
             "{{knowledge_points_list}}",
@@ -30,6 +30,13 @@ class PromptTypeTest {
             "{{expected_answer}}",
             "{{user_answer}}",
             "{{rubric_context}}",
+        )
+        assertThat(PromptType.SPLIT_QUESTION_BANK_PAGE.requiredPlaceholders).containsExactly(
+            "{{source_file_name}}",
+            "{{page_number}}",
+            "{{language_instruction}}",
+            "{{grade_instruction}}",
+            "{{provider_hints}}",
         )
     }
 }

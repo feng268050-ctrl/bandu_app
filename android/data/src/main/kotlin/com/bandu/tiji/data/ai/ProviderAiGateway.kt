@@ -16,6 +16,9 @@ import com.bandu.tiji.domain.ai.ExerciseGrade
 import com.bandu.tiji.domain.ai.ExerciseRequest
 import com.bandu.tiji.domain.ai.GeneratedExercise
 import com.bandu.tiji.domain.ai.GradeExerciseRequest
+import com.bandu.tiji.domain.ai.SplitQuestionBankPage
+import com.bandu.tiji.domain.ai.SplitQuestionBankPageRequest
+import com.bandu.tiji.domain.ai.SplitQuestionBankQuestion
 import com.bandu.tiji.domain.ai.TutorRequest
 import com.bandu.tiji.domain.ai.ValidationResult
 import com.bandu.tiji.domain.repository.AiTutorGateway
@@ -66,6 +69,14 @@ class ProviderAiTutorGateway @Inject constructor(
             val configuration = configurationResolver.resolve()
             registry.require(configuration.providerType)
                 .gradeExercise(configuration, request.toApi())
+                .toDomain()
+        }
+
+    override suspend fun splitQuestionBankPage(request: SplitQuestionBankPageRequest): SplitQuestionBankPage =
+        normalizedCall {
+            val configuration = configurationResolver.resolve()
+            registry.require(configuration.providerType)
+                .splitQuestionBankPage(configuration, request.toApi())
                 .toDomain()
         }
 }
@@ -225,4 +236,32 @@ private fun com.bandu.tiji.ai.api.model.ExerciseGrade.toDomain() =
         result = result,
         feedback = feedback,
         confidence = confidence,
+    )
+
+private fun SplitQuestionBankPageRequest.toApi() =
+    com.bandu.tiji.ai.api.model.SplitQuestionBankPageRequest(
+        sourceFileName = sourceFileName,
+        pageNumber = pageNumber,
+        pageImageBytes = pageImageBytes,
+        mimeType = mimeType,
+        languageInstruction = languageInstruction,
+        gradeInstruction = gradeInstruction,
+        providerHints = providerHints,
+    )
+
+private fun com.bandu.tiji.ai.api.model.SplitQuestionBankPage.toDomain() =
+    SplitQuestionBankPage(
+        questions = questions.map { it.toDomain() },
+    )
+
+private fun com.bandu.tiji.ai.api.model.SplitQuestionBankQuestion.toDomain() =
+    SplitQuestionBankQuestion(
+        stem = stem,
+        options = options,
+        answer = answer,
+        analysis = analysis,
+        questionType = questionType,
+        difficulty = difficulty,
+        tags = tags,
+        sourceText = sourceText,
     )

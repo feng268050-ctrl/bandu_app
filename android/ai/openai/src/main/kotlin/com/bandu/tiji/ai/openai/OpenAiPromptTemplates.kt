@@ -54,5 +54,31 @@ object DefaultOpenAiPromptTemplates : OpenAiPromptTemplateSource {
             <feedback></feedback>
             <confidence>0.0..1.0</confidence>
         """.trimIndent(),
+        PromptType.SPLIT_QUESTION_BANK_PAGE to """
+            你会收到 PDF 题库的一页图片，请识别这一页上的所有完整题目并拆成结构化题目。
+            文件名：{{source_file_name}}
+            页码：{{page_number}}
+            输出语言：{{language_instruction}}
+            年级约束：{{grade_instruction}}
+            兼容服务补充要求：{{provider_hints}}
+
+            只返回 XML，不要添加代码围栏、解释或 Markdown。没有完整题目时返回 <questions></questions>。
+            每道题必须放在一个 <question> 节点内；选择题选项一行一个，保留 A/B/C/D 等选项标记。
+            type 只能是 SINGLE_CHOICE、MULTIPLE_CHOICE、FILL_BLANK、SUBJECTIVE、UNKNOWN。
+            difficulty 只能是 EASY、MEDIUM、HARD、CHALLENGE。
+
+            <questions>
+            <question>
+            <stem></stem>
+            <options></options>
+            <answer></answer>
+            <analysis></analysis>
+            <type>UNKNOWN</type>
+            <difficulty>MEDIUM</difficulty>
+            <tags></tags>
+            <source_text></source_text>
+            </question>
+            </questions>
+        """.trimIndent(),
     )
 }

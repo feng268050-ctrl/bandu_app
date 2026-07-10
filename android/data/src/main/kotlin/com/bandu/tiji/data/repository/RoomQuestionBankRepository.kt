@@ -84,6 +84,31 @@ class RoomQuestionBankRepository @Inject constructor(
         return id
     }
 
+    override suspend fun addQuestions(drafts: List<BankQuestionDraft>): List<BankQuestionId> {
+        if (drafts.isEmpty()) return emptyList()
+        val bankId = drafts.first().bankId
+        require(drafts.all { it.bankId == bankId }) { "question_bank_mismatch" }
+        val ids = drafts.map { BankQuestionId(uuidGenerator.newUuid()) }
+        val now = clock.nowEpochMillis()
+        database.withTransaction {
+            val bank = requireNotNull(dao.getBank(bankId.value)) {
+                "question_bank_not_found"
+            }
+            dao.insertQuestions(
+                drafts.mapIndexed { index, draft ->
+                    draft.toEntity(ids[index], now + index)
+                },
+            )
+            dao.updateBank(
+                bank.copy(
+                    importStatus = QuestionBankImportStatus.IMPORTED.name,
+                    updatedAt = now + drafts.lastIndex,
+                ),
+            )
+        }
+        return ids
+    }
+
     override suspend fun createExam(
         bankId: QuestionBankId,
         questionCount: Int,

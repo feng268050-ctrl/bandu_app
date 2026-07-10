@@ -7,6 +7,8 @@ import com.bandu.tiji.domain.ai.ExerciseGrade
 import com.bandu.tiji.domain.ai.ExerciseRequest
 import com.bandu.tiji.domain.ai.GeneratedExercise
 import com.bandu.tiji.domain.ai.GradeExerciseRequest
+import com.bandu.tiji.domain.ai.SplitQuestionBankPage
+import com.bandu.tiji.domain.ai.SplitQuestionBankPageRequest
 import com.bandu.tiji.domain.ai.TutorRequest
 import kotlinx.coroutines.flow.Flow
 
@@ -18,4 +20,6 @@ interface AiTutorGateway {
     suspend fun generateExercise(request: ExerciseRequest): GeneratedExercise
 
     suspend fun gradeExercise(request: GradeExerciseRequest): ExerciseGrade
+
+    suspend fun splitQuestionBankPage(request: SplitQuestionBankPageRequest): SplitQuestionBankPage
 }

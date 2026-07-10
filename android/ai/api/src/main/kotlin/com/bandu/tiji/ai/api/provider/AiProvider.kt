@@ -9,6 +9,8 @@ import com.bandu.tiji.ai.api.model.ExerciseGrade
 import com.bandu.tiji.ai.api.model.ExerciseRequest
 import com.bandu.tiji.ai.api.model.GeneratedExercise
 import com.bandu.tiji.ai.api.model.GradeExerciseRequest
+import com.bandu.tiji.ai.api.model.SplitQuestionBankPage
+import com.bandu.tiji.ai.api.model.SplitQuestionBankPageRequest
 import com.bandu.tiji.ai.api.model.TutorRequest
 import com.bandu.tiji.core.model.enums.AiProviderType
 import kotlinx.coroutines.flow.Flow
@@ -37,4 +39,9 @@ interface AiProvider {
         configuration: ResolvedAiConfiguration,
         request: GradeExerciseRequest,
     ): ExerciseGrade
+
+    suspend fun splitQuestionBankPage(
+        configuration: ResolvedAiConfiguration,
+        request: SplitQuestionBankPageRequest,
+    ): SplitQuestionBankPage
 }

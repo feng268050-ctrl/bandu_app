@@ -5,6 +5,7 @@ enum class PromptType {
     TUTOR,
     GENERATE_EXERCISE,
     GRADE_EXERCISE,
+    SPLIT_QUESTION_BANK_PAGE,
     ;
 
     val requiredPlaceholders: Set<String>
@@ -38,6 +39,13 @@ enum class PromptType {
                 "{{expected_answer}}",
                 "{{user_answer}}",
                 "{{rubric_context}}",
+            ),
+            SPLIT_QUESTION_BANK_PAGE to setOf(
+                "{{source_file_name}}",
+                "{{page_number}}",
+                "{{language_instruction}}",
+                "{{grade_instruction}}",
+                "{{provider_hints}}",
             ),
         )
 

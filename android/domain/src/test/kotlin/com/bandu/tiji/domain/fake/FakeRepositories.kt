@@ -29,6 +29,8 @@ import com.bandu.tiji.domain.ai.ExerciseRequest
 import com.bandu.tiji.domain.ai.GeneratedExercise
 import com.bandu.tiji.domain.ai.GradeExerciseRequest
 import com.bandu.tiji.domain.ai.PromptType
+import com.bandu.tiji.domain.ai.SplitQuestionBankPage
+import com.bandu.tiji.domain.ai.SplitQuestionBankPageRequest
 import com.bandu.tiji.domain.ai.TutorRequest
 import com.bandu.tiji.domain.ai.ValidationResult
 import com.bandu.tiji.domain.repository.AiConfigurationRepository
@@ -226,12 +228,14 @@ class FakeAiTutorGateway : AiTutorGateway {
     val tutorRequests = mutableListOf<TutorRequest>()
     val exerciseRequests = mutableListOf<ExerciseRequest>()
     val gradeRequests = mutableListOf<GradeExerciseRequest>()
+    val splitPageRequests = mutableListOf<SplitQuestionBankPageRequest>()
     var streamEvents: List<AiStreamEvent> = listOf(
         AiStreamEvent.Delta("hello"),
         AiStreamEvent.Completed,
     )
     var generatedExercise = GeneratedExercise("q", "a", "analysis")
     var exerciseGrade = ExerciseGrade(GradeResult.CORRECT, "good", 0.9)
+    var splitQuestionBankPage = SplitQuestionBankPage(emptyList())
 
     override suspend fun analyzeImage(request: AnalyzeImageRequest): AnalyzedQuestion =
         throw UnsupportedOperationException()
@@ -249,6 +253,13 @@ class FakeAiTutorGateway : AiTutorGateway {
     override suspend fun gradeExercise(request: GradeExerciseRequest): ExerciseGrade {
         gradeRequests += request
         return exerciseGrade
+    }
+
+    override suspend fun splitQuestionBankPage(
+        request: SplitQuestionBankPageRequest,
+    ): SplitQuestionBankPage {
+        splitPageRequests += request
+        return splitQuestionBankPage
     }
 }
 

@@ -50,6 +50,9 @@ interface QuestionBankDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertQuestion(question: BankQuestionEntity)
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertQuestions(questions: List<BankQuestionEntity>)
+
     @Query(
         """
         SELECT * FROM bank_questions

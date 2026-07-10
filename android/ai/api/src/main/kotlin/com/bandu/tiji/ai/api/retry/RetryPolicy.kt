@@ -8,6 +8,7 @@ enum class AiOperationType {
     STREAM_TUTOR_FIRST_BYTE,
     GENERATE_EXERCISE,
     GRADE_EXERCISE,
+    SPLIT_QUESTION_BANK_PAGE,
 }
 
 data class RetryContext(
@@ -52,6 +53,7 @@ class RetryPolicy(
         AiOperationType.ANALYZE_IMAGE,
         AiOperationType.GENERATE_EXERCISE,
         AiOperationType.GRADE_EXERCISE,
+        AiOperationType.SPLIT_QUESTION_BANK_PAGE,
         -> true
     }
 

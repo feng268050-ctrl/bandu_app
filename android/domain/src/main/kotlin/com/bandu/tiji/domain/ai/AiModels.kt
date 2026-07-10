@@ -8,6 +8,7 @@ import com.bandu.tiji.core.model.erroritem.StoredImage
 import com.bandu.tiji.core.model.id.ErrorItemId
 import com.bandu.tiji.core.model.id.ExerciseId
 import com.bandu.tiji.core.model.id.TutorSessionId
+import com.bandu.tiji.core.model.questionbank.BankQuestionType
 
 data class AiConfiguration(
     val id: String,
@@ -120,6 +121,54 @@ data class ExerciseGrade(
     val result: GradeResult,
     val feedback: String,
     val confidence: Double,
+)
+
+data class SplitQuestionBankPageRequest(
+    val sourceFileName: String,
+    val pageNumber: Int,
+    val pageImageBytes: ByteArray,
+    val mimeType: String = "image/jpeg",
+    val languageInstruction: String = "",
+    val gradeInstruction: String = "",
+    val providerHints: String = "",
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is SplitQuestionBankPageRequest) return false
+        return sourceFileName == other.sourceFileName &&
+            pageNumber == other.pageNumber &&
+            pageImageBytes.contentEquals(other.pageImageBytes) &&
+            mimeType == other.mimeType &&
+            languageInstruction == other.languageInstruction &&
+            gradeInstruction == other.gradeInstruction &&
+            providerHints == other.providerHints
+    }
+
+    override fun hashCode(): Int {
+        var result = sourceFileName.hashCode()
+        result = 31 * result + pageNumber
+        result = 31 * result + pageImageBytes.contentHashCode()
+        result = 31 * result + mimeType.hashCode()
+        result = 31 * result + languageInstruction.hashCode()
+        result = 31 * result + gradeInstruction.hashCode()
+        result = 31 * result + providerHints.hashCode()
+        return result
+    }
+}
+
+data class SplitQuestionBankPage(
+    val questions: List<SplitQuestionBankQuestion>,
+)
+
+data class SplitQuestionBankQuestion(
+    val stem: String,
+    val options: List<String> = emptyList(),
+    val answer: String? = null,
+    val analysis: String? = null,
+    val questionType: BankQuestionType = BankQuestionType.UNKNOWN,
+    val difficulty: ExerciseDifficulty = ExerciseDifficulty.MEDIUM,
+    val tags: List<String> = emptyList(),
+    val sourceText: String? = null,
 )
 
 sealed class AiGatewayException : Exception() {

@@ -15,6 +15,7 @@ data class QuestionBankUiState(
     val currentAttemptIndex: Int = 0,
     val answerInput: String = "",
     val isLoading: Boolean = true,
+    val loadingMessage: String = "正在加载题库",
     val errorMessage: String? = null,
     val noticeMessage: String? = null,
     val questionEditor: QuestionEditorUiState? = null,

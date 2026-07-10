@@ -9,6 +9,8 @@ import com.bandu.tiji.ai.api.model.ExerciseGrade
 import com.bandu.tiji.ai.api.model.ExerciseRequest
 import com.bandu.tiji.ai.api.model.GeneratedExercise
 import com.bandu.tiji.ai.api.model.GradeExerciseRequest
+import com.bandu.tiji.ai.api.model.SplitQuestionBankPage
+import com.bandu.tiji.ai.api.model.SplitQuestionBankPageRequest
 import com.bandu.tiji.ai.api.model.TutorRequest
 import com.bandu.tiji.core.model.enums.AiProviderType
 import com.bandu.tiji.core.model.enums.MistakeStatus
@@ -81,5 +83,10 @@ class AiProviderRegistryTest {
             configuration: ResolvedAiConfiguration,
             request: GradeExerciseRequest,
         ): ExerciseGrade = throw UnsupportedOperationException()
+
+        override suspend fun splitQuestionBankPage(
+            configuration: ResolvedAiConfiguration,
+            request: SplitQuestionBankPageRequest,
+        ): SplitQuestionBankPage = SplitQuestionBankPage(emptyList())
     }
 }

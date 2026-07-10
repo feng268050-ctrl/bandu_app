@@ -78,7 +78,7 @@ fun QuestionBankContent(
     ) { contentPadding ->
         when {
             uiState.isLoading -> BanduLoadingState(
-                message = "正在加载题库",
+                message = uiState.loadingMessage,
                 modifier = Modifier.padding(contentPadding),
             )
             uiState.errorMessage != null -> BanduErrorState(
@@ -134,7 +134,7 @@ private fun BankListContent(
     if (banks.isEmpty()) {
         BanduEmptyState(
             title = "还没有 PDF 题库",
-            description = "导入 PDF 后可手动复核题目，并随机生成考卷",
+            description = "导入 PDF 后自动拆题，复核后可随机生成考卷",
             actionLabel = "导入 PDF",
             onAction = { onAction(QuestionBankAction.RequestPdfImport) },
             modifier = modifier,
@@ -220,7 +220,7 @@ private fun BankDetailContent(
                     style = MaterialTheme.typography.bodyMedium,
                 )
                 Text(
-                    "当前版本支持 PDF 文件建库和人工复核录题；自动 OCR/AI 拆题将在后续阶段接入。",
+                    "PDF 已自动拆题入库；请复核题目、答案和解析后再生成考卷。",
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     style = MaterialTheme.typography.bodySmall,
                 )

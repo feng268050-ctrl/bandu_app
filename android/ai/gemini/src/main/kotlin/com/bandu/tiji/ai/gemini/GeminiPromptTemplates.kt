@@ -57,5 +57,31 @@ object DefaultGeminiPromptTemplates : GeminiPromptTemplateSource {
             <feedback></feedback>
             <confidence>0.0..1.0</confidence>
         """.trimIndent(),
+        PromptType.SPLIT_QUESTION_BANK_PAGE to """
+            请识别 PDF 题库页面图片中的所有完整题目，并仅使用指定 XML 标签回答。
+            文件名：{{source_file_name}}
+            页码：{{page_number}}
+            语言要求：{{language_instruction}}
+            年级要求：{{grade_instruction}}
+            供应商提示：{{provider_hints}}
+
+            没有完整题目时返回 <questions></questions>。不要输出代码围栏、说明文字或 Markdown。
+            每道题放入一个 <question> 节点；选择题选项一行一个并保留选项标记。
+            type 只能是 SINGLE_CHOICE、MULTIPLE_CHOICE、FILL_BLANK、SUBJECTIVE、UNKNOWN。
+            difficulty 只能是 EASY、MEDIUM、HARD、CHALLENGE。
+
+            <questions>
+            <question>
+            <stem></stem>
+            <options></options>
+            <answer></answer>
+            <analysis></analysis>
+            <type>UNKNOWN</type>
+            <difficulty>MEDIUM</difficulty>
+            <tags></tags>
+            <source_text></source_text>
+            </question>
+            </questions>
+        """.trimIndent(),
     )
 }

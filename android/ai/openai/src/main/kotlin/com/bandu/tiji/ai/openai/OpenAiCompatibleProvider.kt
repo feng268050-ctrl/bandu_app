@@ -9,9 +9,12 @@ import com.bandu.tiji.ai.api.model.ExerciseGrade
 import com.bandu.tiji.ai.api.model.ExerciseRequest
 import com.bandu.tiji.ai.api.model.GeneratedExercise
 import com.bandu.tiji.ai.api.model.GradeExerciseRequest
+import com.bandu.tiji.ai.api.model.SplitQuestionBankPage
+import com.bandu.tiji.ai.api.model.SplitQuestionBankPageRequest
 import com.bandu.tiji.ai.api.model.TutorRequest
 import com.bandu.tiji.ai.api.parser.ExerciseResponseParser
 import com.bandu.tiji.ai.api.parser.ImageAnalysisResponseParser
+import com.bandu.tiji.ai.api.parser.QuestionBankSplitResponseParser
 import com.bandu.tiji.ai.api.prompt.PromptRenderer
 import com.bandu.tiji.ai.api.prompt.PromptType
 import com.bandu.tiji.ai.api.provider.AiProvider
@@ -73,6 +76,7 @@ class OpenAiCompatibleProvider(
     private val promptRenderer: PromptRenderer = PromptRenderer(),
     private val imageAnalysisParser: ImageAnalysisResponseParser = ImageAnalysisResponseParser(),
     private val exerciseParser: ExerciseResponseParser = ExerciseResponseParser(),
+    private val questionBankSplitParser: QuestionBankSplitResponseParser = QuestionBankSplitResponseParser(),
     private val retryPolicy: RetryPolicy = RetryPolicy(),
     private val retryExecutor: ProviderRetryExecutor = ProviderRetryExecutor(),
 ) : AiProvider {
@@ -194,6 +198,34 @@ class OpenAiCompatibleProvider(
                 ),
             )
         }
+
+    override suspend fun splitQuestionBankPage(
+        configuration: ResolvedAiConfiguration,
+        request: SplitQuestionBankPageRequest,
+    ): SplitQuestionBankPage {
+        val prompt = renderPrompt(
+            PromptType.SPLIT_QUESTION_BANK_PAGE,
+            mapOf(
+                "source_file_name" to request.sourceFileName,
+                "page_number" to request.pageNumber.toString(),
+                "language_instruction" to request.languageInstruction,
+                "grade_instruction" to request.gradeInstruction,
+                "provider_hints" to request.providerHints,
+            ),
+        )
+        return executeWithRetry(AiOperationType.SPLIT_QUESTION_BANK_PAGE) {
+            questionBankSplitParser.parsePage(
+                generateImageAnalysisText(
+                    configuration = configuration,
+                    request = AnalyzeImageRequest(
+                        imageBytes = request.pageImageBytes,
+                        mimeType = request.mimeType,
+                    ),
+                    prompt = prompt,
+                ),
+            )
+        }
+    }
 
     internal suspend fun generateText(
         configuration: ResolvedAiConfiguration,

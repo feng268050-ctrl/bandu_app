@@ -7,7 +7,12 @@ import com.bandu.tiji.core.model.id.ExamAttemptId
 import com.bandu.tiji.core.model.id.ExamSessionId
 import com.bandu.tiji.core.model.id.QuestionBankId
 import com.bandu.tiji.core.model.questionbank.BankQuestionDraft
+import com.bandu.tiji.core.model.questionbank.QuestionReviewStatus
 import com.bandu.tiji.core.model.questionbank.QuestionBankDraft
+import com.bandu.tiji.domain.ai.AiGatewayException
+import com.bandu.tiji.domain.ai.SplitQuestionBankQuestion
+import com.bandu.tiji.domain.ai.SplitQuestionBankPageRequest
+import com.bandu.tiji.domain.repository.AiTutorGateway
 import com.bandu.tiji.domain.repository.QuestionBankRepository
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
@@ -22,6 +27,8 @@ import kotlinx.coroutines.launch
 
 class QuestionBankViewModel(
     private val repository: QuestionBankRepository,
+    private val aiGateway: AiTutorGateway? = null,
+    private val pdfPageExtractor: PdfQuestionBankPageExtractor? = null,
 ) : ViewModel() {
     private val mutableUiState = MutableStateFlow(QuestionBankUiState())
     val uiState: StateFlow<QuestionBankUiState> = mutableUiState.asStateFlow()
@@ -32,6 +39,7 @@ class QuestionBankViewModel(
     private var banksJob: Job? = null
     private var bankJob: Job? = null
     private var examJob: Job? = null
+    private var isPdfImportRunning = false
 
     init {
         observeBanks()
@@ -85,16 +93,25 @@ class QuestionBankViewModel(
                     )
                 }
                 .collect { banks ->
-                    mutableUiState.value = mutableUiState.value.copy(
-                        banks = banks,
-                        isLoading = false,
-                        errorMessage = null,
-                    )
+                    val current = mutableUiState.value
+                    mutableUiState.value = if (isPdfImportRunning) {
+                        current.copy(banks = banks)
+                    } else {
+                        current.copy(
+                            banks = banks,
+                            isLoading = false,
+                            loadingMessage = "正在加载题库",
+                            errorMessage = null,
+                        )
+                    }
                 }
         }
     }
 
-    private fun openBank(id: QuestionBankId) {
+    private fun openBank(
+        id: QuestionBankId,
+        noticeMessage: String? = null,
+    ) {
         bankJob?.cancel()
         examJob?.cancel()
         mutableUiState.value = mutableUiState.value.copy(
@@ -104,8 +121,9 @@ class QuestionBankViewModel(
             currentAttemptIndex = 0,
             answerInput = "",
             isLoading = true,
+            loadingMessage = "正在加载题库详情",
             errorMessage = null,
-            noticeMessage = null,
+            noticeMessage = noticeMessage,
         )
         bankJob = viewModelScope.launch {
             repository.observeBank(id)
@@ -119,6 +137,7 @@ class QuestionBankViewModel(
                     mutableUiState.value = mutableUiState.value.copy(
                         currentBank = bank,
                         isLoading = false,
+                        loadingMessage = "正在加载题库",
                         errorMessage = if (bank == null) "题库不存在" else null,
                     )
                 }
@@ -133,6 +152,7 @@ class QuestionBankViewModel(
             currentAttemptIndex = 0,
             answerInput = "",
             isLoading = true,
+            loadingMessage = "正在加载考卷",
             errorMessage = null,
             noticeMessage = null,
         )
@@ -149,6 +169,7 @@ class QuestionBankViewModel(
                     mutableUiState.value = mutableUiState.value.copy(
                         currentExam = session,
                         isLoading = false,
+                        loadingMessage = "正在加载题库",
                         answerInput = current?.userAnswer.orEmpty(),
                         errorMessage = if (session == null) "考卷不存在" else null,
                     )
@@ -157,30 +178,75 @@ class QuestionBankViewModel(
     }
 
     private fun importPdf(uri: String) {
+        if (isPdfImportRunning) return
         viewModelScope.launch {
+            isPdfImportRunning = true
             mutableUiState.value = mutableUiState.value.copy(
                 isLoading = true,
+                loadingMessage = "正在准备 PDF 导入",
                 errorMessage = null,
                 noticeMessage = null,
             )
             runCatching {
+                val extractor = pdfPageExtractor ?: throw PdfImportFailure.MissingPdfReader
+                val gateway = aiGateway ?: throw PdfImportFailure.MissingAiConfiguration
                 val fileName = uri.toPdfFileName()
-                repository.createBank(
+                mutableUiState.value = mutableUiState.value.copy(
+                    loadingMessage = "正在渲染 PDF 页面",
+                )
+                val document = extractor.extract(uri)
+                if (document.pages.isEmpty()) throw PdfImportFailure.EmptyPdf
+
+                val importedQuestions = mutableListOf<ImportedBankQuestion>()
+                document.pages.forEachIndexed { index, page ->
+                    mutableUiState.value = mutableUiState.value.copy(
+                        loadingMessage = "正在拆题 ${index + 1}/${document.pages.size}",
+                    )
+                    val split = gateway.splitQuestionBankPage(
+                        SplitQuestionBankPageRequest(
+                            sourceFileName = fileName,
+                            pageNumber = page.pageNumber,
+                            pageImageBytes = page.imageBytes,
+                            mimeType = page.mimeType,
+                            languageInstruction = "请使用简体中文返回题目、答案、解析和标签。",
+                        ),
+                    )
+                    importedQuestions += split.questions.map { question ->
+                        question.toImportedBankQuestion(page.pageNumber)
+                    }
+                }
+                if (importedQuestions.isEmpty()) throw PdfImportFailure.NoQuestions
+
+                mutableUiState.value = mutableUiState.value.copy(
+                    loadingMessage = "正在保存题库",
+                )
+                val bankId = repository.createBank(
                     QuestionBankDraft(
                         name = fileName.removeSuffix(".pdf").ifBlank { "PDF 题库" },
                         sourceFileName = fileName,
                         sourceUri = uri,
                     ),
                 )
-            }.onSuccess { id ->
-                mutableUiState.value = mutableUiState.value.copy(
-                    noticeMessage = "PDF 已导入为题库草稿，请手动添加或复核题目。",
+                repository.addQuestions(
+                    importedQuestions.map { question ->
+                        question.toDraft(bankId)
+                    },
                 )
-                openBank(id)
-            }.onFailure {
+                PdfImportResult(
+                    bankId = bankId,
+                    questionCount = importedQuestions.size,
+                    importedPageCount = document.pages.size,
+                    totalPageCount = document.totalPageCount,
+                )
+            }.onSuccess { id ->
+                isPdfImportRunning = false
+                openBank(id.bankId, id.successMessage())
+            }.onFailure { throwable ->
+                isPdfImportRunning = false
                 mutableUiState.value = mutableUiState.value.copy(
                     isLoading = false,
-                    errorMessage = "无法导入 PDF，请重新选择文件。",
+                    loadingMessage = "正在加载题库",
+                    errorMessage = throwable.toPdfImportErrorMessage(),
                 )
             }
         }
@@ -335,6 +401,86 @@ class QuestionBankViewModel(
             else -> "无法生成考卷，请稍后重试"
         }
 }
+
+private data class ImportedBankQuestion(
+    val stem: String,
+    val options: List<String>,
+    val answer: String?,
+    val analysis: String?,
+    val questionType: com.bandu.tiji.core.model.questionbank.BankQuestionType,
+    val difficulty: ExerciseDifficulty,
+    val tags: List<String>,
+    val sourcePage: Int,
+    val sourceText: String?,
+) {
+    fun toDraft(bankId: QuestionBankId): BankQuestionDraft =
+        BankQuestionDraft(
+            bankId = bankId,
+            stem = stem,
+            options = options,
+            answer = answer,
+            analysis = analysis,
+            questionType = questionType,
+            difficulty = difficulty,
+            tags = tags,
+            sourcePage = sourcePage,
+            sourceText = sourceText,
+            reviewStatus = QuestionReviewStatus.NEEDS_REVIEW,
+        )
+}
+
+private data class PdfImportResult(
+    val bankId: QuestionBankId,
+    val questionCount: Int,
+    val importedPageCount: Int,
+    val totalPageCount: Int,
+) {
+    fun successMessage(): String {
+        val pageText = if (totalPageCount > importedPageCount) {
+            "前 $importedPageCount/$totalPageCount 页"
+        } else {
+            "$importedPageCount 页"
+        }
+        return "PDF 已自动拆出 $questionCount 道题（$pageText），请复核后生成考卷。"
+    }
+}
+
+private sealed class PdfImportFailure : RuntimeException() {
+    data object MissingPdfReader : PdfImportFailure()
+    data object MissingAiConfiguration : PdfImportFailure()
+    data object EmptyPdf : PdfImportFailure()
+    data object NoQuestions : PdfImportFailure()
+}
+
+private fun SplitQuestionBankQuestion.toImportedBankQuestion(sourcePage: Int): ImportedBankQuestion =
+    ImportedBankQuestion(
+        stem = stem.trim(),
+        options = options.map { it.trim() }.filter { it.isNotBlank() },
+        answer = answer?.trim()?.ifBlank { null },
+        analysis = analysis?.trim()?.ifBlank { null },
+        questionType = questionType,
+        difficulty = difficulty,
+        tags = tags.map { it.trim() }.filter { it.isNotBlank() },
+        sourcePage = sourcePage,
+        sourceText = sourceText?.trim()?.ifBlank { null } ?: stem.trim(),
+    )
+
+private fun Throwable.toPdfImportErrorMessage(): String =
+    when (this) {
+        PdfImportFailure.MissingPdfReader -> "当前版本无法读取 PDF 页面，请稍后重试。"
+        PdfImportFailure.MissingAiConfiguration,
+        AiGatewayException.ConfigurationRequired,
+        -> "请先在“我的 - AI 配置”保存可用模型后再导入 PDF。"
+        PdfImportFailure.EmptyPdf -> "PDF 没有可读取页面，请重新选择文件。"
+        PdfImportFailure.NoQuestions -> "未能从 PDF 中拆出题目，请换用更清晰的 PDF 或手动添加题目。"
+        AiGatewayException.Authentication -> "AI 密钥认证失败，请检查 API key 后重试。"
+        AiGatewayException.RateLimited -> "AI 服务限流，请稍后再试。"
+        AiGatewayException.Timeout -> "AI 拆题超时，请稍后重试或选择页数更少的 PDF。"
+        AiGatewayException.NetworkUnavailable -> "网络不可用，无法调用 AI 拆题。"
+        is AiGatewayException.EndpointRejected -> "AI 服务拒绝请求：$reason"
+        is AiGatewayException.InvalidResponse -> "AI 返回格式无法解析，请重试。"
+        else -> "无法导入 PDF，请重新选择文件。"
+    }
 
 private fun String.toPdfFileName(): String {
     val decoded = runCatching {

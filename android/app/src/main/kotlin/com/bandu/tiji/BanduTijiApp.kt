@@ -289,7 +289,11 @@ fun BanduTijiApp(
                 }
                 composable<QuestionBanksDestination> {
                     val viewModel = appViewModel("question-banks") {
-                        QuestionBankViewModel(dependencies.questionBankRepository())
+                        QuestionBankViewModel(
+                            repository = dependencies.questionBankRepository(),
+                            aiGateway = dependencies.aiTutorGateway(),
+                            pdfPageExtractor = AndroidPdfQuestionBankPageExtractor(context),
+                        )
                     }
                     QuestionBankRoute(
                         viewModel = viewModel,

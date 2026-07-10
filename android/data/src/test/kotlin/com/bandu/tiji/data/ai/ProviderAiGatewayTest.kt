@@ -11,14 +11,19 @@ import com.bandu.tiji.ai.api.model.ExerciseGrade
 import com.bandu.tiji.ai.api.model.ExerciseRequest
 import com.bandu.tiji.ai.api.model.GeneratedExercise
 import com.bandu.tiji.ai.api.model.GradeExerciseRequest
+import com.bandu.tiji.ai.api.model.SplitQuestionBankPage
+import com.bandu.tiji.ai.api.model.SplitQuestionBankPageRequest
+import com.bandu.tiji.ai.api.model.SplitQuestionBankQuestion
 import com.bandu.tiji.ai.api.model.TutorRequest
 import com.bandu.tiji.ai.api.provider.AiProvider
 import com.bandu.tiji.ai.api.provider.AiProviderRegistry
 import com.bandu.tiji.core.model.enums.AiProviderType
+import com.bandu.tiji.core.model.enums.ExerciseDifficulty
 import com.bandu.tiji.core.model.enums.GradeResult
 import com.bandu.tiji.core.model.enums.MistakeStatus
 import com.bandu.tiji.core.model.id.ExerciseId
 import com.bandu.tiji.core.model.id.TutorSessionId
+import com.bandu.tiji.core.model.questionbank.BankQuestionType
 import com.bandu.tiji.domain.ai.AiGatewayException
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.flow.Flow
@@ -70,10 +75,20 @@ class ProviderAiGatewayTest {
                 "answer",
             ),
         )
+        val splitPage = gateway.splitQuestionBankPage(
+            com.bandu.tiji.domain.ai.SplitQuestionBankPageRequest(
+                sourceFileName = "paper.pdf",
+                pageNumber = 1,
+                pageImageBytes = byteArrayOf(9),
+            ),
+        )
 
         assertThat(generated.questionText).isEqualTo("generated")
         assertThat(grade.result).isEqualTo(GradeResult.CORRECT)
-        assertThat(openAi.calls).containsExactly("analyze", "stream", "generate", "grade").inOrder()
+        assertThat(splitPage.questions.single().stem).isEqualTo("split question")
+        assertThat(openAi.calls)
+            .containsExactly("analyze", "stream", "generate", "grade", "split")
+            .inOrder()
         assertThat(gemini.calls).isEmpty()
     }
 
@@ -174,6 +189,27 @@ class ProviderAiGatewayTest {
                 feedback = "good",
                 confidence = 0.9,
                 rawResult = GradeResult.CORRECT,
+            )
+        }
+
+        override suspend fun splitQuestionBankPage(
+            configuration: ResolvedAiConfiguration,
+            request: SplitQuestionBankPageRequest,
+        ): SplitQuestionBankPage {
+            calls += "split"
+            return SplitQuestionBankPage(
+                listOf(
+                    SplitQuestionBankQuestion(
+                        stem = "split question",
+                        options = listOf("A. 1", "B. 2"),
+                        answer = "A",
+                        analysis = "analysis",
+                        questionType = BankQuestionType.SINGLE_CHOICE,
+                        difficulty = ExerciseDifficulty.EASY,
+                        tags = listOf("代数"),
+                        sourceText = "source",
+                    ),
+                ),
             )
         }
     }
