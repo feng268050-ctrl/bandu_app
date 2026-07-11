@@ -41,6 +41,27 @@ class RemoteAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<AuthSession> register({
+    required String email,
+    required String password,
+    String? name,
+  }) async {
+    final data = await apiService.register(
+      email: email,
+      password: password,
+      name: name,
+    );
+    final session = mapper.sessionFromJson(data);
+    await tokenStore.save(
+      TokenPair(
+        accessToken: session.accessToken,
+        refreshToken: session.refreshToken,
+      ),
+    );
+    return session;
+  }
+
+  @override
   Future<AuthSession?> restoreSession() async {
     final refreshToken = await tokenStore.readRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
@@ -65,8 +86,9 @@ class RemoteAuthRepository implements AuthRepository {
 
   @override
   Future<void> logout() async {
+    final refreshToken = await tokenStore.readRefreshToken();
     try {
-      await apiService.logout();
+      await apiService.logout(refreshToken: refreshToken);
     } finally {
       await tokenStore.clear();
     }

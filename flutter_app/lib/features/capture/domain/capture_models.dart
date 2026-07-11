@@ -13,6 +13,7 @@ class CaptureUiState {
     required this.phase,
     this.localImagePath,
     this.result,
+    this.savedErrorItemId,
     this.errorMessage,
   });
 
@@ -23,21 +24,30 @@ class CaptureUiState {
   final CapturePhase phase;
   final String? localImagePath;
   final AnalyzeResult? result;
+  final String? savedErrorItemId;
   final String? errorMessage;
 
   bool get canAnalyze =>
       phase == CapturePhase.preview && localImagePath != null;
 
+  bool get canSave =>
+      phase == CapturePhase.success &&
+      localImagePath != null &&
+      result != null &&
+      savedErrorItemId == null;
+
   CaptureUiState copyWith({
     CapturePhase? phase,
     String? localImagePath,
     AnalyzeResult? result,
+    String? savedErrorItemId,
     String? errorMessage,
   }) {
     return CaptureUiState(
       phase: phase ?? this.phase,
       localImagePath: localImagePath ?? this.localImagePath,
       result: result ?? this.result,
+      savedErrorItemId: savedErrorItemId ?? this.savedErrorItemId,
       errorMessage: errorMessage,
     );
   }
@@ -73,4 +83,36 @@ class AnalyzeResult {
   final String? answer;
   final String? analysis;
   final List<String> tags;
+}
+
+class SavedErrorItem {
+  const SavedErrorItem({
+    required this.id,
+    required this.title,
+    required this.subjectName,
+    this.questionText,
+    this.answer,
+    this.analysis,
+    this.updatedAt,
+  });
+
+  factory SavedErrorItem.fromJson(Map<String, Object?> json) {
+    return SavedErrorItem(
+      id: json['id']?.toString() ?? '',
+      title: json['title']?.toString() ?? '未命名错题',
+      subjectName: json['subjectName']?.toString() ?? '未分类',
+      questionText: json['questionText']?.toString(),
+      answer: json['answer']?.toString(),
+      analysis: json['analysis']?.toString(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
+    );
+  }
+
+  final String id;
+  final String title;
+  final String subjectName;
+  final String? questionText;
+  final String? answer;
+  final String? analysis;
+  final DateTime? updatedAt;
 }

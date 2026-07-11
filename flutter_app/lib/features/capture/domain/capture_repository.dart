@@ -6,4 +6,9 @@ abstract interface class CaptureRepository {
   Future<String?> pickFromGallery();
 
   Future<AnalyzeResult> analyzeImage(String localImagePath);
+
+  Future<SavedErrorItem> saveAnalysis({
+    required String localImagePath,
+    required AnalyzeResult result,
+  });
 }

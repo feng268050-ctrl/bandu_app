@@ -12,11 +12,14 @@ class LoginPage extends ConsumerStatefulWidget {
 class _LoginPageState extends ConsumerState<LoginPage> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
+  bool _isRegisterMode = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -37,7 +40,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                 '伴读题集',
                 style: Theme.of(context).textTheme.headlineMedium,
               ),
+              const SizedBox(height: 8),
+              Text(
+                _isRegisterMode ? '创建移动端账号' : '登录移动端账号',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
               const SizedBox(height: 24),
+              if (_isRegisterMode) ...[
+                TextField(
+                  controller: _nameController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(labelText: '昵称'),
+                ),
+                const SizedBox(height: 12),
+              ],
               TextField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
@@ -59,9 +75,16 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ? const SizedBox.square(
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
-                      )
+                    )
                     : const Icon(Icons.login),
-                label: const Text('登录'),
+                label: Text(_isRegisterMode ? '注册并登录' : '登录'),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: authState.isBusy
+                    ? null
+                    : () => setState(() => _isRegisterMode = !_isRegisterMode),
+                child: Text(_isRegisterMode ? '已有账号，去登录' : '没有账号，去注册'),
               ),
               if (authState.errorMessage != null) ...[
                 const SizedBox(height: 12),
@@ -78,9 +101,18 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   }
 
   void _submit() {
-    ref.read(authControllerProvider.notifier).login(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+    final controller = ref.read(authControllerProvider.notifier);
+    if (_isRegisterMode) {
+      controller.register(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        name: _nameController.text.trim(),
+      );
+    } else {
+      controller.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+      );
+    }
   }
 }

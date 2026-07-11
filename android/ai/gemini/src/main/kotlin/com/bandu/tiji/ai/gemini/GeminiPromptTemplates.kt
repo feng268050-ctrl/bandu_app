@@ -67,6 +67,10 @@ object DefaultGeminiPromptTemplates : GeminiPromptTemplateSource {
 
             没有完整题目时返回 <questions></questions>。不要输出代码围栏、说明文字或 Markdown。
             每道题放入一个 <question> 节点；选择题选项一行一个并保留选项标记。
+            题号是拆题边界：看到新的题号（如 1、1.、第 1 题）必须开始新的 <question>。
+            同一个 <question> 内不能包含两个或更多题号；不要把相邻题目合并。
+            将题号保留在 <stem> 开头和 <source_text> 原文中。
+            页面开头若是上一页延续且没有题号，不要作为独立题输出；优先输出从本页可见题号开始的完整题目。
             type 只能是 SINGLE_CHOICE、MULTIPLE_CHOICE、FILL_BLANK、SUBJECTIVE、UNKNOWN。
             difficulty 只能是 EASY、MEDIUM、HARD、CHALLENGE。
 

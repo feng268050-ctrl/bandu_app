@@ -1,5 +1,7 @@
 import 'package:bandu_wrong_notebook/features/capture/capture_providers.dart';
 import 'package:bandu_wrong_notebook/features/capture/domain/capture_models.dart';
+import 'package:bandu_wrong_notebook/features/library/presentation/library_controller.dart';
+import 'package:bandu_wrong_notebook/features/stats/data/stats_api_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final captureControllerProvider =
@@ -29,6 +31,35 @@ class CaptureController extends Notifier<CaptureUiState> {
       state = state.copyWith(
         phase: CapturePhase.success,
         result: result,
+        savedErrorItemId: null,
+        errorMessage: null,
+      );
+    } catch (error) {
+      state = state.copyWith(
+        phase: CapturePhase.success,
+        errorMessage: error.toString(),
+      );
+    }
+  }
+
+  Future<void> saveToLibrary() async {
+    final path = state.localImagePath;
+    final result = state.result;
+    if (path == null || result == null || state.savedErrorItemId != null) {
+      return;
+    }
+
+    state = state.copyWith(phase: CapturePhase.uploading, errorMessage: null);
+    try {
+      final saved = await ref.read(saveAnalyzedCaptureUseCaseProvider).call(
+            localImagePath: path,
+            result: result,
+      );
+      ref.invalidate(libraryControllerProvider);
+      ref.invalidate(statsOverviewProvider);
+      state = state.copyWith(
+        phase: CapturePhase.success,
+        savedErrorItemId: saved.id,
         errorMessage: null,
       );
     } catch (error) {

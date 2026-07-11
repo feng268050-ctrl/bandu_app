@@ -5,7 +5,7 @@ ANDROID_DIR := android
 FLUTTER_DIR := flutter_app
 APP_ID := com.bandu.tiji
 
-.PHONY: help emulator install-app flutter-run install-android install-phone build-debug relaunch sync adb-remote version
+.PHONY: help emulator install-app flutter-run install-app-release flutter-build-release install-android install-phone build-debug relaunch sync adb-remote version
 
 # Run a command with `.env` exported (if present). Variables already supplied on
 # the make command line win over values loaded from `.env`.
@@ -20,6 +20,8 @@ help:
 	@echo "Flutter mobile (primary):"
 	@echo "  make install-app           # build and run Flutter app on connected phone"
 	@echo "  make flutter-run           # alias of install-app"
+	@echo "  make install-app-release   # build release Flutter APK and adb install it"
+	@echo "  make flutter-build-release # build release Flutter APK only"
 	@echo ""
 	@echo "Legacy Android (Compose, migration only):"
 	@echo "  make emulator              # start/create AVD, push debug APK as system priv-app, launch $(APP_ID)"
@@ -71,6 +73,14 @@ help:
 install-app flutter-run:
 	@chmod +x scripts/flutter-device.sh
 	@$(call WITH_DOTENV,./scripts/flutter-device.sh)
+
+install-app-release:
+	@chmod +x scripts/flutter-release-install.sh
+	@$(call WITH_DOTENV,./scripts/flutter-release-install.sh)
+
+flutter-build-release:
+	@chmod +x scripts/flutter-release-install.sh
+	@$(call WITH_DOTENV,FLUTTER_BUILD_ONLY=1 ./scripts/flutter-release-install.sh)
 
 emulator:
 	@chmod +x scripts/emulator-launch.sh

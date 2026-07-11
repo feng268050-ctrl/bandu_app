@@ -413,7 +413,28 @@ class OpenAiCompatibleProvider(
             add(
                 buildJsonObject {
                     put("role", "user")
-                    put("content", "ping")
+                    putJsonArray("content") {
+                        add(
+                            buildJsonObject {
+                                put("type", "text")
+                                put("text", "Reply with ok.")
+                            },
+                        )
+                        add(
+                            buildJsonObject {
+                                put("type", "image_url")
+                                put(
+                                    "image_url",
+                                    buildJsonObject {
+                                        put(
+                                            "url",
+                                            "data:image/png;base64,$VALIDATION_IMAGE_BASE64",
+                                        )
+                                    },
+                                )
+                            },
+                        )
+                    }
                 },
             )
         }
@@ -547,6 +568,8 @@ class OpenAiCompatibleProvider(
 
     private companion object {
         const val AUTHORIZATION_HEADER = "Authorization"
+        const val VALIDATION_IMAGE_BASE64 =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII="
         val JSON_MEDIA_TYPE = "application/json; charset=utf-8".toMediaType()
         val JSON = Json {
             ignoreUnknownKeys = true

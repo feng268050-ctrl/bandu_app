@@ -6,4 +6,8 @@ class CaptureDtoMapper {
   AnalyzeResult analyzeResultFromJson(Map<String, Object?> data) {
     return AnalyzeResult.fromJson(data);
   }
+
+  SavedErrorItem savedErrorItemFromJson(Map<String, Object?> data) {
+    return SavedErrorItem.fromJson(data);
+  }
 }

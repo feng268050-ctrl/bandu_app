@@ -84,6 +84,14 @@ class CapturePage extends ConsumerWidget {
           if (state.result != null) ...[
             const SizedBox(height: 24),
             _AnalyzeResultView(result: state.result!),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: state.canSave && !isBusy ? controller.saveToLibrary : null,
+              icon: state.savedErrorItemId == null
+                  ? const Icon(Icons.save_outlined)
+                  : const Icon(Icons.check_circle_outline),
+              label: Text(state.savedErrorItemId == null ? '保存到错题本' : '已保存到错题本'),
+            ),
           ],
         ],
       ),

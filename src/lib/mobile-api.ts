@@ -102,6 +102,26 @@ export function mapMobileUser(user: User) {
     };
 }
 
+export function mapMobileSubject(subject: Subject) {
+    return {
+        id: subject.id,
+        name: subject.name,
+        updatedAt: subject.updatedAt.toISOString(),
+    };
+}
+
+export function mapMobileKnowledgeTag(tag: KnowledgeTag) {
+    return {
+        id: tag.id,
+        name: tag.name,
+        subject: tag.subject,
+        parentId: tag.parentId,
+        code: tag.code,
+        isSystem: tag.isSystem,
+        updatedAt: tag.updatedAt.toISOString(),
+    };
+}
+
 export async function issueMobileSession(user: User) {
     const accessToken = signAccessToken(user.id);
     const refreshToken = randomBytes(48).toString("base64url");
@@ -151,7 +171,10 @@ export function mapMobileErrorItemSummary(item: ErrorItemWithRelations) {
     return {
         id: item.id,
         title: buildErrorItemTitle(item),
+        subjectId: item.subjectId,
         subjectName: item.subject?.name ?? "未分类",
+        tags: item.tags.map((tag) => tag.name),
+        createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
         mastered: item.masteryLevel > 0,
     };
@@ -165,10 +188,37 @@ export function mapMobileErrorItemDetail(item: ErrorItemWithRelations) {
         questionText: item.questionText,
         answer: item.answerText,
         analysis: item.analysis,
+        wrongAnswerText: item.wrongAnswerText,
+        mistakeAnalysis: item.mistakeAnalysis,
+        mistakeStatus: item.mistakeStatus,
         tags: item.tags.map((tag) => tag.name),
         imageUrl: item.originalImageUrl,
         masteryLevel: item.masteryLevel,
+        gradeSemester: item.gradeSemester,
+        paperLevel: item.paperLevel,
+        geogebraCommands: item.geogebraCommands,
+        createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
+    };
+}
+
+export function mapMobilePracticeQuestion(question: {
+    questionText?: string;
+    answerText?: string;
+    analysis?: string;
+    subject?: string;
+    knowledgePoints?: string[];
+    requiresImage?: boolean;
+}) {
+    const questionText = question.questionText ?? "";
+    return {
+        title: buildAnalyzeTitle(questionText),
+        questionText,
+        answer: question.answerText ?? "",
+        analysis: question.analysis ?? "",
+        subjectName: question.subject ?? "其他",
+        tags: Array.isArray(question.knowledgePoints) ? question.knowledgePoints : [],
+        requiresImage: question.requiresImage === true,
     };
 }
 

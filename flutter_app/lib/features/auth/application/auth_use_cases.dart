@@ -24,6 +24,24 @@ class RestoreSessionUseCase {
   }
 }
 
+class RegisterUseCase {
+  const RegisterUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  Future<AuthSession> call({
+    required String email,
+    required String password,
+    String? name,
+  }) {
+    return _repository.register(
+      email: email,
+      password: password,
+      name: name,
+    );
+  }
+}
+
 class LogoutUseCase {
   const LogoutUseCase(this._repository);
 

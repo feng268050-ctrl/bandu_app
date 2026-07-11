@@ -16,7 +16,7 @@ import kotlinx.coroutines.withContext
 
 class AndroidPdfQuestionBankPageExtractor(
     context: Context,
-    private val maxPages: Int = DEFAULT_MAX_PAGES,
+    private val maxPages: Int = Int.MAX_VALUE,
 ) : PdfQuestionBankPageExtractor {
     private val contentResolver = context.applicationContext.contentResolver
 
@@ -65,7 +65,6 @@ class AndroidPdfQuestionBankPageExtractor(
     }
 
     private companion object {
-        const val DEFAULT_MAX_PAGES = 20
         const val MAX_RENDER_WIDTH = 1800
         const val MAX_RENDER_HEIGHT = 2400
         const val MAX_RENDER_SCALE = 3f

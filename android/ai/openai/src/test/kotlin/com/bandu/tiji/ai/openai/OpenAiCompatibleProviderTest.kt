@@ -50,7 +50,7 @@ class OpenAiCompatibleProviderTest {
     }
 
     @Test
-    fun `validation sends minimal chat completions request`() = runTest {
+    fun `validation sends image chat completions request`() = runTest {
         MockWebServer().use { server ->
             server.enqueue(MockResponse().setBody("""{"choices":[]}"""))
             var selectedOperation: AiHttpOperation? = null
@@ -75,9 +75,21 @@ class OpenAiCompatibleProviderTest {
             assertThat(body["model"]!!.jsonPrimitive.content).isEqualTo("vision-model")
             assertThat(body["max_tokens"]!!.jsonPrimitive.content).isEqualTo("1")
             assertThat(body["stream"]!!.jsonPrimitive.content).isEqualTo("false")
+            val content = body["messages"]!!
+                .jsonArray[0]
+                .jsonObject["content"]!!
+                .jsonArray
+            assertThat(content[0].jsonObject["type"]!!.jsonPrimitive.content).isEqualTo("text")
+            assertThat(content[0].jsonObject["text"]!!.jsonPrimitive.content)
+                .isEqualTo("Reply with ok.")
+            assertThat(content[1].jsonObject["type"]!!.jsonPrimitive.content)
+                .isEqualTo("image_url")
             assertThat(
-                body["messages"]!!.jsonArray[0].jsonObject["content"]!!.jsonPrimitive.content,
-            ).isEqualTo("ping")
+                content[1]
+                    .jsonObject["image_url"]!!
+                    .jsonObject["url"]!!
+                    .jsonPrimitive.content,
+            ).startsWith("data:image/png;base64,")
         }
     }
 

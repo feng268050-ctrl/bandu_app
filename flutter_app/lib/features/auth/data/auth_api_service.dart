@@ -23,6 +23,21 @@ class AuthApiService {
     );
   }
 
+  Future<Map<String, Object?>> register({
+    required String email,
+    required String password,
+    String? name,
+  }) {
+    return _apiClient.post<Map<String, Object?>>(
+      '/auth/register',
+      data: {
+        'email': email,
+        'password': password,
+        if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
+      },
+    );
+  }
+
   Future<void> refreshSession() {
     return _apiClient.refreshSession();
   }
@@ -31,7 +46,10 @@ class AuthApiService {
     return _apiClient.get<Map<String, Object?>>('/users/me');
   }
 
-  Future<void> logout() async {
-    await _apiClient.post<Object?>('/auth/logout');
+  Future<void> logout({String? refreshToken}) async {
+    await _apiClient.post<Object?>(
+      '/auth/logout',
+      data: refreshToken == null ? null : {'refreshToken': refreshToken},
+    );
   }
 }

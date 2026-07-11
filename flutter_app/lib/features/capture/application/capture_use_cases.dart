@@ -30,3 +30,19 @@ class AnalyzeCaptureUseCase {
     return _repository.analyzeImage(localImagePath);
   }
 }
+
+class SaveAnalyzedCaptureUseCase {
+  const SaveAnalyzedCaptureUseCase(this._repository);
+
+  final CaptureRepository _repository;
+
+  Future<SavedErrorItem> call({
+    required String localImagePath,
+    required AnalyzeResult result,
+  }) {
+    return _repository.saveAnalysis(
+      localImagePath: localImagePath,
+      result: result,
+    );
+  }
+}

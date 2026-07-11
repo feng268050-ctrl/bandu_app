@@ -33,6 +33,7 @@ class ErrorItemDetail {
     this.questionText,
     this.answer,
     this.analysis,
+    this.updatedAt,
   });
 
   factory ErrorItemDetail.fromJson(Map<String, Object?> json) {
@@ -43,6 +44,7 @@ class ErrorItemDetail {
       questionText: json['questionText']?.toString(),
       answer: json['answer']?.toString(),
       analysis: json['analysis']?.toString(),
+      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
     );
   }
 
@@ -52,4 +54,5 @@ class ErrorItemDetail {
   final String? questionText;
   final String? answer;
   final String? analysis;
+  final DateTime? updatedAt;
 }

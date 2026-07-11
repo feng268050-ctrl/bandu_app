@@ -14,7 +14,9 @@ database owner. The Flutter client is the daily-use mobile surface.
 - Dio API client targeting `/api/mobile/v1`.
 - Secure refresh-token storage and in-memory access token.
 - Capture state machine: `idle -> capturing -> preview -> analyzing -> success/failed`.
-- Local cache and pending-task interfaces ready for a Drift adapter.
+- File-backed local cache for error summaries/details, ready to be replaced by a Drift adapter.
+- Capture-to-library loop: analyze image, confirm, save to `/error-items`, then update local cache.
+- Practice loop: generate a similar question from the latest error item and record the result.
 
 ## Run
 
@@ -33,3 +35,12 @@ API_BASE_URL=http://192.168.1.10:3000/api/mobile/v1 make install-app
 ```
 
 For a physical device, replace `API_BASE_URL` with the reachable server URL.
+
+Build or install a release APK:
+
+```bash
+API_BASE_URL=http://192.168.1.10:3000/api/mobile/v1 make flutter-build-release
+ADB_SERIAL=<serial> API_BASE_URL=http://192.168.1.10:3000/api/mobile/v1 make install-app-release
+```
+
+See `../docs/flutter-migration-status.md` for the current migration checklist.

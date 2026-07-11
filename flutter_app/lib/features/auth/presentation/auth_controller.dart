@@ -72,6 +72,32 @@ class AuthController extends Notifier<AuthState> {
     }
   }
 
+  Future<void> register({
+    required String email,
+    required String password,
+    String? name,
+  }) async {
+    state = state.copyWith(isBusy: true, errorMessage: null);
+
+    try {
+      final session = await ref.read(registerUseCaseProvider).call(
+            email: email,
+            password: password,
+            name: name,
+          );
+      state = AuthState(
+        status: AuthStatus.signedIn,
+        user: session.user,
+      );
+    } catch (error) {
+      state = AuthState(
+        status: AuthStatus.signedOut,
+        isBusy: false,
+        errorMessage: error.toString(),
+      );
+    }
+  }
+
   Future<void> logout() async {
     state = state.copyWith(isBusy: true, errorMessage: null);
     await ref.read(logoutUseCaseProvider).call();

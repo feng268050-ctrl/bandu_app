@@ -1,4 +1,5 @@
 import 'package:bandu_wrong_notebook/features/library/presentation/library_controller.dart';
+import 'package:bandu_wrong_notebook/features/stats/data/stats_api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,7 +10,11 @@ class HomePage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final library = ref.watch(libraryControllerProvider);
-    final itemCount = library.valueOrNull?.length ?? 0;
+    final stats = ref.watch(statsOverviewProvider);
+    final cachedItemCount = library.valueOrNull?.length ?? 0;
+    final totalErrors = stats.valueOrNull?.totalErrors ?? cachedItemCount;
+    final masteredCount = stats.valueOrNull?.masteredCount ?? 0;
+    final practiceAccuracy = stats.valueOrNull?.practiceAccuracy ?? 0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('首页')),
@@ -26,19 +31,25 @@ class HomePage extends ConsumerWidget {
               Expanded(
                 child: _MetricCard(
                   label: '错题',
-                  value: itemCount.toString(),
+                  value: totalErrors.toString(),
                   icon: Icons.library_books,
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: _MetricCard(
-                  label: '待练习',
-                  value: '0',
+                  label: '已掌握',
+                  value: masteredCount.toString(),
                   icon: Icons.quiz,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 12),
+          _MetricCard(
+            label: '练习正确率',
+            value: '${(practiceAccuracy * 100).toStringAsFixed(0)}%',
+            icon: Icons.trending_up,
           ),
           const SizedBox(height: 24),
           FilledButton.icon(

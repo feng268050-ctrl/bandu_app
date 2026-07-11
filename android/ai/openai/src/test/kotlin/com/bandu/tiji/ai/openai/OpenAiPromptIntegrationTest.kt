@@ -39,6 +39,15 @@ class OpenAiPromptIntegrationTest {
     }
 
     @Test
+    fun `split question bank prompt uses question numbers as boundaries`() {
+        val template = DefaultOpenAiPromptTemplates.template(PromptType.SPLIT_QUESTION_BANK_PAGE)
+
+        assertThat(template).contains("题号是拆题边界")
+        assertThat(template).contains("同一个 <question> 内不能包含两个或更多题号")
+        assertThat(template).contains("将题号保留在 <stem> 开头")
+    }
+
+    @Test
     fun `four public operations render prompts and select required models`() = runTest {
         MockWebServer().use { server ->
             server.enqueue(MockResponse().setBody(completion(analysisText())))

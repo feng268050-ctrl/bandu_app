@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:bandu_wrong_notebook/core/camera/camera_service.dart';
+import 'package:bandu_wrong_notebook/core/database/app_database.dart';
 import 'package:bandu_wrong_notebook/core/storage/capture_file_store.dart';
 import 'package:bandu_wrong_notebook/features/capture/data/capture_api_service.dart';
 import 'package:bandu_wrong_notebook/features/capture/data/capture_dto_mapper.dart';
@@ -14,6 +15,7 @@ final captureRepositoryProvider = Provider<CaptureRepository>((ref) {
     apiService: ref.watch(captureApiServiceProvider),
     cameraService: ref.watch(captureCameraServiceProvider),
     fileStore: ref.watch(captureFileStoreProvider),
+    cacheDatabase: ref.watch(appCacheDatabaseProvider),
     mapper: const CaptureDtoMapper(),
   );
 });
@@ -23,12 +25,14 @@ class RemoteCaptureRepository implements CaptureRepository {
     required this.apiService,
     required this.cameraService,
     required this.fileStore,
+    required this.cacheDatabase,
     required this.mapper,
   });
 
   final CaptureApiService apiService;
   final CaptureCameraService cameraService;
   final CaptureFileStore fileStore;
+  final AppCacheDatabase cacheDatabase;
   final CaptureDtoMapper mapper;
 
   @override
@@ -45,6 +49,30 @@ class RemoteCaptureRepository implements CaptureRepository {
   Future<AnalyzeResult> analyzeImage(String localImagePath) async {
     final data = await apiService.analyzeImage(localImagePath);
     return mapper.analyzeResultFromJson(data);
+  }
+
+  @override
+  Future<SavedErrorItem> saveAnalysis({
+    required String localImagePath,
+    required AnalyzeResult result,
+  }) async {
+    final data = await apiService.saveAnalysis(
+      localImagePath: localImagePath,
+      result: result,
+    );
+    final saved = mapper.savedErrorItemFromJson(data);
+    await cacheDatabase.upsertErrorItemDetail(
+      CachedErrorItemDetail(
+        id: saved.id,
+        title: saved.title,
+        subjectName: saved.subjectName,
+        questionText: saved.questionText,
+        answer: saved.answer,
+        analysis: saved.analysis,
+        updatedAt: saved.updatedAt ?? DateTime.now(),
+      ),
+    );
+    return saved;
   }
 
   Future<String?> _persistPickedImage(XFile? image) async {

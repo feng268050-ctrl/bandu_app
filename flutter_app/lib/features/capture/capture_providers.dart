@@ -13,3 +13,8 @@ final pickCaptureImageUseCaseProvider = Provider<PickCaptureImageUseCase>((ref) 
 final analyzeCaptureUseCaseProvider = Provider<AnalyzeCaptureUseCase>((ref) {
   return AnalyzeCaptureUseCase(ref.watch(captureRepositoryProvider));
 });
+
+final saveAnalyzedCaptureUseCaseProvider =
+    Provider<SaveAnalyzedCaptureUseCase>((ref) {
+  return SaveAnalyzedCaptureUseCase(ref.watch(captureRepositoryProvider));
+});

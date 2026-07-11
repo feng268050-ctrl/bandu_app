@@ -15,6 +15,30 @@ class ErrorItemDtoMapper {
     return ErrorItemDetail.fromJson(data);
   }
 
+  CachedErrorItemDetail detailToCache(ErrorItemDetail item) {
+    return CachedErrorItemDetail(
+      id: item.id,
+      title: item.title,
+      subjectName: item.subjectName,
+      questionText: item.questionText,
+      answer: item.answer,
+      analysis: item.analysis,
+      updatedAt: item.updatedAt,
+    );
+  }
+
+  ErrorItemDetail detailFromCache(CachedErrorItemDetail item) {
+    return ErrorItemDetail(
+      id: item.id,
+      title: item.title,
+      subjectName: item.subjectName,
+      questionText: item.questionText,
+      answer: item.answer,
+      analysis: item.analysis,
+      updatedAt: item.updatedAt,
+    );
+  }
+
   CachedErrorItem summaryToCache(ErrorItemSummary item) {
     return CachedErrorItem(
       id: item.id,

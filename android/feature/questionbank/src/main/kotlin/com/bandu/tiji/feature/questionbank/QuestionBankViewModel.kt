@@ -183,6 +183,7 @@ class QuestionBankViewModel(
             isPdfImportRunning = true
             mutableUiState.value = mutableUiState.value.copy(
                 isLoading = true,
+                isPdfImporting = true,
                 loadingMessage = "正在准备 PDF 导入",
                 errorMessage = null,
                 noticeMessage = null,
@@ -240,11 +241,13 @@ class QuestionBankViewModel(
                 )
             }.onSuccess { id ->
                 isPdfImportRunning = false
+                mutableUiState.value = mutableUiState.value.copy(isPdfImporting = false)
                 openBank(id.bankId, id.successMessage())
             }.onFailure { throwable ->
                 isPdfImportRunning = false
                 mutableUiState.value = mutableUiState.value.copy(
                     isLoading = false,
+                    isPdfImporting = false,
                     loadingMessage = "正在加载题库",
                     errorMessage = throwable.toPdfImportErrorMessage(),
                 )

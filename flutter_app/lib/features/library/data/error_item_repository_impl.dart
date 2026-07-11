@@ -42,6 +42,16 @@ class RemoteErrorItemRepository implements ErrorItemRepository {
 
   @override
   Future<ErrorItemDetail> fetchErrorItem(String id) async {
-    return mapper.detailFromJson(await apiService.fetchErrorItem(id));
+    try {
+      final item = mapper.detailFromJson(await apiService.fetchErrorItem(id));
+      await cacheDatabase.upsertErrorItemDetail(mapper.detailToCache(item));
+      return item;
+    } catch (_) {
+      final cached = await cacheDatabase.readErrorItemDetail(id);
+      if (cached != null) {
+        return mapper.detailFromCache(cached);
+      }
+      rethrow;
+    }
   }
 }
