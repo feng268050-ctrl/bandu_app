@@ -12,7 +12,8 @@ class CapturePage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(captureControllerProvider);
     final controller = ref.read(captureControllerProvider.notifier);
-    final isBusy = state.phase == CapturePhase.capturing ||
+    final isBusy =
+        state.phase == CapturePhase.capturing ||
         state.phase == CapturePhase.uploading ||
         state.phase == CapturePhase.analyzing;
 
@@ -86,12 +87,24 @@ class CapturePage extends ConsumerWidget {
             _AnalyzeResultView(result: state.result!),
             const SizedBox(height: 12),
             FilledButton.icon(
-              onPressed: state.canSave && !isBusy ? controller.saveToLibrary : null,
+              onPressed: state.canSave && !isBusy
+                  ? controller.saveToLibrary
+                  : null,
               icon: state.savedErrorItemId == null
                   ? const Icon(Icons.save_outlined)
                   : const Icon(Icons.check_circle_outline),
-              label: Text(state.savedErrorItemId == null ? '保存到错题本' : '已保存到错题本'),
+              label: Text(
+                state.savedErrorItemId == null ? '保存到错题本' : '已保存到错题本',
+              ),
             ),
+            if (state.savedErrorItemId != null) ...[
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: controller.reset,
+                icon: const Icon(Icons.add_a_photo_outlined),
+                label: const Text('继续拍题'),
+              ),
+            ],
           ],
         ],
       ),
@@ -112,28 +125,19 @@ class _AnalyzeResultView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              result.title,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
+            Text(result.title, style: Theme.of(context).textTheme.titleMedium),
             if (result.questionText != null) ...[
               const SizedBox(height: 12),
               Text(result.questionText!),
             ],
             if (result.answer != null) ...[
               const SizedBox(height: 12),
-              Text(
-                '答案',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              Text('答案', style: Theme.of(context).textTheme.labelLarge),
               Text(result.answer!),
             ],
             if (result.analysis != null) ...[
               const SizedBox(height: 12),
-              Text(
-                '解析',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
+              Text('解析', style: Theme.of(context).textTheme.labelLarge),
               Text(result.analysis!),
             ],
           ],

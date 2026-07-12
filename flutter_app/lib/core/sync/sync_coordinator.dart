@@ -25,7 +25,10 @@ class SyncCoordinator {
   }
 
   Future<void> markCompleted(String taskId) async {
-    _replace(taskId, (task) => task.copyWith(status: PendingTaskStatus.completed));
+    _replace(
+      taskId,
+      (task) => task.copyWith(status: PendingTaskStatus.completed),
+    );
   }
 
   Future<void> markFailed(String taskId, Object error) async {

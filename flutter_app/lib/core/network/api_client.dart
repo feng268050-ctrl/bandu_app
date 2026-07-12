@@ -27,11 +27,9 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 });
 
 class ApiClient {
-  ApiClient({
-    required Dio dio,
-    required TokenStore tokenStore,
-  })  : _dio = dio,
-        _tokenStore = tokenStore {
+  ApiClient({required Dio dio, required TokenStore tokenStore})
+    : _dio = dio,
+      _tokenStore = tokenStore {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: _attachAuthHeader,
@@ -42,11 +40,9 @@ class ApiClient {
 
   final Dio _dio;
   final TokenStore _tokenStore;
+  Future<void>? _refreshing;
 
-  Future<T> get<T>(
-    String path, {
-    Map<String, Object?>? queryParameters,
-  }) async {
+  Future<T> get<T>(String path, {Map<String, Object?>? queryParameters}) async {
     final response = await _dio.get<Object?>(
       path,
       queryParameters: queryParameters,
@@ -64,6 +60,16 @@ class ApiClient {
       data: data,
       queryParameters: queryParameters,
     );
+    return _unwrap<T>(response);
+  }
+
+  Future<T> patch<T>(String path, {Object? data}) async {
+    final response = await _dio.patch<Object?>(path, data: data);
+    return _unwrap<T>(response);
+  }
+
+  Future<T> delete<T>(String path) async {
+    final response = await _dio.delete<Object?>(path);
     return _unwrap<T>(response);
   }
 
@@ -93,8 +99,9 @@ class ApiClient {
   ) async {
     final statusCode = error.response?.statusCode;
     final isRefreshCall = error.requestOptions.path.endsWith('/auth/refresh');
+    final wasRetried = error.requestOptions.extra['authRetried'] == true;
 
-    if (statusCode != 401 || isRefreshCall) {
+    if (statusCode != 401 || isRefreshCall || wasRetried) {
       handler.next(error);
       return;
     }
@@ -102,6 +109,7 @@ class ApiClient {
     try {
       await _refreshAccessToken();
       final options = error.requestOptions;
+      options.extra['authRetried'] = true;
       final token = await _tokenStore.readAccessToken();
       if (token != null && token.isNotEmpty) {
         options.headers['Authorization'] = 'Bearer $token';
@@ -115,6 +123,23 @@ class ApiClient {
   }
 
   Future<void> _refreshAccessToken() async {
+    final activeRefresh = _refreshing;
+    if (activeRefresh != null) {
+      return activeRefresh;
+    }
+
+    final refresh = _performRefresh();
+    _refreshing = refresh;
+    try {
+      await refresh;
+    } finally {
+      if (identical(_refreshing, refresh)) {
+        _refreshing = null;
+      }
+    }
+  }
+
+  Future<void> _performRefresh() async {
     final refreshToken = await _tokenStore.readRefreshToken();
     if (refreshToken == null || refreshToken.isEmpty) {
       throw const ApiException(
@@ -139,10 +164,7 @@ class ApiClient {
     }
 
     await _tokenStore.save(
-      TokenPair(
-        accessToken: accessToken,
-        refreshToken: nextRefreshToken,
-      ),
+      TokenPair(accessToken: accessToken, refreshToken: nextRefreshToken),
     );
   }
 

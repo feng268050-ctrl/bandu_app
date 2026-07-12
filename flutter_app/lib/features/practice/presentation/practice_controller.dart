@@ -6,8 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final practiceControllerProvider =
     NotifierProvider<PracticeController, PracticeUiState>(
-  PracticeController.new,
-);
+      PracticeController.new,
+    );
 
 class PracticeController extends Notifier<PracticeUiState> {
   static const _difficulty = 'medium';
@@ -34,10 +34,9 @@ class PracticeController extends Notifier<PracticeUiState> {
       noticeMessage: null,
     );
     try {
-      final question = await ref.read(practiceApiServiceProvider).generate(
-            errorItemId: items.first.id,
-            difficulty: _difficulty,
-          );
+      final question = await ref
+          .read(practiceApiServiceProvider)
+          .generate(errorItemId: items.first.id, difficulty: _difficulty);
       state = PracticeUiState(question: question);
     } catch (error) {
       state = state.copyWith(
@@ -58,14 +57,21 @@ class PracticeController extends Notifier<PracticeUiState> {
       return;
     }
 
-    state = state.copyWith(isBusy: true, errorMessage: null, noticeMessage: null);
+    state = state.copyWith(
+      isBusy: true,
+      errorMessage: null,
+      noticeMessage: null,
+    );
     try {
-      await ref.read(practiceApiServiceProvider).record(
+      await ref
+          .read(practiceApiServiceProvider)
+          .record(
             subject: question.subjectName,
             difficulty: _difficulty,
             isCorrect: isCorrect,
           );
       ref.invalidate(statsOverviewProvider);
+      ref.invalidate(practiceHistoryProvider);
       state = state.copyWith(
         isBusy: false,
         noticeMessage: isCorrect ? '已记录：答对' : '已记录：答错',

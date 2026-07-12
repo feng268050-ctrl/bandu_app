@@ -18,17 +18,11 @@ class ImagePickerCaptureCameraService implements CaptureCameraService {
 
   @override
   Future<XFile?> takePhoto() {
-    return _picker.pickImage(
-      source: ImageSource.camera,
-      imageQuality: 92,
-    );
+    return _picker.pickImage(source: ImageSource.camera, imageQuality: 92);
   }
 
   @override
   Future<XFile?> pickFromGallery() {
-    return _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 92,
-    );
+    return _picker.pickImage(source: ImageSource.gallery, imageQuality: 92);
   }
 }

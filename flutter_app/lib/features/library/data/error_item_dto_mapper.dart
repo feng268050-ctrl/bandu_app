@@ -23,6 +23,7 @@ class ErrorItemDtoMapper {
       questionText: item.questionText,
       answer: item.answer,
       analysis: item.analysis,
+      masteryLevel: item.masteryLevel,
       updatedAt: item.updatedAt,
     );
   }
@@ -35,6 +36,7 @@ class ErrorItemDtoMapper {
       questionText: item.questionText,
       answer: item.answer,
       analysis: item.analysis,
+      masteryLevel: item.masteryLevel,
       updatedAt: item.updatedAt,
     );
   }

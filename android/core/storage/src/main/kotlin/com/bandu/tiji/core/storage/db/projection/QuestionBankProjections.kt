@@ -20,6 +20,20 @@ data class QuestionBankSummaryProjection(
     val updatedAt: Long,
 )
 
+data class ExamSessionSummaryProjection(
+    val id: String,
+    @ColumnInfo(name = "bank_id")
+    val bankId: String,
+    val title: String,
+    @ColumnInfo(name = "question_count")
+    val questionCount: Int,
+    val status: String,
+    @ColumnInfo(name = "created_at")
+    val createdAt: Long,
+    @ColumnInfo(name = "completed_at")
+    val completedAt: Long?,
+)
+
 data class ExamAttemptQuestionProjection(
     @ColumnInfo(name = "attempt_id")
     val attemptId: String,

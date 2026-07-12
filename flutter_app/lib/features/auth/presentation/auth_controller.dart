@@ -4,14 +4,11 @@ import 'package:bandu_wrong_notebook/features/auth/auth_providers.dart';
 import 'package:bandu_wrong_notebook/features/auth/domain/auth_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final authControllerProvider =
-    NotifierProvider<AuthController, AuthState>(AuthController.new);
+final authControllerProvider = NotifierProvider<AuthController, AuthState>(
+  AuthController.new,
+);
 
-enum AuthStatus {
-  unknown,
-  signedOut,
-  signedIn,
-}
+enum AuthStatus { unknown, signedOut, signedIn }
 
 class AuthState {
   const AuthState({
@@ -48,21 +45,14 @@ class AuthController extends Notifier<AuthState> {
     return const AuthState(status: AuthStatus.unknown);
   }
 
-  Future<void> login({
-    required String email,
-    required String password,
-  }) async {
+  Future<void> login({required String email, required String password}) async {
     state = state.copyWith(isBusy: true, errorMessage: null);
 
     try {
-      final session = await ref.read(loginUseCaseProvider).call(
-        email: email,
-        password: password,
-      );
-      state = AuthState(
-        status: AuthStatus.signedIn,
-        user: session.user,
-      );
+      final session = await ref
+          .read(loginUseCaseProvider)
+          .call(email: email, password: password);
+      state = AuthState(status: AuthStatus.signedIn, user: session.user);
     } catch (error) {
       state = AuthState(
         status: AuthStatus.signedOut,
@@ -80,15 +70,10 @@ class AuthController extends Notifier<AuthState> {
     state = state.copyWith(isBusy: true, errorMessage: null);
 
     try {
-      final session = await ref.read(registerUseCaseProvider).call(
-            email: email,
-            password: password,
-            name: name,
-          );
-      state = AuthState(
-        status: AuthStatus.signedIn,
-        user: session.user,
-      );
+      final session = await ref
+          .read(registerUseCaseProvider)
+          .call(email: email, password: password, name: name);
+      state = AuthState(status: AuthStatus.signedIn, user: session.user);
     } catch (error) {
       state = AuthState(
         status: AuthStatus.signedOut,
@@ -102,6 +87,28 @@ class AuthController extends Notifier<AuthState> {
     state = state.copyWith(isBusy: true, errorMessage: null);
     await ref.read(logoutUseCaseProvider).call();
     state = const AuthState(status: AuthStatus.signedOut);
+  }
+
+  Future<bool> updateProfile({
+    required String name,
+    required String educationStage,
+    required int enrollmentYear,
+  }) async {
+    state = state.copyWith(isBusy: true, errorMessage: null);
+    try {
+      final user = await ref
+          .read(updateProfileUseCaseProvider)
+          .call(
+            name: name,
+            educationStage: educationStage,
+            enrollmentYear: enrollmentYear,
+          );
+      state = AuthState(status: AuthStatus.signedIn, user: user);
+      return true;
+    } catch (error) {
+      state = state.copyWith(isBusy: false, errorMessage: error.toString());
+      return false;
+    }
   }
 
   Future<void> _restoreSession() async {

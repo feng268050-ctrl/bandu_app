@@ -21,10 +21,7 @@ class HomePage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text(
-            '今日',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text('今日', style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -90,10 +87,7 @@ class _MetricCard extends StatelessWidget {
           children: [
             Icon(icon),
             const SizedBox(height: 16),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            Text(value, style: Theme.of(context).textTheme.headlineMedium),
             Text(label),
           ],
         ),

@@ -1,9 +1,5 @@
 class ApiEnvelope<T> {
-  const ApiEnvelope({
-    required this.data,
-    this.error,
-    this.meta,
-  });
+  const ApiEnvelope({required this.data, this.error, this.meta});
 
   final T? data;
   final ApiError? error;
@@ -11,11 +7,7 @@ class ApiEnvelope<T> {
 }
 
 class ApiError {
-  const ApiError({
-    required this.code,
-    required this.message,
-    this.details,
-  });
+  const ApiError({required this.code, required this.message, this.details});
 
   factory ApiError.fromJson(Map<String, Object?> json) {
     return ApiError(

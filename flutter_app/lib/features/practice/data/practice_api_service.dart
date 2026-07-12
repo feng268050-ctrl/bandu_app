@@ -6,6 +6,10 @@ final practiceApiServiceProvider = Provider<PracticeApiService>((ref) {
   return PracticeApiService(ref.watch(apiClientProvider));
 });
 
+final practiceHistoryProvider = FutureProvider<List<PracticeRecord>>((ref) {
+  return ref.watch(practiceApiServiceProvider).history();
+});
+
 class PracticeApiService {
   const PracticeApiService(this._apiClient);
 
@@ -32,12 +36,23 @@ class PracticeApiService {
     required bool isCorrect,
   }) async {
     await _apiClient.post<Object?>(
-      '/practice/records',
+      '/practice/submit',
       data: {
         'subject': subject,
         'difficulty': difficulty,
         'isCorrect': isCorrect,
       },
     );
+  }
+
+  Future<List<PracticeRecord>> history({int limit = 10}) async {
+    final data = await _apiClient.get<List<Object?>>(
+      '/practice/history',
+      queryParameters: {'limit': limit},
+    );
+    return data
+        .whereType<Map<String, Object?>>()
+        .map(PracticeRecord.fromJson)
+        .toList();
   }
 }

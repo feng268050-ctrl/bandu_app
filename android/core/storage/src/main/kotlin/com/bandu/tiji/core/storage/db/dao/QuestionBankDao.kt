@@ -10,6 +10,7 @@ import com.bandu.tiji.core.storage.db.entity.ExamAttemptEntity
 import com.bandu.tiji.core.storage.db.entity.ExamSessionEntity
 import com.bandu.tiji.core.storage.db.entity.QuestionBankEntity
 import com.bandu.tiji.core.storage.db.projection.ExamAttemptQuestionProjection
+import com.bandu.tiji.core.storage.db.projection.ExamSessionSummaryProjection
 import com.bandu.tiji.core.storage.db.projection.QuestionBankSummaryProjection
 import kotlinx.coroutines.flow.Flow
 
@@ -26,6 +27,9 @@ interface QuestionBankDao {
 
     @Query("SELECT * FROM question_banks WHERE id = :id")
     fun observeBank(id: String): Flow<QuestionBankEntity?>
+
+    @Query("DELETE FROM question_banks WHERE id = :id")
+    suspend fun deleteBank(id: String): Int
 
     @Query(
         """
@@ -85,6 +89,28 @@ interface QuestionBankDao {
 
     @Query("SELECT * FROM exam_sessions WHERE id = :id")
     fun observeSession(id: String): Flow<ExamSessionEntity?>
+
+    @Query("DELETE FROM exam_sessions WHERE id = :id")
+    suspend fun deleteSession(id: String): Int
+
+    @Query(
+        """
+        SELECT
+            s.id AS id,
+            s.bank_id AS bank_id,
+            s.title AS title,
+            COUNT(a.id) AS question_count,
+            s.status AS status,
+            s.created_at AS created_at,
+            s.completed_at AS completed_at
+        FROM exam_sessions s
+        LEFT JOIN exam_attempts a ON a.session_id = s.id
+        WHERE s.bank_id = :bankId
+        GROUP BY s.id
+        ORDER BY s.created_at DESC
+        """,
+    )
+    fun observeSessionSummaries(bankId: String): Flow<List<ExamSessionSummaryProjection>>
 
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAttempts(attempts: List<ExamAttemptEntity>)

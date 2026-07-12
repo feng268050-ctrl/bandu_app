@@ -13,6 +13,7 @@ import com.bandu.tiji.core.model.questionbank.ExamGradingResult
 import com.bandu.tiji.core.model.questionbank.ExamGradingSource
 import com.bandu.tiji.core.model.questionbank.ExamSession
 import com.bandu.tiji.core.model.questionbank.ExamSessionStatus
+import com.bandu.tiji.core.model.questionbank.ExamSessionSummary
 import com.bandu.tiji.core.model.questionbank.QuestionBank
 import com.bandu.tiji.core.model.questionbank.QuestionBankDraft
 import com.bandu.tiji.core.model.questionbank.QuestionBankImportStatus
@@ -60,10 +61,19 @@ class RoomQuestionBankRepository @Inject constructor(
             session?.toDomain(attempts.map { it.toDomain() })
         }
 
+    override fun observeExamSessions(bankId: QuestionBankId): Flow<List<ExamSessionSummary>> =
+        dao.observeSessionSummaries(bankId.value).map { sessions ->
+            sessions.map { it.toDomain() }
+        }
+
     override suspend fun createBank(draft: QuestionBankDraft): QuestionBankId {
         val id = QuestionBankId(uuidGenerator.newUuid())
         dao.insertBank(draft.toEntity(id, clock.nowEpochMillis()))
         return id
+    }
+
+    override suspend fun deleteBank(id: QuestionBankId) {
+        dao.deleteBank(id.value)
     }
 
     override suspend fun addQuestion(draft: BankQuestionDraft): BankQuestionId {
@@ -147,6 +157,21 @@ class RoomQuestionBankRepository @Inject constructor(
         return sessionId
     }
 
+    override suspend fun renameExam(sessionId: ExamSessionId, title: String) {
+        val cleanedTitle = title.trim()
+        require(cleanedTitle.isNotBlank()) { "exam_title_blank" }
+        database.withTransaction {
+            val session = requireNotNull(dao.getSession(sessionId.value)) {
+                "exam_session_not_found"
+            }
+            dao.updateSession(session.copy(title = cleanedTitle))
+        }
+    }
+
+    override suspend fun deleteExam(sessionId: ExamSessionId) {
+        dao.deleteSession(sessionId.value)
+    }
+
     override suspend fun submitAnswer(
         attemptId: ExamAttemptId,
         userAnswer: String,
@@ -170,12 +195,19 @@ class RoomQuestionBankRepository @Inject constructor(
                     submittedAt = now,
                 ),
             )
-            val session = dao.getSession(attempt.sessionId)
-            if (
-                session != null &&
-                session.status != ExamSessionStatus.COMPLETED.name &&
-                dao.countUnrevealedAttempts(attempt.sessionId) == 0
-            ) {
+        }
+    }
+
+    override suspend fun completeExam(sessionId: ExamSessionId) {
+        val now = clock.nowEpochMillis()
+        database.withTransaction {
+            val session = requireNotNull(dao.getSession(sessionId.value)) {
+                "exam_session_not_found"
+            }
+            require(dao.countUnrevealedAttempts(sessionId.value) == 0) {
+                "exam_not_complete"
+            }
+            if (session.status != ExamSessionStatus.COMPLETED.name) {
                 dao.updateSession(
                     session.copy(
                         status = ExamSessionStatus.COMPLETED.name,
@@ -203,7 +235,8 @@ class RoomQuestionBankRepository @Inject constructor(
         val correct = when (type) {
             BankQuestionType.MULTIPLE_CHOICE ->
                 expected.toOptionSet() == userAnswer.toOptionSet()
-            BankQuestionType.SINGLE_CHOICE,
+            BankQuestionType.SINGLE_CHOICE ->
+                expected.toOptionSet() == userAnswer.toOptionSet()
             BankQuestionType.FILL_BLANK,
             BankQuestionType.UNKNOWN,
             -> expected.normalizedAnswer() == userAnswer.normalizedAnswer()
@@ -245,6 +278,18 @@ private fun String.normalizedAnswer(): String =
 private fun String.toOptionSet(): Set<String> =
     uppercase()
         .split(Regex("[,，、\\s]+"))
-        .map { it.trim() }
+        .flatMap { token ->
+            val trimmed = token.trim()
+            when {
+                trimmed.matches(Regex("[A-Z]{2,}")) -> trimmed.map { it.toString() }
+                else -> listOfNotNull(
+                    Regex("""^([A-Z])(?:[.．):：].*)?$""")
+                        .find(trimmed)
+                        ?.groupValues
+                        ?.getOrNull(1)
+                        ?: trimmed.takeIf { it.matches(Regex("[A-Z]")) },
+                )
+            }
+        }
         .filter { it.isNotBlank() }
         .toSet()

@@ -8,5 +8,15 @@ final fetchErrorItemsUseCaseProvider = Provider<FetchErrorItemsUseCase>((ref) {
 
 final fetchErrorItemDetailUseCaseProvider =
     Provider<FetchErrorItemDetailUseCase>((ref) {
-  return FetchErrorItemDetailUseCase(ref.watch(errorItemRepositoryProvider));
+      return FetchErrorItemDetailUseCase(
+        ref.watch(errorItemRepositoryProvider),
+      );
+    });
+
+final updateErrorItemUseCaseProvider = Provider<UpdateErrorItemUseCase>((ref) {
+  return UpdateErrorItemUseCase(ref.watch(errorItemRepositoryProvider));
+});
+
+final deleteErrorItemUseCaseProvider = Provider<DeleteErrorItemUseCase>((ref) {
+  return DeleteErrorItemUseCase(ref.watch(errorItemRepositoryProvider));
 });

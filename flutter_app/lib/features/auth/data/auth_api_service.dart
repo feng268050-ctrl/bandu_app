@@ -16,10 +16,7 @@ class AuthApiService {
   }) {
     return _apiClient.post<Map<String, Object?>>(
       '/auth/login',
-      data: {
-        'email': email,
-        'password': password,
-      },
+      data: {'email': email, 'password': password},
     );
   }
 
@@ -44,6 +41,21 @@ class AuthApiService {
 
   Future<Map<String, Object?>> currentUser() {
     return _apiClient.get<Map<String, Object?>>('/users/me');
+  }
+
+  Future<Map<String, Object?>> updateProfile({
+    required String name,
+    required String educationStage,
+    required int enrollmentYear,
+  }) {
+    return _apiClient.patch<Map<String, Object?>>(
+      '/users/me',
+      data: {
+        'name': name,
+        'educationStage': educationStage,
+        'enrollmentYear': enrollmentYear,
+      },
+    );
   }
 
   Future<void> logout({String? refreshToken}) async {

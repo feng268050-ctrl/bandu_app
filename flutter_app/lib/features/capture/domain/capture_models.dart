@@ -28,13 +28,15 @@ class CaptureUiState {
   final String? errorMessage;
 
   bool get canAnalyze =>
-      phase == CapturePhase.preview && localImagePath != null;
+      localImagePath != null &&
+      result == null &&
+      (phase == CapturePhase.preview || phase == CapturePhase.failed);
 
   bool get canSave =>
-      phase == CapturePhase.success &&
       localImagePath != null &&
       result != null &&
-      savedErrorItemId == null;
+      savedErrorItemId == null &&
+      (phase == CapturePhase.success || phase == CapturePhase.failed);
 
   CaptureUiState copyWith({
     CapturePhase? phase,

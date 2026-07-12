@@ -1,7 +1,19 @@
+import 'dart:io';
+
+import 'package:bandu_wrong_notebook/core/database/app_database.dart';
+import 'package:bandu_wrong_notebook/core/device/device_info_service.dart';
+import 'package:bandu_wrong_notebook/core/profile/local_profile_settings.dart';
+import 'package:bandu_wrong_notebook/features/auth/domain/auth_models.dart';
 import 'package:bandu_wrong_notebook/features/auth/presentation/auth_controller.dart';
+import 'package:bandu_wrong_notebook/features/library/presentation/library_controller.dart';
 import 'package:bandu_wrong_notebook/features/profile/domain/profile_models.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+
+final packageVersionProvider = FutureProvider<String>((ref) async {
+  return const String.fromEnvironment('APP_VERSION', defaultValue: 'v0.1.1');
+});
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -12,31 +24,50 @@ class ProfilePage extends ConsumerStatefulWidget {
 
 class _ProfilePageState extends ConsumerState<ProfilePage> {
   static const _avatarColors = [
-    Color(0xff2563eb),
-    Color(0xff16a34a),
-    Color(0xffdc2626),
-    Color(0xff9333ea),
-    Color(0xff0891b2),
-    Color(0xff4b5563),
+    Color(0xff202124),
+    Color(0xff455a64),
+    Color(0xff00695c),
+    Color(0xff00897b),
+    Color(0xff0277bd),
+    Color(0xff1565c0),
+    Color(0xff5e35b1),
+    Color(0xff8e24aa),
+    Color(0xffd81b60),
+    Color(0xffc62828),
+    Color(0xffe65100),
+    Color(0xff6d4c41),
   ];
 
   ProfileSection? _currentSection;
-  int _avatarColorIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
     final user = authState.user;
-    final overview = ProfileOverviewState.fromUser(user);
+    final deviceName = ref.watch(deviceNameProvider).valueOrNull ?? '读取中';
+    final overview = ProfileOverviewState.fromUser(
+      user,
+      deviceNameLabel: deviceName,
+    );
 
+    if (_currentSection == ProfileSection.student) {
+      return _StudentProfileEditorPage(
+        user: user,
+        onBack: () => setState(() => _currentSection = null),
+      );
+    }
     if (_currentSection != null) {
       return _ProfileSectionPage(
         section: _currentSection!,
         overview: overview,
-        enrollmentYear: user?.enrollmentYear,
+        version: ref.watch(packageVersionProvider).valueOrNull ?? 'v0.1.1',
         onBack: () => setState(() => _currentSection = null),
+        onClearLocalData: _clearLocalData,
       );
     }
+
+    final avatar =
+        ref.watch(avatarSettingsProvider).valueOrNull ?? const AvatarSettings();
 
     return Scaffold(
       appBar: AppBar(title: const Text('我的')),
@@ -47,22 +78,20 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             summary: overview.summary,
             modelConfigLabel: overview.modelConfigLabel,
             deviceNameLabel: overview.deviceNameLabel,
-            avatarColor: _avatarColors[
-                _avatarColorIndex.remainder(_avatarColors.length)],
-            onTapAvatar: _showAvatarActions,
+            avatar: avatar,
+            onTapAvatar: () => _showAvatarEditor(avatar, overview.summary),
           ),
           const SizedBox(height: 12),
           Divider(color: Theme.of(context).colorScheme.outlineVariant),
           const SizedBox(height: 12),
-          ...overview.sections.map(
-            (section) => Padding(
+          for (final section in overview.sections)
+            Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: _ProfileSectionTile(
                 section: section,
                 onTap: () => setState(() => _currentSection = section),
               ),
             ),
-          ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: authState.isBusy
@@ -76,51 +105,206 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  void _showAvatarActions() {
-    showModalBottomSheet<void>(
+  Future<void> _showAvatarEditor(
+    AvatarSettings current,
+    StudentProfileSummary summary,
+  ) async {
+    var draftColor = Color(current.colorValue);
+    var draftImagePath = current.imagePath;
+    var saving = false;
+    String? errorMessage;
+
+    await showDialog<void>(
       context: context,
-      showDragHandle: true,
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '头像',
-                  style: Theme.of(context).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('图片头像'),
-                  onTap: () => Navigator.of(context).pop(),
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final imageFile = draftImagePath == null
+                ? null
+                : File(draftImagePath!);
+            final hasImage = imageFile?.existsSync() == true;
+            return AlertDialog(
+              title: const Text('头像'),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 360),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    for (var index = 0; index < _avatarColors.length; index++)
-                      _AvatarColorChoice(
-                        color: _avatarColors[index],
-                        selected: index == _avatarColorIndex,
-                        onTap: () {
-                          setState(() => _avatarColorIndex = index);
-                          Navigator.of(context).pop();
-                        },
+                    CircleAvatar(
+                      radius: 48,
+                      backgroundColor: draftColor,
+                      foregroundImage: hasImage ? FileImage(imageFile!) : null,
+                      child: hasImage
+                          ? null
+                          : Text(
+                              summary.initial,
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                            ),
+                    ),
+                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          _AvatarAddChoice(
+                            selected: hasImage,
+                            onTap: saving
+                                ? null
+                                : () async {
+                                    final path = await _pickAvatarImage(
+                                      dialogContext,
+                                    );
+                                    if (path != null) {
+                                      setDialogState(() {
+                                        draftImagePath = path;
+                                        errorMessage = null;
+                                      });
+                                    }
+                                  },
+                          ),
+                          for (final color in _avatarColors)
+                            _AvatarColorChoice(
+                              color: color,
+                              selected:
+                                  !hasImage && color.value == draftColor.value,
+                              onTap: saving
+                                  ? null
+                                  : () => setDialogState(() {
+                                      draftColor = color;
+                                      draftImagePath = null;
+                                      errorMessage = null;
+                                    }),
+                            ),
+                        ],
                       ),
+                    ),
+                    if (errorMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        errorMessage!,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ],
                   ],
                 ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: saving ? null : () => Navigator.of(context).pop(),
+                  child: const Text('取消'),
+                ),
+                FilledButton(
+                  onPressed: saving
+                      ? null
+                      : () async {
+                          setDialogState(() {
+                            saving = true;
+                            errorMessage = null;
+                          });
+                          try {
+                            final controller = ref.read(
+                              avatarSettingsProvider.notifier,
+                            );
+                            if (hasImage) {
+                              await controller.saveImage(
+                                sourcePath: draftImagePath!,
+                                fallbackColorValue: draftColor.value,
+                              );
+                            } else {
+                              await controller.saveColor(draftColor.value);
+                            }
+                            if (dialogContext.mounted) {
+                              Navigator.of(dialogContext).pop();
+                            }
+                          } catch (error) {
+                            setDialogState(() {
+                              saving = false;
+                              errorMessage = error.toString();
+                            });
+                          }
+                        },
+                  child: const Text('确认'),
+                ),
               ],
-            ),
-          ),
+            );
+          },
         );
       },
     );
+  }
+
+  Future<String?> _pickAvatarImage(BuildContext context) async {
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('拍照'),
+              onTap: () => Navigator.of(context).pop(ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('从相册选择'),
+              onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null) {
+      return null;
+    }
+    final image = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 90,
+      maxWidth: 1600,
+    );
+    return image?.path;
+  }
+
+  Future<void> _clearLocalData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('清除本地数据'),
+        content: const Text('将清除本机错题缓存和头像配置，服务端错题不会删除。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('清除'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) {
+      return;
+    }
+    await ref.read(appCacheDatabaseProvider).clear();
+    await ref.read(localProfileSettingsStoreProvider).clear();
+    ref.invalidate(avatarSettingsProvider);
+    ref.invalidate(libraryControllerProvider);
+    if (mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('本地数据已清除')));
+    }
   }
 }
 
@@ -129,18 +313,20 @@ class _StudentSummaryHeader extends StatelessWidget {
     required this.summary,
     required this.modelConfigLabel,
     required this.deviceNameLabel,
-    required this.avatarColor,
+    required this.avatar,
     required this.onTapAvatar,
   });
 
   final StudentProfileSummary summary;
   final String modelConfigLabel;
   final String deviceNameLabel;
-  final Color avatarColor;
+  final AvatarSettings avatar;
   final VoidCallback onTapAvatar;
 
   @override
   Widget build(BuildContext context) {
+    final imageFile = avatar.imagePath == null ? null : File(avatar.imagePath!);
+    final hasImage = imageFile?.existsSync() == true;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -148,20 +334,24 @@ class _StudentSummaryHeader extends StatelessWidget {
         children: [
           Semantics(
             button: true,
-            label: '头像',
+            label: '设置头像',
             child: InkWell(
               customBorder: const CircleBorder(),
               onTap: onTapAvatar,
               child: CircleAvatar(
-                radius: 34,
-                backgroundColor: avatarColor,
-                child: Text(
-                  summary.initial,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
+                radius: 36,
+                backgroundColor: Color(avatar.colorValue),
+                foregroundImage: hasImage ? FileImage(imageFile!) : null,
+                child: hasImage
+                    ? null
+                    : Text(
+                        summary.initial,
+                        style: Theme.of(context).textTheme.headlineSmall
+                            ?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
-                ),
               ),
             ),
           ),
@@ -178,8 +368,8 @@ class _StudentSummaryHeader extends StatelessWidget {
                 Text(
                   summary.headline,
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 _SummaryLine(
@@ -201,10 +391,7 @@ class _StudentSummaryHeader extends StatelessWidget {
 }
 
 class _SummaryLine extends StatelessWidget {
-  const _SummaryLine({
-    required this.icon,
-    required this.text,
-  });
+  const _SummaryLine({required this.icon, required this.text});
 
   final IconData icon;
   final String text;
@@ -223,8 +410,8 @@ class _SummaryLine extends StatelessWidget {
           child: Text(
             text,
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
       ],
@@ -233,10 +420,7 @@ class _SummaryLine extends StatelessWidget {
 }
 
 class _ProfileSectionTile extends StatelessWidget {
-  const _ProfileSectionTile({
-    required this.section,
-    required this.onTap,
-  });
+  const _ProfileSectionTile({required this.section, required this.onTap});
 
   final ProfileSection section;
   final VoidCallback onTap;
@@ -244,40 +428,160 @@ class _ProfileSectionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
+      child: ListTile(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Icon(section.icon),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      section.title,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      section.description,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(Icons.chevron_right),
-            ],
-          ),
-        ),
+        leading: Icon(section.icon),
+        title: Text(section.title),
+        subtitle: Text(section.description),
+        trailing: const Icon(Icons.chevron_right),
       ),
     );
+  }
+}
+
+class _StudentProfileEditorPage extends ConsumerStatefulWidget {
+  const _StudentProfileEditorPage({required this.user, required this.onBack});
+
+  final UserProfile? user;
+  final VoidCallback onBack;
+
+  @override
+  ConsumerState<_StudentProfileEditorPage> createState() =>
+      _StudentProfileEditorPageState();
+}
+
+class _StudentProfileEditorPageState
+    extends ConsumerState<_StudentProfileEditorPage> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _yearController;
+  late String _educationStage;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.user?.name);
+    _yearController = TextEditingController(
+      text: widget.user?.enrollmentYear?.toString() ?? '',
+    );
+    _educationStage = widget.user?.educationStage ?? 'primary';
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _yearController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authState = ref.watch(authControllerProvider);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('学生资料'),
+        leading: IconButton(
+          tooltip: '返回',
+          onPressed: widget.onBack,
+          icon: const Icon(Icons.arrow_back),
+        ),
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(20),
+        children: [
+          TextField(
+            controller: _nameController,
+            textInputAction: TextInputAction.next,
+            decoration: const InputDecoration(
+              labelText: '昵称',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          DropdownButtonFormField<String>(
+            initialValue: _educationStage,
+            decoration: const InputDecoration(
+              labelText: '教育阶段',
+              border: OutlineInputBorder(),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'primary', child: Text('小学')),
+              DropdownMenuItem(value: 'junior_high', child: Text('初中')),
+              DropdownMenuItem(value: 'senior_high', child: Text('高中')),
+              DropdownMenuItem(value: 'university', child: Text('大学')),
+            ],
+            onChanged: authState.isBusy
+                ? null
+                : (value) => setState(
+                    () => _educationStage = value ?? _educationStage,
+                  ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _yearController,
+            keyboardType: TextInputType.number,
+            decoration: const InputDecoration(
+              labelText: '入学年份',
+              hintText: '例如 2022',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _errorMessage!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          ],
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: authState.isBusy ? null : _save,
+            icon: authState.isBusy
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined),
+            label: const Text('保存'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _save() async {
+    final name = _nameController.text.trim();
+    final year = int.tryParse(_yearController.text.trim());
+    final currentYear = DateTime.now().year;
+    if (name.isEmpty) {
+      setState(() => _errorMessage = '昵称不能为空');
+      return;
+    }
+    if (year == null || year < 1900 || year > currentYear) {
+      setState(() => _errorMessage = '请输入有效的入学年份');
+      return;
+    }
+
+    final saved = await ref
+        .read(authControllerProvider.notifier)
+        .updateProfile(
+          name: name,
+          educationStage: _educationStage,
+          enrollmentYear: year,
+        );
+    if (!mounted) {
+      return;
+    }
+    if (saved) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('学生资料已保存')));
+      widget.onBack();
+    } else {
+      setState(() {
+        _errorMessage = ref.read(authControllerProvider).errorMessage ?? '保存失败';
+      });
+    }
   }
 }
 
@@ -285,18 +589,41 @@ class _ProfileSectionPage extends StatelessWidget {
   const _ProfileSectionPage({
     required this.section,
     required this.overview,
-    required this.enrollmentYear,
+    required this.version,
     required this.onBack,
+    required this.onClearLocalData,
   });
 
   final ProfileSection section;
   final ProfileOverviewState overview;
-  final int? enrollmentYear;
+  final String version;
   final VoidCallback onBack;
+  final Future<void> Function() onClearLocalData;
 
   @override
   Widget build(BuildContext context) {
-    final rows = _sectionRows(section);
+    final rows = switch (section) {
+      ProfileSection.ai => const [
+        _InfoRow('服务提供商', '由 bandu_web 托管'),
+        _InfoRow('拍题分析模型', '服务器默认模型'),
+        _InfoRow('API 密钥', '仅保存在服务端'),
+      ],
+      ProfileSection.device => [
+        _InfoRow('设备名称', overview.deviceNameLabel),
+        const _InfoRow('数据连接', '通过 HTTPS Mobile API'),
+      ],
+      ProfileSection.data => const [
+        _InfoRow('本地缓存', '错题摘要、错题详情和头像配置'),
+        _InfoRow('服务端数据', '清理本地缓存不会删除服务端数据'),
+      ],
+      ProfileSection.about => [
+        const _InfoRow('应用名称', '伴读题集'),
+        _InfoRow('版本', version),
+        const _InfoRow('隐私', '题目仅在确认后发送到所选服务端'),
+        const _InfoRow('开源许可', 'Flutter、Riverpod、Dio、go_router'),
+      ],
+      ProfileSection.student => const [],
+    };
 
     return Scaffold(
       appBar: AppBar(
@@ -307,159 +634,67 @@ class _ProfileSectionPage extends StatelessWidget {
           icon: const Icon(Icons.arrow_back),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(section.icon),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          section.title,
-                          style: Theme.of(context).textTheme.titleMedium,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(section.description),
-                      ],
-                    ),
-                  ),
-                ],
+      body: ListView.separated(
+        padding: const EdgeInsets.all(20),
+        itemCount: rows.length + (section == ProfileSection.data ? 1 : 0),
+        separatorBuilder: (context, index) => const Divider(),
+        itemBuilder: (context, index) {
+          if (index == rows.length) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: OutlinedButton.icon(
+                onPressed: onClearLocalData,
+                icon: const Icon(Icons.cleaning_services_outlined),
+                label: const Text('清除本地数据'),
               ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          for (final row in rows)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                ),
-                leading: Icon(row.icon),
-                title: Text(row.title),
-                subtitle: row.subtitle == null ? null : Text(row.subtitle!),
-                trailing: row.trailing == null ? null : Text(row.trailing!),
-              ),
-            ),
-        ],
+            );
+          }
+          final row = rows[index];
+          return ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(row.label),
+            subtitle: Text(row.value),
+          );
+        },
       ),
     );
   }
-
-  List<_ProfileSectionRow> _sectionRows(ProfileSection section) {
-    return switch (section) {
-      ProfileSection.student => [
-          _ProfileSectionRow(
-            icon: Icons.badge_outlined,
-            title: '昵称',
-            trailing: overview.summary.nickname,
-          ),
-          _ProfileSectionRow(
-            icon: Icons.school_outlined,
-            title: '教育阶段',
-            trailing: overview.summary.educationStageLabel ?? '未设置',
-          ),
-          _ProfileSectionRow(
-            icon: Icons.event_outlined,
-            title: '入学年份',
-            trailing: enrollmentYear?.toString() ?? '未设置',
-          ),
-        ],
-      ProfileSection.ai => const [
-          _ProfileSectionRow(
-            icon: Icons.cloud_outlined,
-            title: '服务提供商',
-            trailing: '后端托管',
-          ),
-          _ProfileSectionRow(
-            icon: Icons.image_search_outlined,
-            title: '拍题分析模型',
-            trailing: '服务器默认',
-          ),
-          _ProfileSectionRow(
-            icon: Icons.chat_outlined,
-            title: 'AI 辅导模型',
-            trailing: '服务器默认',
-          ),
-          _ProfileSectionRow(
-            icon: Icons.article_outlined,
-            title: '提示词',
-            trailing: '服务器端配置',
-          ),
-        ],
-      ProfileSection.device => const [
-          _ProfileSectionRow(
-            icon: Icons.drive_file_rename_outline,
-            title: '设备名称',
-            trailing: '未设置',
-          ),
-          _ProfileSectionRow(
-            icon: Icons.sync_alt_outlined,
-            title: '附近传输显示名称',
-            trailing: '未设置',
-          ),
-        ],
-      ProfileSection.data => const [
-          _ProfileSectionRow(
-            icon: Icons.cleaning_services_outlined,
-            title: '清除学习数据',
-            subtitle: '错题、练习记录和本地缓存',
-          ),
-          _ProfileSectionRow(
-            icon: Icons.restart_alt_outlined,
-            title: '恢复出厂设置',
-            subtitle: '资料、AI 配置和设备身份',
-          ),
-        ],
-      ProfileSection.about => const [
-          _ProfileSectionRow(
-            icon: Icons.apps_outlined,
-            title: '应用名称',
-            trailing: '伴读题集',
-          ),
-          _ProfileSectionRow(
-            icon: Icons.new_releases_outlined,
-            title: '版本',
-            trailing: '开发版本',
-          ),
-          _ProfileSectionRow(
-            icon: Icons.privacy_tip_outlined,
-            title: '隐私',
-            subtitle: '学习数据默认保存在本机',
-          ),
-          _ProfileSectionRow(
-            icon: Icons.code_outlined,
-            title: '开源许可',
-            subtitle: 'Flutter、Dart、Riverpod、Dio、go_router',
-          ),
-        ],
-    };
-  }
 }
 
-class _ProfileSectionRow {
-  const _ProfileSectionRow({
-    required this.icon,
-    required this.title,
-    this.subtitle,
-    this.trailing,
-  });
+class _InfoRow {
+  const _InfoRow(this.label, this.value);
 
-  final IconData icon;
-  final String title;
-  final String? subtitle;
-  final String? trailing;
+  final String label;
+  final String value;
+}
+
+class _AvatarAddChoice extends StatelessWidget {
+  const _AvatarAddChoice({required this.selected, required this.onTap});
+
+  final bool selected;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkResponse(
+      radius: 26,
+      onTap: onTap,
+      child: Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: selected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.outlineVariant,
+            width: selected ? 3 : 1,
+          ),
+        ),
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
 }
 
 class _AvatarColorChoice extends StatelessWidget {
@@ -471,12 +706,12 @@ class _AvatarColorChoice extends StatelessWidget {
 
   final Color color;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return InkResponse(
-      radius: 28,
+      radius: 26,
       onTap: onTap,
       child: Container(
         width: 44,
@@ -491,12 +726,7 @@ class _AvatarColorChoice extends StatelessWidget {
             width: 3,
           ),
         ),
-        child: selected
-            ? const Icon(
-                Icons.check,
-                color: Colors.white,
-              )
-            : null,
+        child: selected ? const Icon(Icons.check, color: Colors.white) : null,
       ),
     );
   }

@@ -17,4 +17,18 @@ class ErrorItemApiService {
   Future<Map<String, Object?>> fetchErrorItem(String id) {
     return _apiClient.get<Map<String, Object?>>('/error-items/$id');
   }
+
+  Future<Map<String, Object?>> updateErrorItem(
+    String id,
+    Map<String, Object?> data,
+  ) {
+    return _apiClient.patch<Map<String, Object?>>(
+      '/error-items/$id',
+      data: data,
+    );
+  }
+
+  Future<void> deleteErrorItem(String id) async {
+    await _apiClient.delete<Object?>('/error-items/$id');
+  }
 }

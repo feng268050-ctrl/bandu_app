@@ -1,15 +1,6 @@
-enum PendingTaskKind {
-  uploadCapture,
-  saveErrorItem,
-  updatePracticeResult,
-}
+enum PendingTaskKind { uploadCapture, saveErrorItem, updatePracticeResult }
 
-enum PendingTaskStatus {
-  pending,
-  running,
-  failed,
-  completed,
-}
+enum PendingTaskStatus { pending, running, failed, completed }
 
 class PendingTask {
   const PendingTask({

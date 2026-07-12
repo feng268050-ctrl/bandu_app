@@ -12,7 +12,8 @@ class ErrorItemSummary {
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '未命名错题',
       subjectName: json['subjectName']?.toString() ?? '未分类',
-      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
+      updatedAt:
+          DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       mastered: json['mastered'] == true,
     );
@@ -33,6 +34,7 @@ class ErrorItemDetail {
     this.questionText,
     this.answer,
     this.analysis,
+    this.masteryLevel = 0,
     this.updatedAt,
   });
 
@@ -44,6 +46,12 @@ class ErrorItemDetail {
       questionText: json['questionText']?.toString(),
       answer: json['answer']?.toString(),
       analysis: json['analysis']?.toString(),
+      masteryLevel: switch (json['masteryLevel']) {
+        final int value => value,
+        final num value => value.toInt(),
+        final String value => int.tryParse(value) ?? 0,
+        _ => 0,
+      },
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
     );
   }
@@ -54,5 +62,29 @@ class ErrorItemDetail {
   final String? questionText;
   final String? answer;
   final String? analysis;
+  final int masteryLevel;
   final DateTime? updatedAt;
+}
+
+class ErrorItemUpdate {
+  const ErrorItemUpdate({
+    required this.questionText,
+    required this.answer,
+    required this.analysis,
+    required this.masteryLevel,
+  });
+
+  final String questionText;
+  final String answer;
+  final String analysis;
+  final int masteryLevel;
+
+  Map<String, Object?> toJson() {
+    return {
+      'questionText': questionText.trim(),
+      'answer': answer.trim(),
+      'analysis': analysis.trim(),
+      'masteryLevel': masteryLevel,
+    };
+  }
 }

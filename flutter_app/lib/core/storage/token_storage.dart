@@ -6,10 +6,7 @@ final tokenStoreProvider = Provider<TokenStore>((ref) {
 });
 
 class TokenPair {
-  const TokenPair({
-    required this.accessToken,
-    required this.refreshToken,
-  });
+  const TokenPair({required this.accessToken, required this.refreshToken});
 
   final String accessToken;
   final String refreshToken;
@@ -44,10 +41,7 @@ class SecureTokenStore implements TokenStore {
   @override
   Future<void> save(TokenPair tokenPair) async {
     _accessToken = tokenPair.accessToken;
-    await _storage.write(
-      key: _refreshTokenKey,
-      value: tokenPair.refreshToken,
-    );
+    await _storage.write(key: _refreshTokenKey, value: tokenPair.refreshToken);
   }
 
   @override

@@ -9,6 +9,8 @@ import com.bandu.tiji.core.model.questionbank.BankQuestion
 import com.bandu.tiji.core.model.questionbank.BankQuestionDraft
 import com.bandu.tiji.core.model.questionbank.BankQuestionType
 import com.bandu.tiji.core.model.questionbank.ExamSession
+import com.bandu.tiji.core.model.questionbank.ExamSessionStatus
+import com.bandu.tiji.core.model.questionbank.ExamSessionSummary
 import com.bandu.tiji.core.model.questionbank.QuestionBank
 import com.bandu.tiji.core.model.questionbank.QuestionBankDraft
 import com.bandu.tiji.core.model.questionbank.QuestionBankImportStatus
@@ -104,6 +106,7 @@ private class FakePdfPageExtractor(
 private class FakeQuestionBankRepository : QuestionBankRepository {
     private val banks = MutableStateFlow<List<QuestionBankSummary>>(emptyList())
     private val bankDetails = mutableMapOf<QuestionBankId, MutableStateFlow<QuestionBank?>>()
+    private val examSessions = mutableMapOf<QuestionBankId, MutableStateFlow<List<ExamSessionSummary>>>()
     private var nextBank = 1
     private var nextQuestion = 1
 
@@ -117,6 +120,9 @@ private class FakeQuestionBankRepository : QuestionBankRepository {
 
     override fun observeExamSession(id: ExamSessionId): Flow<ExamSession?> =
         MutableStateFlow<ExamSession?>(null).asStateFlow()
+
+    override fun observeExamSessions(bankId: QuestionBankId): Flow<List<ExamSessionSummary>> =
+        examSessions.getOrPut(bankId) { MutableStateFlow(emptyList()) }.asStateFlow()
 
     override suspend fun createBank(draft: QuestionBankDraft): QuestionBankId {
         createdBanks += draft
@@ -133,8 +139,15 @@ private class FakeQuestionBankRepository : QuestionBankRepository {
             updatedAtEpochMillis = 1L,
         )
         bankDetails[id] = MutableStateFlow(bank)
+        examSessions[id] = MutableStateFlow(emptyList())
         banks.value = listOf(bank.toSummary())
         return id
+    }
+
+    override suspend fun deleteBank(id: QuestionBankId) {
+        bankDetails.remove(id)
+        examSessions.remove(id)
+        banks.value = banks.value.filterNot { it.id == id }
     }
 
     override suspend fun addQuestion(draft: BankQuestionDraft): BankQuestionId =
@@ -161,12 +174,47 @@ private class FakeQuestionBankRepository : QuestionBankRepository {
     override suspend fun createExam(
         bankId: QuestionBankId,
         questionCount: Int,
-    ): ExamSessionId = ExamSessionId("exam-1")
+    ): ExamSessionId {
+        val id = ExamSessionId("exam-1")
+        val current = examSessions.getOrPut(bankId) { MutableStateFlow(emptyList()) }
+        current.value = listOf(
+            ExamSessionSummary(
+                id = id,
+                bankId = bankId,
+                title = "测试考卷",
+                questionCount = questionCount,
+                status = ExamSessionStatus.IN_PROGRESS,
+                createdAtEpochMillis = 3L,
+                completedAtEpochMillis = null,
+            ),
+        )
+        return id
+    }
+
+    override suspend fun renameExam(sessionId: ExamSessionId, title: String) {
+        examSessions.values.forEach { sessions ->
+            sessions.value = sessions.value.map { session ->
+                if (session.id == sessionId) {
+                    session.copy(title = title.trim())
+                } else {
+                    session
+                }
+            }
+        }
+    }
+
+    override suspend fun deleteExam(sessionId: ExamSessionId) {
+        examSessions.values.forEach { sessions ->
+            sessions.value = sessions.value.filterNot { it.id == sessionId }
+        }
+    }
 
     override suspend fun submitAnswer(
         attemptId: ExamAttemptId,
         userAnswer: String,
     ) = Unit
+
+    override suspend fun completeExam(sessionId: ExamSessionId) = Unit
 
     private fun BankQuestionDraft.toQuestion(id: BankQuestionId): BankQuestion =
         BankQuestion(

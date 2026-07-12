@@ -13,11 +13,7 @@ final appCacheDatabaseProvider = Provider<AppCacheDatabase>((ref) {
 });
 
 class CachedSubject {
-  const CachedSubject({
-    required this.id,
-    required this.name,
-    this.updatedAt,
-  });
+  const CachedSubject({required this.id, required this.name, this.updatedAt});
 
   final String id;
   final String name;
@@ -38,7 +34,8 @@ class CachedErrorItem {
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '未命名错题',
       subjectName: json['subjectName']?.toString() ?? '未分类',
-      updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
+      updatedAt:
+          DateTime.tryParse(json['updatedAt']?.toString() ?? '') ??
           DateTime.fromMillisecondsSinceEpoch(0),
       mastered: json['mastered'] == true,
     );
@@ -69,6 +66,7 @@ class CachedErrorItemDetail {
     this.questionText,
     this.answer,
     this.analysis,
+    this.masteryLevel = 0,
     this.updatedAt,
   });
 
@@ -80,6 +78,12 @@ class CachedErrorItemDetail {
       questionText: json['questionText']?.toString(),
       answer: json['answer']?.toString(),
       analysis: json['analysis']?.toString(),
+      masteryLevel: switch (json['masteryLevel']) {
+        final int value => value,
+        final num value => value.toInt(),
+        final String value => int.tryParse(value) ?? 0,
+        _ => 0,
+      },
       updatedAt: DateTime.tryParse(json['updatedAt']?.toString() ?? ''),
     );
   }
@@ -90,6 +94,7 @@ class CachedErrorItemDetail {
   final String? questionText;
   final String? answer;
   final String? analysis;
+  final int masteryLevel;
   final DateTime? updatedAt;
 
   Map<String, Object?> toJson() {
@@ -100,6 +105,7 @@ class CachedErrorItemDetail {
       'questionText': questionText,
       'answer': answer,
       'analysis': analysis,
+      'masteryLevel': masteryLevel,
       'updatedAt': updatedAt?.toIso8601String(),
     };
   }
@@ -136,9 +142,13 @@ abstract interface class AppCacheDatabase {
 
   Future<void> upsertErrorItems(List<CachedErrorItem> items);
 
+  Future<void> replaceErrorItems(List<CachedErrorItem> items);
+
   Future<CachedErrorItemDetail?> readErrorItemDetail(String id);
 
   Future<void> upsertErrorItemDetail(CachedErrorItemDetail detail);
+
+  Future<void> deleteErrorItem(String id);
 
   Future<void> clear();
 }
@@ -177,6 +187,18 @@ class FileAppCacheDatabase implements AppCacheDatabase {
   }
 
   @override
+  Future<void> replaceErrorItems(List<CachedErrorItem> items) async {
+    await _ensureLoaded();
+    final ids = items.map((item) => item.id).toSet();
+    _errorItems
+      ..clear()
+      ..addEntries(items.map((item) => MapEntry(item.id, item)));
+    _errorItemDetails.removeWhere((id, _) => !ids.contains(id));
+    await _persist();
+    _emit();
+  }
+
+  @override
   Future<CachedErrorItemDetail?> readErrorItemDetail(String id) async {
     await _ensureLoaded();
     return _errorItemDetails[id];
@@ -192,6 +214,15 @@ class FileAppCacheDatabase implements AppCacheDatabase {
       subjectName: detail.subjectName,
       updatedAt: detail.updatedAt ?? DateTime.now(),
     );
+    await _persist();
+    _emit();
+  }
+
+  @override
+  Future<void> deleteErrorItem(String id) async {
+    await _ensureLoaded();
+    _errorItems.remove(id);
+    _errorItemDetails.remove(id);
     await _persist();
     _emit();
   }
@@ -269,8 +300,9 @@ class FileAppCacheDatabase implements AppCacheDatabase {
       jsonEncode({
         'schemaVersion': 1,
         'errorItems': _sortedItems().map((item) => item.toJson()).toList(),
-        'errorItemDetails':
-            _errorItemDetails.values.map((item) => item.toJson()).toList(),
+        'errorItemDetails': _errorItemDetails.values
+            .map((item) => item.toJson())
+            .toList(),
       }),
       flush: true,
     );
@@ -315,6 +347,16 @@ class MemoryAppCacheDatabase implements AppCacheDatabase {
   }
 
   @override
+  Future<void> replaceErrorItems(List<CachedErrorItem> items) async {
+    final ids = items.map((item) => item.id).toSet();
+    _errorItems
+      ..clear()
+      ..addEntries(items.map((item) => MapEntry(item.id, item)));
+    _errorItemDetails.removeWhere((id, _) => !ids.contains(id));
+    _emit();
+  }
+
+  @override
   Future<CachedErrorItemDetail?> readErrorItemDetail(String id) async {
     return _errorItemDetails[id];
   }
@@ -328,6 +370,13 @@ class MemoryAppCacheDatabase implements AppCacheDatabase {
       subjectName: detail.subjectName,
       updatedAt: detail.updatedAt ?? DateTime.now(),
     );
+    _emit();
+  }
+
+  @override
+  Future<void> deleteErrorItem(String id) async {
+    _errorItems.remove(id);
+    _errorItemDetails.remove(id);
     _emit();
   }
 

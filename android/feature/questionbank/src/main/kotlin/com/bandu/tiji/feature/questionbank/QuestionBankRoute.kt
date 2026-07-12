@@ -2,6 +2,7 @@ package com.bandu.tiji.feature.questionbank
 
 import android.content.Context
 import android.os.PowerManager
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -22,6 +23,9 @@ fun QuestionBankRoute(
     var showPdfPicker by remember { mutableStateOf(false) }
 
     PdfImportKeepAwake(active = uiState.isPdfImporting)
+    BackHandler {
+        viewModel.onAction(QuestionBankAction.NavigateBack)
+    }
 
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->

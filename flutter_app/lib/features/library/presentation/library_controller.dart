@@ -4,8 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final libraryControllerProvider =
     AsyncNotifierProvider<LibraryController, List<ErrorItemSummary>>(
-  LibraryController.new,
-);
+      LibraryController.new,
+    );
 
 class LibraryController extends AsyncNotifier<List<ErrorItemSummary>> {
   @override

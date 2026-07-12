@@ -18,7 +18,8 @@ class LibraryPage extends ConsumerWidget {
         actions: [
           IconButton(
             tooltip: '刷新',
-            onPressed: () => ref.read(libraryControllerProvider.notifier).refresh(),
+            onPressed: () =>
+                ref.read(libraryControllerProvider.notifier).refresh(),
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -40,7 +41,9 @@ class LibraryPage extends ConsumerWidget {
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
-                tileColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                tileColor: Theme.of(
+                  context,
+                ).colorScheme.surfaceContainerHighest,
                 title: Text(item.title),
                 subtitle: Text(item.subjectName),
                 trailing: const Icon(Icons.chevron_right),

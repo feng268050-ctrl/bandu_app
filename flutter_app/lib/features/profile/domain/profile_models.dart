@@ -17,16 +17,8 @@ enum ProfileSection {
     description: '附近设备和配对时显示的名称',
     icon: Icons.devices_outlined,
   ),
-  data(
-    title: '数据管理',
-    description: '清除学习数据或恢复出厂设置',
-    icon: Icons.storage_outlined,
-  ),
-  about(
-    title: '关于',
-    description: '版本、隐私、许可和图标来源',
-    icon: Icons.info_outline,
-  );
+  data(title: '数据管理', description: '本地缓存和应用偏好', icon: Icons.storage_outlined),
+  about(title: '关于', description: '版本、隐私、许可和图标来源', icon: Icons.info_outline);
 
   const ProfileSection({
     required this.title,
@@ -92,11 +84,14 @@ class ProfileOverviewState {
     required this.sections,
   });
 
-  factory ProfileOverviewState.fromUser(UserProfile? user) {
+  factory ProfileOverviewState.fromUser(
+    UserProfile? user, {
+    String deviceNameLabel = '读取中',
+  }) {
     return ProfileOverviewState(
       summary: StudentProfileSummary.fromUser(user),
       modelConfigLabel: '后端托管',
-      deviceNameLabel: '未设置',
+      deviceNameLabel: deviceNameLabel,
       sections: ProfileSection.values,
     );
   }
@@ -138,10 +133,7 @@ String? _gradeLabel(String? educationStage, int? enrollmentYear) {
   }
 
   final now = DateTime.now();
-  var yearIndex = now.year - enrollmentYear + 1;
-  if (now.month < 9) {
-    yearIndex -= 1;
-  }
+  final yearIndex = now.year - enrollmentYear;
 
   if (yearIndex < 1) {
     return null;

@@ -25,18 +25,18 @@ class CaptureController extends Notifier<CaptureUiState> {
       return;
     }
 
-    state = state.copyWith(phase: CapturePhase.analyzing, errorMessage: null);
+    state = CaptureUiState(phase: CapturePhase.analyzing, localImagePath: path);
     try {
       final result = await ref.read(analyzeCaptureUseCaseProvider).call(path);
-      state = state.copyWith(
+      state = CaptureUiState(
         phase: CapturePhase.success,
+        localImagePath: path,
         result: result,
-        savedErrorItemId: null,
-        errorMessage: null,
       );
     } catch (error) {
-      state = state.copyWith(
-        phase: CapturePhase.success,
+      state = CaptureUiState(
+        phase: CapturePhase.failed,
+        localImagePath: path,
         errorMessage: error.toString(),
       );
     }
@@ -49,22 +49,28 @@ class CaptureController extends Notifier<CaptureUiState> {
       return;
     }
 
-    state = state.copyWith(phase: CapturePhase.uploading, errorMessage: null);
+    state = CaptureUiState(
+      phase: CapturePhase.uploading,
+      localImagePath: path,
+      result: result,
+    );
     try {
-      final saved = await ref.read(saveAnalyzedCaptureUseCaseProvider).call(
-            localImagePath: path,
-            result: result,
-      );
+      final saved = await ref
+          .read(saveAnalyzedCaptureUseCaseProvider)
+          .call(localImagePath: path, result: result);
       ref.invalidate(libraryControllerProvider);
       ref.invalidate(statsOverviewProvider);
-      state = state.copyWith(
+      state = CaptureUiState(
         phase: CapturePhase.success,
+        localImagePath: path,
+        result: result,
         savedErrorItemId: saved.id,
-        errorMessage: null,
       );
     } catch (error) {
-      state = state.copyWith(
+      state = CaptureUiState(
         phase: CapturePhase.failed,
+        localImagePath: path,
+        result: result,
         errorMessage: error.toString(),
       );
     }
@@ -75,19 +81,16 @@ class CaptureController extends Notifier<CaptureUiState> {
   }
 
   Future<void> _pickImage(Future<String?> Function() picker) async {
-    state = state.copyWith(phase: CapturePhase.capturing, errorMessage: null);
+    state = const CaptureUiState(phase: CapturePhase.capturing);
     try {
       final path = await picker();
       if (path == null) {
         state = CaptureUiState.initial();
         return;
       }
-      state = CaptureUiState(
-        phase: CapturePhase.preview,
-        localImagePath: path,
-      );
+      state = CaptureUiState(phase: CapturePhase.preview, localImagePath: path);
     } catch (error) {
-      state = state.copyWith(
+      state = CaptureUiState(
         phase: CapturePhase.failed,
         errorMessage: error.toString(),
       );

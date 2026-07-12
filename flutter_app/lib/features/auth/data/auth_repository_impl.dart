@@ -85,6 +85,20 @@ class RemoteAuthRepository implements AuthRepository {
   }
 
   @override
+  Future<UserProfile> updateProfile({
+    required String name,
+    required String educationStage,
+    required int enrollmentYear,
+  }) async {
+    final data = await apiService.updateProfile(
+      name: name,
+      educationStage: educationStage,
+      enrollmentYear: enrollmentYear,
+    );
+    return mapper.userFromJson(data);
+  }
+
+  @override
   Future<void> logout() async {
     final refreshToken = await tokenStore.readRefreshToken();
     try {

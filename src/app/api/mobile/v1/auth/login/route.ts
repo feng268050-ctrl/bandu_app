@@ -17,7 +17,7 @@ export async function POST(req: Request) {
     }
 
     const user = await prisma.user.findUnique({
-        where: { email: parsed.data.email },
+        where: { email: parsed.data.email.trim().toLowerCase() },
     });
 
     if (!user || !user.isActive) {

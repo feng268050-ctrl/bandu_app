@@ -13,6 +13,7 @@ import com.bandu.tiji.core.model.questionbank.ExamGradingResult
 import com.bandu.tiji.core.model.questionbank.ExamGradingSource
 import com.bandu.tiji.core.model.questionbank.ExamSession
 import com.bandu.tiji.core.model.questionbank.ExamSessionStatus
+import com.bandu.tiji.core.model.questionbank.ExamSessionSummary
 import com.bandu.tiji.core.model.questionbank.QuestionBank
 import com.bandu.tiji.core.model.questionbank.QuestionBankDraft
 import com.bandu.tiji.core.model.questionbank.QuestionBankImportStatus
@@ -23,6 +24,7 @@ import com.bandu.tiji.core.storage.db.entity.ExamAttemptEntity
 import com.bandu.tiji.core.storage.db.entity.ExamSessionEntity
 import com.bandu.tiji.core.storage.db.entity.QuestionBankEntity
 import com.bandu.tiji.core.storage.db.projection.ExamAttemptQuestionProjection
+import com.bandu.tiji.core.storage.db.projection.ExamSessionSummaryProjection
 import com.bandu.tiji.core.storage.db.projection.QuestionBankSummaryProjection
 
 private const val TEXT_SEPARATOR = "\u001F"
@@ -118,6 +120,17 @@ internal fun ExamSessionEntity.toDomain(attempts: List<ExamAttempt>): ExamSessio
         seed = seed,
         status = enumValueOrDefault(status, ExamSessionStatus.IN_PROGRESS),
         attempts = attempts,
+        createdAtEpochMillis = createdAt,
+        completedAtEpochMillis = completedAt,
+    )
+
+internal fun ExamSessionSummaryProjection.toDomain(): ExamSessionSummary =
+    ExamSessionSummary(
+        id = ExamSessionId(id),
+        bankId = QuestionBankId(bankId),
+        title = title,
+        questionCount = questionCount,
+        status = enumValueOrDefault(status, ExamSessionStatus.IN_PROGRESS),
         createdAtEpochMillis = createdAt,
         completedAtEpochMillis = completedAt,
     )

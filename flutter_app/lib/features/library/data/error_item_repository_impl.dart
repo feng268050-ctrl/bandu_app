@@ -30,7 +30,7 @@ class RemoteErrorItemRepository implements ErrorItemRepository {
       final items = mapper.summaryListFromJson(
         await apiService.fetchErrorItems(),
       );
-      await cacheDatabase.upsertErrorItems(
+      await cacheDatabase.replaceErrorItems(
         items.map(mapper.summaryToCache).toList(),
       );
       return items;
@@ -53,5 +53,23 @@ class RemoteErrorItemRepository implements ErrorItemRepository {
       }
       rethrow;
     }
+  }
+
+  @override
+  Future<ErrorItemDetail> updateErrorItem(
+    String id,
+    ErrorItemUpdate update,
+  ) async {
+    final item = mapper.detailFromJson(
+      await apiService.updateErrorItem(id, update.toJson()),
+    );
+    await cacheDatabase.upsertErrorItemDetail(mapper.detailToCache(item));
+    return item;
+  }
+
+  @override
+  Future<void> deleteErrorItem(String id) async {
+    await apiService.deleteErrorItem(id);
+    await cacheDatabase.deleteErrorItem(id);
   }
 }

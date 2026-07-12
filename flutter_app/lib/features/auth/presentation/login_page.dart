@@ -36,10 +36,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
             shrinkWrap: true,
             padding: const EdgeInsets.all(24),
             children: [
-              Text(
-                '伴读题集',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
+              Text('伴读题集', style: Theme.of(context).textTheme.headlineMedium),
               const SizedBox(height: 8),
               Text(
                 _isRegisterMode ? '创建移动端账号' : '登录移动端账号',
@@ -75,7 +72,7 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                     ? const SizedBox.square(
                         dimension: 18,
                         child: CircularProgressIndicator(strokeWidth: 2),
-                    )
+                      )
                     : const Icon(Icons.login),
                 label: Text(_isRegisterMode ? '注册并登录' : '登录'),
               ),

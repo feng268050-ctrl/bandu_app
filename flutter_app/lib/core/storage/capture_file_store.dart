@@ -9,10 +9,7 @@ final captureFileStoreProvider = Provider<CaptureFileStore>((ref) {
 });
 
 class CapturedFile {
-  const CapturedFile({
-    required this.id,
-    required this.path,
-  });
+  const CapturedFile({required this.id, required this.path});
 
   final String id;
   final String path;
@@ -27,7 +24,9 @@ class CaptureFileStore {
     );
 
     await directory.create(recursive: true);
-    final target = File(p.join(directory.path, 'original${p.extension(source.path)}'));
+    final target = File(
+      p.join(directory.path, 'original${p.extension(source.path)}'),
+    );
     await source.copy(target.path);
 
     return CapturedFile(id: captureId, path: target.path);

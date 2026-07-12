@@ -24,10 +24,7 @@ class CaptureApiService {
       ),
     });
 
-    return _apiClient.post<Map<String, Object?>>(
-      '/analyze',
-      data: formData,
-    );
+    return _apiClient.post<Map<String, Object?>>('/analyze', data: formData);
   }
 
   Future<Map<String, Object?>> saveAnalysis({

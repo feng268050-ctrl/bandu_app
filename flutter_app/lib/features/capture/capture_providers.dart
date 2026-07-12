@@ -6,7 +6,9 @@ final takePhotoUseCaseProvider = Provider<TakePhotoUseCase>((ref) {
   return TakePhotoUseCase(ref.watch(captureRepositoryProvider));
 });
 
-final pickCaptureImageUseCaseProvider = Provider<PickCaptureImageUseCase>((ref) {
+final pickCaptureImageUseCaseProvider = Provider<PickCaptureImageUseCase>((
+  ref,
+) {
   return PickCaptureImageUseCase(ref.watch(captureRepositoryProvider));
 });
 
@@ -14,7 +16,8 @@ final analyzeCaptureUseCaseProvider = Provider<AnalyzeCaptureUseCase>((ref) {
   return AnalyzeCaptureUseCase(ref.watch(captureRepositoryProvider));
 });
 
-final saveAnalyzedCaptureUseCaseProvider =
-    Provider<SaveAnalyzedCaptureUseCase>((ref) {
-  return SaveAnalyzedCaptureUseCase(ref.watch(captureRepositoryProvider));
-});
+final saveAnalyzedCaptureUseCaseProvider = Provider<SaveAnalyzedCaptureUseCase>(
+  (ref) {
+    return SaveAnalyzedCaptureUseCase(ref.watch(captureRepositoryProvider));
+  },
+);

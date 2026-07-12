@@ -61,3 +61,31 @@ class PracticeUiState {
     );
   }
 }
+
+class PracticeRecord {
+  const PracticeRecord({
+    required this.id,
+    required this.subject,
+    required this.difficulty,
+    required this.isCorrect,
+    required this.createdAt,
+  });
+
+  factory PracticeRecord.fromJson(Map<String, Object?> json) {
+    return PracticeRecord(
+      id: json['id']?.toString() ?? '',
+      subject: json['subject']?.toString() ?? '未分类',
+      difficulty: json['difficulty']?.toString() ?? 'medium',
+      isCorrect: json['isCorrect'] == true,
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0),
+    );
+  }
+
+  final String id;
+  final String subject;
+  final String difficulty;
+  final bool isCorrect;
+  final DateTime createdAt;
+}

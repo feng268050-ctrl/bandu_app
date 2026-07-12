@@ -20,3 +20,23 @@ class FetchErrorItemDetailUseCase {
     return _repository.fetchErrorItem(id);
   }
 }
+
+class UpdateErrorItemUseCase {
+  const UpdateErrorItemUseCase(this._repository);
+
+  final ErrorItemRepository _repository;
+
+  Future<ErrorItemDetail> call(String id, ErrorItemUpdate update) {
+    return _repository.updateErrorItem(id, update);
+  }
+}
+
+class DeleteErrorItemUseCase {
+  const DeleteErrorItemUseCase(this._repository);
+
+  final ErrorItemRepository _repository;
+
+  Future<void> call(String id) {
+    return _repository.deleteErrorItem(id);
+  }
+}

@@ -7,8 +7,11 @@ import com.bandu.tiji.core.model.id.ExamAttemptId
 import com.bandu.tiji.core.model.id.ExamSessionId
 import com.bandu.tiji.core.model.id.QuestionBankId
 import com.bandu.tiji.core.model.questionbank.BankQuestionDraft
+import com.bandu.tiji.core.model.questionbank.ExamGradingResult
+import com.bandu.tiji.core.model.questionbank.ExamSessionSummary
 import com.bandu.tiji.core.model.questionbank.QuestionReviewStatus
 import com.bandu.tiji.core.model.questionbank.QuestionBankDraft
+import com.bandu.tiji.core.model.questionbank.QuestionBankSummary
 import com.bandu.tiji.domain.ai.AiGatewayException
 import com.bandu.tiji.domain.ai.SplitQuestionBankQuestion
 import com.bandu.tiji.domain.ai.SplitQuestionBankPageRequest
@@ -38,6 +41,7 @@ class QuestionBankViewModel(
 
     private var banksJob: Job? = null
     private var bankJob: Job? = null
+    private var examSessionsJob: Job? = null
     private var examJob: Job? = null
     private var isPdfImportRunning = false
 
@@ -53,6 +57,21 @@ class QuestionBankViewModel(
                 mutableEffects.trySend(QuestionBankEffect.LaunchPdfPicker)
             is QuestionBankAction.PdfSelected -> importPdf(action.uri)
             is QuestionBankAction.OpenBank -> openBank(action.id)
+            is QuestionBankAction.OpenExam -> openExam(action.id)
+            is QuestionBankAction.RequestDeleteBank -> requestDeleteBank(action.id)
+            QuestionBankAction.DismissDeleteBank ->
+                mutableUiState.value = mutableUiState.value.copy(pendingDeleteBank = null)
+            QuestionBankAction.ConfirmDeleteBank -> deleteBank()
+            is QuestionBankAction.RequestRenameExam -> requestRenameExam(action.id)
+            is QuestionBankAction.UpdateRenameExam ->
+                mutableUiState.value = mutableUiState.value.copy(renameExamDialog = action.dialog)
+            QuestionBankAction.ConfirmRenameExam -> renameExam()
+            QuestionBankAction.DismissRenameExam ->
+                mutableUiState.value = mutableUiState.value.copy(renameExamDialog = null)
+            is QuestionBankAction.RequestDeleteExam -> requestDeleteExam(action.id)
+            QuestionBankAction.ConfirmDeleteExam -> deleteExam()
+            QuestionBankAction.DismissDeleteExam ->
+                mutableUiState.value = mutableUiState.value.copy(pendingDeleteExam = null)
             QuestionBankAction.OpenQuestionEditor -> {
                 mutableUiState.value = mutableUiState.value.copy(
                     questionEditor = QuestionEditorUiState(),
@@ -76,8 +95,12 @@ class QuestionBankViewModel(
                 mutableUiState.value = mutableUiState.value.copy(examDialog = action.dialog)
             QuestionBankAction.CreateExam -> createExam()
             is QuestionBankAction.UpdateAnswer ->
-                mutableUiState.value = mutableUiState.value.copy(answerInput = action.answer)
+                mutableUiState.value = mutableUiState.value.copy(
+                    answerInput = action.answer,
+                    noticeMessage = null,
+                )
             QuestionBankAction.SubmitCurrentAnswer -> submitCurrentAnswer()
+            QuestionBankAction.SubmitExam -> submitExam()
             QuestionBankAction.NextAttempt -> moveToNextAttempt()
         }
     }
@@ -113,17 +136,21 @@ class QuestionBankViewModel(
         noticeMessage: String? = null,
     ) {
         bankJob?.cancel()
+        examSessionsJob?.cancel()
         examJob?.cancel()
         mutableUiState.value = mutableUiState.value.copy(
             screen = QuestionBankScreen.Detail(id),
             currentBank = null,
             currentExam = null,
+            examSessions = emptyList(),
             currentAttemptIndex = 0,
             answerInput = "",
             isLoading = true,
             loadingMessage = "正在加载题库详情",
             errorMessage = null,
             noticeMessage = noticeMessage,
+            renameExamDialog = null,
+            pendingDeleteExam = null,
         )
         bankJob = viewModelScope.launch {
             repository.observeBank(id)
@@ -142,10 +169,20 @@ class QuestionBankViewModel(
                     )
                 }
         }
+        examSessionsJob = viewModelScope.launch {
+            repository.observeExamSessions(id)
+                .catch {
+                    mutableUiState.value = mutableUiState.value.copy(examSessions = emptyList())
+                }
+                .collect { sessions ->
+                    mutableUiState.value = mutableUiState.value.copy(examSessions = sessions)
+                }
+        }
     }
 
     private fun openExam(id: ExamSessionId) {
         examJob?.cancel()
+        examSessionsJob?.cancel()
         mutableUiState.value = mutableUiState.value.copy(
             screen = QuestionBankScreen.Exam(id),
             currentExam = null,
@@ -155,6 +192,8 @@ class QuestionBankViewModel(
             loadingMessage = "正在加载考卷",
             errorMessage = null,
             noticeMessage = null,
+            renameExamDialog = null,
+            pendingDeleteExam = null,
         )
         examJob = viewModelScope.launch {
             repository.observeExamSession(id)
@@ -175,6 +214,175 @@ class QuestionBankViewModel(
                     )
                 }
         }
+    }
+
+    private fun requestDeleteBank(id: QuestionBankId) {
+        val bank = mutableUiState.value.banks.firstOrNull { it.id == id }
+            ?: mutableUiState.value.currentBank?.takeIf { it.id == id }?.let {
+                QuestionBankSummary(
+                    id = it.id,
+                    name = it.name,
+                    sourceFileName = it.sourceFileName,
+                    sourceUri = it.sourceUri,
+                    subject = it.subject,
+                    questionCount = it.questions.size,
+                    importStatus = it.importStatus,
+                    createdAtEpochMillis = it.createdAtEpochMillis,
+                    updatedAtEpochMillis = it.updatedAtEpochMillis,
+                )
+            }
+            ?: return
+        mutableUiState.value = mutableUiState.value.copy(
+            pendingDeleteBank = DeleteQuestionBankUiState(
+                bankId = bank.id,
+                bankName = bank.name,
+                sourceFileName = bank.sourceFileName,
+            ),
+            errorMessage = null,
+        )
+    }
+
+    private fun deleteBank() {
+        val pending = mutableUiState.value.pendingDeleteBank ?: return
+        viewModelScope.launch {
+            mutableUiState.value = mutableUiState.value.copy(
+                pendingDeleteBank = pending.copy(isDeleting = true, errorMessage = null),
+            )
+            runCatching {
+                repository.deleteBank(pending.bankId)
+            }.onSuccess {
+                if (mutableUiState.value.currentBank?.id == pending.bankId) {
+                    bankJob?.cancel()
+                    examSessionsJob?.cancel()
+                }
+                mutableUiState.value = mutableUiState.value.copy(
+                    screen = if (mutableUiState.value.currentBank?.id == pending.bankId) {
+                        QuestionBankScreen.List
+                    } else {
+                        mutableUiState.value.screen
+                    },
+                    currentBank = mutableUiState.value.currentBank?.takeIf { it.id != pending.bankId },
+                    examSessions = if (mutableUiState.value.currentBank?.id == pending.bankId) {
+                        emptyList()
+                    } else {
+                        mutableUiState.value.examSessions
+                    },
+                    pendingDeleteBank = null,
+                    isLoading = false,
+                    noticeMessage = "题库已删除：${pending.bankName}",
+                    errorMessage = null,
+                )
+            }.onFailure {
+                mutableUiState.value = mutableUiState.value.copy(
+                    pendingDeleteBank = pending.copy(
+                        isDeleting = false,
+                        errorMessage = "删除失败，请稍后重试",
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun requestRenameExam(id: ExamSessionId) {
+        val session = findExamSummary(id) ?: return
+        mutableUiState.value = mutableUiState.value.copy(
+            renameExamDialog = RenameExamUiState(
+                sessionId = session.id,
+                titleText = session.title,
+            ),
+            errorMessage = null,
+        )
+    }
+
+    private fun renameExam() {
+        val dialog = mutableUiState.value.renameExamDialog ?: return
+        val title = dialog.titleText.trim()
+        if (title.isBlank()) {
+            mutableUiState.value = mutableUiState.value.copy(
+                renameExamDialog = dialog.copy(errorMessage = "考卷名称不能为空"),
+            )
+            return
+        }
+        viewModelScope.launch {
+            mutableUiState.value = mutableUiState.value.copy(
+                renameExamDialog = dialog.copy(isSaving = true, errorMessage = null),
+            )
+            runCatching {
+                repository.renameExam(dialog.sessionId, title)
+            }.onSuccess {
+                mutableUiState.value = mutableUiState.value.copy(
+                    renameExamDialog = null,
+                    noticeMessage = "考卷已重命名",
+                    errorMessage = null,
+                )
+            }.onFailure {
+                mutableUiState.value = mutableUiState.value.copy(
+                    renameExamDialog = dialog.copy(
+                        isSaving = false,
+                        errorMessage = "重命名失败，请稍后重试",
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun requestDeleteExam(id: ExamSessionId) {
+        val session = findExamSummary(id) ?: return
+        mutableUiState.value = mutableUiState.value.copy(
+            pendingDeleteExam = DeleteExamUiState(
+                sessionId = session.id,
+                title = session.title,
+            ),
+            errorMessage = null,
+        )
+    }
+
+    private fun deleteExam() {
+        val pending = mutableUiState.value.pendingDeleteExam ?: return
+        viewModelScope.launch {
+            val currentBeforeDelete = mutableUiState.value.currentExam
+            mutableUiState.value = mutableUiState.value.copy(
+                pendingDeleteExam = pending.copy(isDeleting = true, errorMessage = null),
+            )
+            runCatching {
+                repository.deleteExam(pending.sessionId)
+            }.onSuccess {
+                val current = currentBeforeDelete ?: mutableUiState.value.currentExam
+                if (current?.id == pending.sessionId) {
+                    examJob?.cancel()
+                    openBank(current.bankId, "考卷已删除：${pending.title}")
+                } else {
+                    mutableUiState.value = mutableUiState.value.copy(
+                        pendingDeleteExam = null,
+                        noticeMessage = "考卷已删除：${pending.title}",
+                        errorMessage = null,
+                    )
+                }
+            }.onFailure {
+                mutableUiState.value = mutableUiState.value.copy(
+                    pendingDeleteExam = pending.copy(
+                        isDeleting = false,
+                        errorMessage = "删除失败，请稍后重试",
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun findExamSummary(id: ExamSessionId): ExamSessionSummary? {
+        val state = mutableUiState.value
+        return state.examSessions.firstOrNull { it.id == id }
+            ?: state.currentExam?.takeIf { it.id == id }?.let { session ->
+                ExamSessionSummary(
+                    id = session.id,
+                    bankId = session.bankId,
+                    title = session.title,
+                    questionCount = session.attempts.size,
+                    status = session.status,
+                    createdAtEpochMillis = session.createdAtEpochMillis,
+                    completedAtEpochMillis = session.completedAtEpochMillis,
+                )
+            }
     }
 
     private fun importPdf(uri: String) {
@@ -342,7 +550,7 @@ class QuestionBankViewModel(
         val attempt = session.attempts.getOrNull(mutableUiState.value.currentAttemptIndex) ?: return
         val answer = mutableUiState.value.answerInput
         if (answer.isBlank()) {
-            mutableUiState.value = mutableUiState.value.copy(errorMessage = "请先填写答案")
+            mutableUiState.value = mutableUiState.value.copy(noticeMessage = "请先选择或填写答案")
             return
         }
         viewModelScope.launch {
@@ -350,6 +558,27 @@ class QuestionBankViewModel(
                 repository.submitAnswer(ExamAttemptId(attempt.id.value), answer)
             }.onFailure {
                 mutableUiState.value = mutableUiState.value.copy(errorMessage = "无法提交答案，请重试")
+            }
+        }
+    }
+
+    private fun submitExam() {
+        val session = mutableUiState.value.currentExam ?: return
+        if (session.attempts.any { !it.answerRevealed }) {
+            mutableUiState.value = mutableUiState.value.copy(noticeMessage = "请先完成所有题目")
+            return
+        }
+        viewModelScope.launch {
+            runCatching {
+                repository.completeExam(session.id)
+            }.onSuccess {
+                val correct = session.attempts.count { it.gradingResult == ExamGradingResult.CORRECT }
+                mutableUiState.value = mutableUiState.value.copy(
+                    noticeMessage = "考卷已提交，得分 $correct/${session.attempts.size}",
+                    errorMessage = null,
+                )
+            }.onFailure {
+                mutableUiState.value = mutableUiState.value.copy(errorMessage = "无法提交考卷，请重试")
             }
         }
     }
@@ -372,11 +601,16 @@ class QuestionBankViewModel(
                 mutableEffects.trySend(QuestionBankEffect.NavigateBack)
             is QuestionBankScreen.Detail -> {
                 bankJob?.cancel()
+                examSessionsJob?.cancel()
                 mutableUiState.value = mutableUiState.value.copy(
                     screen = QuestionBankScreen.List,
                     currentBank = null,
+                    examSessions = emptyList(),
                     questionEditor = null,
                     examDialog = null,
+                    pendingDeleteBank = null,
+                    renameExamDialog = null,
+                    pendingDeleteExam = null,
                     errorMessage = null,
                 )
             }

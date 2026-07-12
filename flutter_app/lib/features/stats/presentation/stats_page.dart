@@ -24,10 +24,7 @@ class StatsPage extends ConsumerWidget {
                 label: '掌握率',
                 value: '${(data.masteryRate * 100).toStringAsFixed(0)}%',
               ),
-              _StatsTile(
-                label: '练习次数',
-                value: data.practiceTotal.toString(),
-              ),
+              _StatsTile(label: '练习次数', value: data.practiceTotal.toString()),
               _StatsTile(
                 label: '练习正确率',
                 value: '${(data.practiceAccuracy * 100).toStringAsFixed(0)}%',
@@ -41,10 +38,7 @@ class StatsPage extends ConsumerWidget {
 }
 
 class _StatsTile extends StatelessWidget {
-  const _StatsTile({
-    required this.label,
-    required this.value,
-  });
+  const _StatsTile({required this.label, required this.value});
 
   final String label;
   final String value;
@@ -54,10 +48,7 @@ class _StatsTile extends StatelessWidget {
     return Card(
       child: ListTile(
         title: Text(label),
-        trailing: Text(
-          value,
-          style: Theme.of(context).textTheme.titleLarge,
-        ),
+        trailing: Text(value, style: Theme.of(context).textTheme.titleLarge),
       ),
     );
   }
