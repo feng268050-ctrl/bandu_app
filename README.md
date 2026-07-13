@@ -14,6 +14,22 @@ separate `bandu_web` repository.
 - Profile page, local avatar settings, local cache, and Android device name bridge.
 - Android-first build and install workflow.
 
+## Architecture
+
+The Flutter client follows the five-layer design documented in
+[docs/bandu_flutter_five_layer_architecture.md](docs/bandu_flutter_five_layer_architecture.md):
+
+```text
+lib/application  pages, state, use cases, domain models, repository contracts
+lib/components   reusable UI and design system
+lib/framework    network, persistence, camera, device, and repository implementations
+lib/conversion   API DTOs, mappers, and persistence records
+lib/main.dart    build composition entry
+```
+
+Framework implementations are injected at bootstrap. Architecture tests prevent
+application code from importing platform plugins or concrete repositories.
+
 ## Backend
 
 The app talks to:
@@ -41,6 +57,7 @@ API_BASE_URL=http://10.0.2.2:3000/api/mobile/v1 make run
 cp .env.example .env   # optional
 make emulator          # start emulator + flutter run
 make sync              # after code changes: debug build + install + relaunch
+make verify            # analyze + test + debug APK
 ```
 
 See [docs/development.md](docs/development.md) for emulator setup, device targets, and troubleshooting.

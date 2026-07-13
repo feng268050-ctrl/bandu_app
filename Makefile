@@ -15,13 +15,14 @@ define with_dotenv
 	$(1)
 endef
 
-.PHONY: help deps analyze test run emulator sync apk install install-debug relaunch clean version
+.PHONY: help deps analyze test verify run emulator sync apk install install-debug relaunch clean version
 
 help:
 	@echo "bandu_app Flutter targets"
 	@echo "  make deps          # flutter pub get"
 	@echo "  make analyze       # flutter analyze"
 	@echo "  make test          # flutter test"
+	@echo "  make verify        # analyze + test + debug APK"
 	@echo "  make run           # flutter run with API_BASE_URL"
 	@echo "  make emulator      # start emulator ($(ADB_SERIAL)) and flutter run"
 	@echo "  make sync          # debug build + install + relaunch on $(ADB_SERIAL)"
@@ -39,6 +40,9 @@ analyze:
 
 test:
 	flutter test
+
+verify: analyze test
+	flutter build apk --debug $(FLUTTER_DART_DEFINES)
 
 run:
 	flutter run $(FLUTTER_DART_DEFINES)
