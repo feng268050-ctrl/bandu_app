@@ -20,6 +20,7 @@ class TutorPage extends ConsumerStatefulWidget {
 }
 
 class _TutorPageState extends ConsumerState<TutorPage> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
 
@@ -34,8 +35,6 @@ class _TutorPageState extends ConsumerState<TutorPage> {
   Widget build(BuildContext context) {
     final state = ref.watch(tutorControllerProvider);
     final controller = ref.read(tutorControllerProvider.notifier);
-    final library = ref.watch(libraryControllerProvider);
-    final questionBanks = ref.watch(questionBankControllerProvider).sets;
     ref.listen(tutorControllerProvider, (previous, next) {
       if (next.voiceTranscript != previous?.voiceTranscript &&
           next.isListening) {
@@ -53,22 +52,25 @@ class _TutorPageState extends ConsumerState<TutorPage> {
     });
 
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: const _HistoryDrawer(),
+      endDrawer: _QuestionPickerDrawer(
+        onSelected: (selection) => _applyQuestionSelection(
+          selection,
+          controller,
+        ),
+      ),
       appBar: AppBar(
         leading: IconButton(
           tooltip: '历史对话',
-          onPressed: () => _showHistory(context, state, controller),
+          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
           icon: const Icon(Icons.menu),
         ),
         title: _ModelSelector(state: state, controller: controller),
         actions: [
           IconButton(
             tooltip: '从应用中选择题目',
-            onPressed: () => _showQuestionPicker(
-              context,
-              library.valueOrNull ?? const [],
-              questionBanks,
-              controller,
-            ),
+            onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
             icon: const Icon(Icons.post_add_outlined),
           ),
         ],
@@ -80,12 +82,8 @@ class _TutorPageState extends ConsumerState<TutorPage> {
               controller: _scrollController,
               messages: state.activeSession?.messages ?? const [],
               isSending: state.isSending,
-              onChooseQuestion: () => _showQuestionPicker(
-                context,
-                library.valueOrNull ?? const [],
-                questionBanks,
-                controller,
-              ),
+              onChooseQuestion: () =>
+                  _scaffoldKey.currentState?.openEndDrawer(),
             ),
           ),
           if (state.errorMessage != null)
@@ -114,22 +112,10 @@ class _TutorPageState extends ConsumerState<TutorPage> {
     );
   }
 
-  Future<void> _showQuestionPicker(
-    BuildContext context,
-    List<ErrorItemSummary> libraryItems,
-    List<PdfQuestionSet> questionBanks,
+  Future<void> _applyQuestionSelection(
+    _QuestionSelection selection,
     TutorController controller,
   ) async {
-    final selection = await showModalBottomSheet<_QuestionSelection>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (context) => _QuestionPickerSheet(
-        libraryItems: libraryItems,
-        questionBanks: questionBanks,
-      ),
-    );
-    if (selection == null || !mounted) return;
     if (selection.bankQuestion != null) {
       final question = selection.bankQuestion!;
       controller.selectQuestion(
@@ -169,18 +155,6 @@ class _TutorPageState extends ConsumerState<TutorPage> {
         ),
       );
     }
-  }
-
-  void _showHistory(
-    BuildContext context,
-    TutorUiState state,
-    TutorController controller,
-  ) {
-    showModalBottomSheet<void>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => _HistorySheet(state: state, controller: controller),
-    );
   }
 
   void _scrollToBottom() {
@@ -476,28 +450,39 @@ class _InlineError extends StatelessWidget {
   }
 }
 
-class _HistorySheet extends StatelessWidget {
-  const _HistorySheet({required this.state, required this.controller});
-  final TutorUiState state;
-  final TutorController controller;
+class _HistoryDrawer extends ConsumerWidget {
+  const _HistoryDrawer();
 
   @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      child: SizedBox(
-        height: MediaQuery.sizeOf(context).height * 0.62,
+  Widget build(BuildContext context, WidgetRef ref) {
+    final state = ref.watch(tutorControllerProvider);
+    final controller = ref.read(tutorControllerProvider.notifier);
+    return Drawer(
+      width: _drawerWidth(context),
+      semanticLabel: '历史对话',
+      child: SafeArea(
         child: Column(
           children: [
             ListTile(
               title:
                   Text('历史对话', style: Theme.of(context).textTheme.titleLarge),
-              trailing: IconButton.filledTonal(
-                tooltip: '新建对话',
-                onPressed: () {
-                  controller.newConversation();
-                  Navigator.pop(context);
-                },
-                icon: const Icon(Icons.add),
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton.filledTonal(
+                    tooltip: '新建对话',
+                    onPressed: () {
+                      controller.newConversation();
+                      Navigator.of(context).pop();
+                    },
+                    icon: const Icon(Icons.add),
+                  ),
+                  IconButton(
+                    tooltip: '关闭历史对话',
+                    onPressed: () => Navigator.of(context).pop(),
+                    icon: const Icon(Icons.close),
+                  ),
+                ],
               ),
             ),
             const Divider(height: 1),
@@ -515,7 +500,7 @@ class _HistorySheet extends StatelessWidget {
                           subtitle: Text('${session.messages.length} 条消息'),
                           onTap: () {
                             controller.openSession(session.id);
-                            Navigator.pop(context);
+                            Navigator.of(context).pop();
                           },
                           trailing: IconButton(
                             tooltip: '删除对话',
@@ -540,37 +525,55 @@ class _QuestionSelection {
   final BankQuestion? bankQuestion;
 }
 
-class _QuestionPickerSheet extends StatelessWidget {
-  const _QuestionPickerSheet({
-    required this.libraryItems,
-    required this.questionBanks,
-  });
+class _QuestionPickerDrawer extends ConsumerWidget {
+  const _QuestionPickerDrawer({required this.onSelected});
 
-  final List<ErrorItemSummary> libraryItems;
-  final List<PdfQuestionSet> questionBanks;
+  final ValueChanged<_QuestionSelection> onSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final library = ref.watch(libraryControllerProvider);
+    final libraryItems = library.valueOrNull ?? const <ErrorItemSummary>[];
+    final questionBanks = ref.watch(questionBankControllerProvider).sets;
     final bankQuestions = [
       for (final bank in questionBanks)
         for (final question in bank.questions) question,
     ];
-    return SafeArea(
-      child: SizedBox(
-        height: MediaQuery.sizeOf(context).height * 0.72,
+    return Drawer(
+      width: _drawerWidth(context),
+      semanticLabel: '从应用中选择题目',
+      child: SafeArea(
         child: Column(
           children: [
             ListTile(
               title:
                   Text('选择题目', style: Theme.of(context).textTheme.titleLarge),
-              subtitle: const Text('可从错题本或已导入的 PDF 题集中选择'),
+              subtitle: const Text('错题本与 PDF 题集'),
+              trailing: IconButton(
+                tooltip: '关闭题目选择',
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.close),
+              ),
             ),
             const Divider(height: 1),
             Expanded(
               child: ListView(
                 children: [
                   const ListTile(title: Text('错题本')),
-                  if (libraryItems.isEmpty)
+                  if (library.isLoading)
+                    const ListTile(
+                      leading: SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      title: Text('正在读取错题'),
+                    )
+                  else if (library.hasError)
+                    const ListTile(
+                      leading: Icon(Icons.error_outline),
+                      title: Text('错题读取失败'),
+                    )
+                  else if (libraryItems.isEmpty)
                     const ListTile(title: Text('暂无错题'))
                   else
                     for (final item in libraryItems)
@@ -578,7 +581,7 @@ class _QuestionPickerSheet extends StatelessWidget {
                         leading: const Icon(Icons.library_books_outlined),
                         title: Text(item.title),
                         subtitle: Text(item.subjectName),
-                        onTap: () => Navigator.pop(
+                        onTap: () => _closeAndSelect(
                           context,
                           _QuestionSelection(errorItem: item),
                         ),
@@ -596,7 +599,7 @@ class _QuestionPickerSheet extends StatelessWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        onTap: () => Navigator.pop(
+                        onTap: () => _closeAndSelect(
                           context,
                           _QuestionSelection(bankQuestion: question),
                         ),
@@ -609,4 +612,16 @@ class _QuestionPickerSheet extends StatelessWidget {
       ),
     );
   }
+
+  void _closeAndSelect(
+    BuildContext context,
+    _QuestionSelection selection,
+  ) {
+    Navigator.of(context).pop();
+    onSelected(selection);
+  }
+}
+
+double _drawerWidth(BuildContext context) {
+  return (MediaQuery.sizeOf(context).width * 0.88).clamp(0.0, 420.0).toDouble();
 }

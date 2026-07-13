@@ -24,6 +24,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final stats = ref.watch(statsOverviewProvider(_period));
     final totalErrors = stats.valueOrNull?.totalErrors ?? 0;
     final masteredCount = stats.valueOrNull?.masteredCount ?? 0;
+    final practiceTotal = stats.valueOrNull?.practiceTotal ?? 0;
     final practiceAccuracy = stats.valueOrNull?.practiceAccuracy ?? 0;
 
     return Scaffold(
@@ -82,7 +83,9 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(height: AppSpacing.medium),
           HomeMetricCard(
             label: '练习正确率',
-            value: '${(practiceAccuracy * 100).toStringAsFixed(0)}%',
+            value: practiceTotal == 0
+                ? '${_period.label}未开始练习'
+                : '${(practiceAccuracy * 100).toStringAsFixed(0)}%',
             icon: Icons.trending_up,
             onTap: () => _openDetails(StatsMetric.accuracy),
           ),
