@@ -32,6 +32,11 @@ Framework implementations are injected by `lib/build`. Architecture tests
 prevent application code from importing platform plugins or concrete
 repositories, and confine raw JSON maps to the conversion adapter boundary.
 
+Material 3 component conventions are documented in
+[docs/bandu_material3_component_guideline.md](docs/bandu_material3_component_guideline.md).
+Shared visual behavior lives in `lib/components`; feature-specific cards,
+selectors, and summaries remain under each feature's `presentation/widgets`.
+
 ## Backend
 
 The app talks to:

@@ -1,6 +1,11 @@
 import 'package:bandu_wrong_notebook/application/features/capture/domain/capture_models.dart';
 import 'package:bandu_wrong_notebook/application/features/capture/presentation/capture_controller.dart';
-import 'package:bandu_wrong_notebook/components/media/local_file_image.dart';
+import 'package:bandu_wrong_notebook/application/features/capture/presentation/widgets/analyze_result_card.dart';
+import 'package:bandu_wrong_notebook/application/features/capture/presentation/widgets/capture_image_selector.dart';
+import 'package:bandu_wrong_notebook/components/actions/app_async_primary_button.dart';
+import 'package:bandu_wrong_notebook/components/actions/app_default_button.dart';
+import 'package:bandu_wrong_notebook/components/actions/app_primary_button.dart';
+import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -14,131 +19,71 @@ class CapturePage extends ConsumerWidget {
     final isBusy = state.phase == CapturePhase.capturing ||
         state.phase == CapturePhase.uploading ||
         state.phase == CapturePhase.analyzing;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
       appBar: AppBar(title: const Text('拍题')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.page),
         children: [
-          if (state.localImagePath != null)
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LocalFileImage(
-                path: state.localImagePath!,
-                height: 320,
-                fit: BoxFit.cover,
-              ),
-            )
-          else
-            AspectRatio(
-              aspectRatio: 4 / 3,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
-                ),
-                child: const Center(child: Icon(Icons.add_a_photo_outlined)),
-              ),
-            ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: isBusy ? null : controller.takePhoto,
-                  icon: const Icon(Icons.photo_camera_outlined),
-                  label: const Text('拍照'),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: isBusy ? null : controller.pickFromGallery,
-                  icon: const Icon(Icons.photo_library_outlined),
-                  label: const Text('相册'),
-                ),
-              ),
-            ],
+          CaptureImageSelector(
+            imagePath: state.localImagePath,
+            isBusy: isBusy,
+            onTakePhoto: controller.takePhoto,
+            onPickFromGallery: controller.pickFromGallery,
           ),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: state.canAnalyze && !isBusy ? controller.analyze : null,
-            icon: isBusy
-                ? const SizedBox.square(
-                    dimension: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.auto_awesome),
-            label: const Text('AI 分析'),
+          const SizedBox(height: AppSpacing.medium),
+          AppAsyncPrimaryButton(
+            label: 'AI 分析',
+            expanded: true,
+            isLoading: isBusy,
+            onPressed: state.canAnalyze ? controller.analyze : null,
+            icon: const Icon(Icons.auto_awesome),
           ),
           if (state.errorMessage != null) ...[
-            const SizedBox(height: 12),
-            Text(
-              state.errorMessage!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            const SizedBox(height: AppSpacing.medium),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.error_outline, color: colorScheme.error),
+                const SizedBox(width: AppSpacing.small),
+                Expanded(
+                  child: Text(
+                    state.errorMessage!,
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: colorScheme.error),
+                  ),
+                ),
+              ],
             ),
           ],
           if (state.result != null) ...[
-            const SizedBox(height: 24),
-            _AnalyzeResultView(result: state.result!),
-            const SizedBox(height: 12),
-            FilledButton.icon(
+            const SizedBox(height: AppSpacing.xLarge),
+            AnalyzeResultCard(result: state.result!),
+            const SizedBox(height: AppSpacing.medium),
+            AppPrimaryButton(
+              label: state.savedErrorItemId == null ? '保存到错题本' : '已保存',
+              expanded: true,
               onPressed:
                   state.canSave && !isBusy ? controller.saveToLibrary : null,
-              icon: state.savedErrorItemId == null
-                  ? const Icon(Icons.save_outlined)
-                  : const Icon(Icons.check_circle_outline),
-              label: Text(
-                state.savedErrorItemId == null ? '保存到错题本' : '已保存到错题本',
+              icon: Icon(
+                state.savedErrorItemId == null
+                    ? Icons.save_outlined
+                    : Icons.check,
               ),
             ),
             if (state.savedErrorItemId != null) ...[
-              const SizedBox(height: 8),
-              TextButton.icon(
+              const SizedBox(height: AppSpacing.small),
+              AppDefaultButton(
+                label: '继续拍题',
+                expanded: true,
                 onPressed: controller.reset,
-                icon: const Icon(Icons.add_a_photo_outlined),
-                label: const Text('继续拍题'),
+                icon: const Icon(Icons.camera_alt_outlined),
               ),
             ],
           ],
         ],
-      ),
-    );
-  }
-}
-
-class _AnalyzeResultView extends StatelessWidget {
-  const _AnalyzeResultView({required this.result});
-
-  final AnalyzeResult result;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(result.title, style: Theme.of(context).textTheme.titleMedium),
-            if (result.questionText != null) ...[
-              const SizedBox(height: 12),
-              Text(result.questionText!),
-            ],
-            if (result.answer != null) ...[
-              const SizedBox(height: 12),
-              Text('答案', style: Theme.of(context).textTheme.labelLarge),
-              Text(result.answer!),
-            ],
-            if (result.analysis != null) ...[
-              const SizedBox(height: 12),
-              Text('解析', style: Theme.of(context).textTheme.labelLarge),
-              Text(result.analysis!),
-            ],
-          ],
-        ),
       ),
     );
   }

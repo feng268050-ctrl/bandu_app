@@ -1,6 +1,9 @@
-import 'package:bandu_wrong_notebook/components/feedback/app_async_view.dart';
-import 'package:bandu_wrong_notebook/application/features/library/domain/error_item.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
+import 'package:bandu_wrong_notebook/application/features/library/presentation/widgets/error_item_card.dart';
+import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
+import 'package:bandu_wrong_notebook/components/feedback/app_empty_view.dart';
+import 'package:bandu_wrong_notebook/components/feedback/app_error_view.dart';
+import 'package:bandu_wrong_notebook/components/feedback/app_loading_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -24,29 +27,32 @@ class LibraryPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: AppAsyncView<List<ErrorItemSummary>>(
-        value: items,
+      body: items.when(
+        loading: () => const AppLoadingView(message: '正在加载错题'),
+        error: (error, stackTrace) => AppErrorView(
+          message: error.toString(),
+          onRetry: () => ref.read(libraryControllerProvider.notifier).refresh(),
+        ),
         data: (data) {
           if (data.isEmpty) {
-            return const Center(child: Text('暂无错题'));
+            return AppEmptyView(
+              title: '暂无错题',
+              message: '拍摄题目并确认分析结果后，会保存在这里。',
+              icon: Icons.library_books_outlined,
+              actionLabel: '去拍题',
+              onAction: () => context.go('/capture'),
+            );
           }
 
           return ListView.separated(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.page),
             itemCount: data.length,
-            separatorBuilder: (context, index) => const SizedBox(height: 8),
+            separatorBuilder: (context, index) =>
+                const SizedBox(height: AppSpacing.small),
             itemBuilder: (context, index) {
               final item = data[index];
-              return ListTile(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                tileColor: Theme.of(
-                  context,
-                ).colorScheme.surfaceContainerHighest,
-                title: Text(item.title),
-                subtitle: Text(item.subjectName),
-                trailing: const Icon(Icons.chevron_right),
+              return ErrorItemCard(
+                item: item,
                 onTap: () => context.go('/library/${item.id}'),
               );
             },

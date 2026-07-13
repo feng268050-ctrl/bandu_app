@@ -1,40 +1,53 @@
 import 'dart:io';
 
+import 'package:bandu_wrong_notebook/components/design_system/tokens/app_sizes.dart';
 import 'package:flutter/material.dart';
 
 class AppAvatar extends StatelessWidget {
   const AppAvatar({
     required this.initial,
-    required this.color,
-    required this.radius,
+    this.size = AppSizes.avatarMedium,
+    this.backgroundColor,
     this.imagePath,
+    this.imageUrl,
     super.key,
   });
 
   final String initial;
-  final Color color;
-  final double radius;
+  final double size;
+  final Color? backgroundColor;
   final String? imagePath;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
     final file = imagePath == null ? null : File(imagePath!);
     final hasImage = file?.existsSync() == true;
+    final imageProvider = hasImage
+        ? FileImage(file!) as ImageProvider
+        : imageUrl?.trim().isNotEmpty == true
+            ? NetworkImage(imageUrl!)
+            : null;
+    final colorScheme = Theme.of(context).colorScheme;
+    final fallbackTextColor = backgroundColor == null
+        ? colorScheme.onPrimaryContainer
+        : ThemeData.estimateBrightnessForColor(backgroundColor!) ==
+                Brightness.dark
+            ? Colors.white
+            : Colors.black;
 
     return CircleAvatar(
-      radius: radius,
-      backgroundColor: color,
-      foregroundImage: hasImage ? FileImage(file!) : null,
-      child: hasImage
-          ? null
-          : Text(
-              initial,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: radius * 0.58,
-                fontWeight: FontWeight.w700,
-              ),
+      radius: size / 2,
+      backgroundColor: backgroundColor ?? colorScheme.primaryContainer,
+      foregroundImage: imageProvider,
+      onForegroundImageError: imageProvider == null ? null : (_, __) {},
+      child: Text(
+        initial,
+        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              color: fallbackTextColor,
+              fontWeight: FontWeight.w700,
             ),
+      ),
     );
   }
 }

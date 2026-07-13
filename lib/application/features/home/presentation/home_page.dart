@@ -1,5 +1,9 @@
+import 'package:bandu_wrong_notebook/application/features/home/presentation/widgets/home_metric_card.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/stats_providers.dart';
+import 'package:bandu_wrong_notebook/components/actions/app_default_button.dart';
+import 'package:bandu_wrong_notebook/components/actions/app_primary_button.dart';
+import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -19,78 +23,50 @@ class HomePage extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('首页')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.page),
         children: [
           Text('今日', style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.medium),
           Row(
             children: [
               Expanded(
-                child: _MetricCard(
+                child: HomeMetricCard(
                   label: '错题',
                   value: totalErrors.toString(),
-                  icon: Icons.library_books,
+                  icon: Icons.library_books_outlined,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSpacing.medium),
               Expanded(
-                child: _MetricCard(
+                child: HomeMetricCard(
                   label: '已掌握',
                   value: masteredCount.toString(),
-                  icon: Icons.quiz,
+                  icon: Icons.task_alt_outlined,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          _MetricCard(
+          const SizedBox(height: AppSpacing.medium),
+          HomeMetricCard(
             label: '练习正确率',
             value: '${(practiceAccuracy * 100).toStringAsFixed(0)}%',
             icon: Icons.trending_up,
           ),
-          const SizedBox(height: 24),
-          FilledButton.icon(
+          const SizedBox(height: AppSpacing.xLarge),
+          AppPrimaryButton(
+            label: '拍题',
+            expanded: true,
+            icon: const Icon(Icons.camera_alt_outlined),
             onPressed: () => context.go('/capture'),
-            icon: const Icon(Icons.add_a_photo_outlined),
-            label: const Text('拍题'),
           ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => context.go('/library'),
+          const SizedBox(height: AppSpacing.medium),
+          AppDefaultButton(
+            label: '查看错题本',
+            expanded: true,
             icon: const Icon(Icons.search),
-            label: const Text('查看错题本'),
+            onPressed: () => context.go('/library'),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _MetricCard extends StatelessWidget {
-  const _MetricCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon),
-            const SizedBox(height: 16),
-            Text(value, style: Theme.of(context).textTheme.headlineMedium),
-            Text(label),
-          ],
-        ),
       ),
     );
   }
