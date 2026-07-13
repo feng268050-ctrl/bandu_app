@@ -35,6 +35,16 @@ flutter pub get
 API_BASE_URL=http://10.0.2.2:3000/api/mobile/v1 make run
 ```
 
+本地开发推荐：
+
+```bash
+cp .env.example .env   # optional
+make emulator          # start emulator + flutter run
+make sync              # after code changes: debug build + install + relaunch
+```
+
+See [docs/development.md](docs/development.md) for emulator setup, device targets, and troubleshooting.
+
 ## Build And Install
 
 ```bash
