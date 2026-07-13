@@ -192,7 +192,7 @@ class TutorController extends Notifier<TutorUiState> {
                 : '';
     if (message.isEmpty) return;
     if (state.models.isEmpty) {
-      state = state.copyWith(errorMessage: '未读取到可用模型，请先在服务端配置 AI 模型。');
+      state = state.copyWith(errorMessage: '未读取到可用模型，请先在“我的 > AI 配置”中新增模型。');
       return;
     }
 

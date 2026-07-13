@@ -1,4 +1,6 @@
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/application/features/library/domain/error_item.dart';
+import 'package:bandu_wrong_notebook/conversion/api/ai_config/ai_config_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/api/auth/auth_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/api/error_items/error_item_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/api/practice/practice_dto_mapper.dart';
@@ -8,6 +10,38 @@ import 'package:bandu_wrong_notebook/conversion/api/tutor/tutor_dto_mapper.dart'
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('AI config mapper keeps API keys write-only', () {
+    const mapper = AiConfigDtoMapper();
+    const draft = AiServiceConfigDraft(
+      name: '辅导模型',
+      baseUrl: ' https://example.com/v1 ',
+      apiKey: '   ',
+      model: ' model-a ',
+      isDefault: true,
+    );
+
+    final config = mapper.configFromDto(
+      AiServiceConfigDto.fromJson({
+        'id': 'config-1',
+        'name': '辅导模型',
+        'baseUrl': 'https://example.com/v1',
+        'model': 'model-a',
+        'maskedApiKey': '••••••••',
+        'hasApiKey': true,
+        'isDefault': true,
+      }),
+    );
+
+    expect(mapper.updateRequest(draft).toJson(), {
+      'name': '辅导模型',
+      'baseUrl': 'https://example.com/v1',
+      'model': 'model-a',
+      'isDefault': true,
+    });
+    expect(config.maskedApiKey, '••••••••');
+    expect(config.isDefault, isTrue);
+  });
+
   test('auth response maps into application session', () {
     const mapper = AuthDtoMapper();
 

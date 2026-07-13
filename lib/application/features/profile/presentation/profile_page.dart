@@ -1,3 +1,5 @@
+import 'package:bandu_wrong_notebook/application/features/ai_config/presentation/ai_config_controller.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/presentation/ai_config_page.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/auth_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/presentation/auth_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
@@ -9,6 +11,7 @@ import 'package:bandu_wrong_notebook/application/features/profile/presentation/w
 import 'package:bandu_wrong_notebook/application/features/profile/presentation/widgets/profile_header.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/presentation/widgets/profile_section_tile.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/profile_providers.dart';
+import 'package:bandu_wrong_notebook/application/features/tutor/presentation/tutor_controller.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_secondary_button.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
 import 'package:bandu_wrong_notebook/components/dialogs/app_confirm_dialog.dart';
@@ -32,15 +35,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final bypassAuth = ref.watch(authBypassProvider);
     final user = authState.user;
     final deviceName = ref.watch(deviceNameProvider).valueOrNull ?? '读取中';
+    final aiConfigs = ref.watch(aiConfigControllerProvider);
+    final modelConfigLabel = aiConfigs.when(
+      data: (configs) => configs.isEmpty ? '未配置' : '已配置 ${configs.length} 个模型',
+      loading: () => '读取中',
+      error: (_, __) => '读取失败',
+    );
     final overview = ProfileOverviewState.fromUser(
       user,
       deviceNameLabel: deviceName,
+      modelConfigLabel: modelConfigLabel,
     );
 
     if (_currentSection == ProfileSection.student) {
       return StudentProfileEditorPage(
         user: user,
         onBack: () => setState(() => _currentSection = null),
+      );
+    }
+    if (_currentSection == ProfileSection.ai) {
+      return AiConfigPage(
+        onBack: () => setState(() => _currentSection = null),
+        onChanged: ref.read(tutorControllerProvider.notifier).refreshModels,
       );
     }
     if (_currentSection != null) {

@@ -58,10 +58,11 @@ class ProfileOverviewState {
   factory ProfileOverviewState.fromUser(
     UserProfile? user, {
     String deviceNameLabel = '读取中',
+    String modelConfigLabel = '读取中',
   }) {
     return ProfileOverviewState(
       summary: StudentProfileSummary.fromUser(user),
-      modelConfigLabel: '后端托管',
+      modelConfigLabel: modelConfigLabel,
       deviceNameLabel: deviceNameLabel,
       sections: ProfileSection.values,
     );

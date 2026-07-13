@@ -57,11 +57,7 @@ class ProfileSectionPage extends StatelessWidget {
 
   List<_InfoRow> _rowsForSection() {
     return switch (section) {
-      ProfileSection.ai => const [
-          _InfoRow('服务提供商', '由 bandu_web 托管'),
-          _InfoRow('拍题分析模型', '服务器默认模型'),
-          _InfoRow('API 密钥', '仅保存在服务端'),
-        ],
+      ProfileSection.ai => const [],
       ProfileSection.device => [
           _InfoRow('设备名称', overview.deviceNameLabel),
           const _InfoRow('数据连接', '通过 HTTPS Mobile API'),
