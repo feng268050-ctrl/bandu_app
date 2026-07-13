@@ -1,3 +1,5 @@
+import 'package:bandu_wrong_notebook/conversion/api/stats/stats_dto_mapper.dart';
+import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/framework/network/client/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,7 +12,10 @@ class StatsApiService {
 
   final ApiClient _apiClient;
 
-  Future<Map<String, Object?>> fetchOverview() {
-    return _apiClient.get<Map<String, Object?>>('/stats/overview');
+  Future<StatsOverviewDto> fetchOverview() async {
+    final payload = await _apiClient.get<Object?>('/stats/overview');
+    return StatsOverviewDto.fromJson(
+      requireJsonObject(payload, context: 'stats overview response'),
+    );
   }
 }

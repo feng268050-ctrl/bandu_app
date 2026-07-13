@@ -7,9 +7,11 @@
 实施结果（2026-07-13）：
 
 ```text
-应用层、组件层、框架层、转换层已落地
+应用层、组件层、框架层、转换层、构建层已落地
 Repository 接口与实现已完成依赖反转
-main.dart / bootstrap 为唯一依赖装配入口
+lib/build/bootstrap.dart 为唯一依赖装配入口
+conversion 对外使用强类型 DTO，裸 JSON Map 仅保留在统一适配器
+practice / stats 业务入口由 UseCase 承接
 旧 lib/app、lib/core、lib/features 已删除
 架构边界测试、转换测试和 Android release 构建已通过
 emulator-5556 安装与前台启动已验证
@@ -111,8 +113,7 @@ bandu_app/
 │   │   ├── app/
 │   │   │   ├── bandu_app.dart
 │   │   │   ├── app_router.dart
-│   │   │   ├── app_shell.dart
-│   │   │   └── bootstrap.dart
+│   │   │   └── app_shell.dart
 │   │   │
 │   │   └── features/
 │   │       ├── auth/
@@ -122,6 +123,10 @@ bandu_app/
 │   │       ├── practice/
 │   │       ├── profile/
 │   │       └── stats/
+│   │
+│   ├── build/
+│   │   ├── bootstrap.dart
+│   │   └── framework_overrides.dart
 │   │
 │   ├── components/
 │   │   ├── design_system/
@@ -182,7 +187,7 @@ bandu_app/
 注意：
 
 ```text
-不要在仓库根目录创建 build/ 源码目录
+源码构建层固定为 lib/build/，不要在仓库根目录创建 build/ 源码目录
 ```
 
 Flutter 自身会使用：
@@ -674,6 +679,7 @@ CI
 
 ```text
 lib/main.dart
+lib/build/
 android/
 scripts/
 tool/build/
@@ -688,19 +694,17 @@ analysis_options.yaml
 
 ### 8.3 main.dart 规则
 
-`main.dart` 只负责装配：
+`main.dart` 只负责调用构建层入口：
 
 ```dart
 Future<void> main() async {
-  final dependencies = await buildDependencies(
-    environment: AppEnvironment.fromDefines(),
-  );
-
-  runApp(
-    BanduApp(dependencies: dependencies),
-  );
+  await bootstrap();
 }
 ```
+
+`lib/build/bootstrap.dart` 负责 Flutter 启动，
+`lib/build/framework_overrides.dart` 负责将 application 中的 Repository
+契约绑定到 framework 实现。application 和 framework 不能自行互相装配。
 
 禁止在 `main.dart` 中写：
 
@@ -796,7 +800,8 @@ application/presentation
 | `lib/app/app.dart` | `lib/application/app/bandu_app.dart` |
 | `lib/app/app_router.dart` | `lib/application/app/app_router.dart` |
 | `lib/app/app_shell.dart` | `lib/application/app/app_shell.dart` |
-| `lib/app/bootstrap.dart` | `lib/application/app/bootstrap.dart` 或构建装配 |
+| `lib/app/bootstrap.dart` | `lib/build/bootstrap.dart` |
+| `lib/framework/di/framework_overrides.dart` | `lib/build/framework_overrides.dart` |
 | `lib/app/theme/` | `lib/components/design_system/` |
 | `lib/features/*` | `lib/application/features/*` |
 | `lib/core/widgets/` | `lib/components/` |
@@ -917,7 +922,9 @@ Mapper
 lib/conversion/
 ```
 
-这一步为框架层和应用层解耦建立边界。
+这一步为框架层和应用层解耦建立边界。网络 Service 和 Repository 之间只传
+强类型 DTO；`Map<String, Object?>` 只允许出现在统一 JSON 值适配器中，
+作为序列化库与 DTO 的最外层边界。
 
 ---
 
@@ -1031,6 +1038,7 @@ test: reorganize tests by architecture layer
 ```text
 lib/
 ├── application/
+├── build/
 ├── components/
 ├── framework/
 ├── conversion/
@@ -1058,17 +1066,22 @@ lib/
 
 9. Repository 实现在 framework。
 
-10. main.dart 或 bootstrap 是唯一装配入口。
+10. lib/build/bootstrap.dart 是唯一装配入口，main.dart 仅委托启动。
 
 11. 不存在 lib/app、lib/core、lib/features 旧目录。
 
-12. flutter analyze 通过。
+12. conversion 的 API 与持久化边界使用强类型 DTO/Record，裸 JSON Map
+    只存在于统一适配器。
 
-13. flutter test 通过。
+13. practice 和 stats 的页面状态通过 UseCase 调用 Repository。
 
-14. flutter build apk --release 通过。
+14. flutter analyze 通过。
 
-15. Android 实机核心链路正常。
+15. flutter test 通过。
+
+16. flutter build apk --release 通过。
+
+17. Android 实机核心链路正常。
 ```
 
 Android 核心链路：

@@ -1,3 +1,5 @@
+import 'package:bandu_wrong_notebook/conversion/api/practice/practice_dto_mapper.dart';
+import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/framework/network/client/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,21 +12,36 @@ class PracticeApiService {
 
   final ApiClient _apiClient;
 
-  Future<Map<String, Object?>> generate(Map<String, Object?> request) {
-    return _apiClient.post<Map<String, Object?>>(
+  Future<PracticeQuestionDto> generate(
+    GeneratePracticeRequestDto request,
+  ) async {
+    final payload = await _apiClient.post<Object?>(
       '/practice/generate',
-      data: request,
+      data: request.toJson(),
+    );
+    return PracticeQuestionDto.fromJson(
+      requireJsonObject(payload, context: 'practice generation response'),
     );
   }
 
-  Future<void> record(Map<String, Object?> request) async {
-    await _apiClient.post<Object?>('/practice/submit', data: request);
+  Future<void> record(RecordPracticeRequestDto request) async {
+    await _apiClient.post<Object?>(
+      '/practice/submit',
+      data: request.toJson(),
+    );
   }
 
-  Future<List<Object?>> history({int limit = 10}) {
-    return _apiClient.get<List<Object?>>(
+  Future<List<PracticeRecordDto>> history({int limit = 10}) async {
+    final payload = await _apiClient.get<Object?>(
       '/practice/history',
       queryParameters: {'limit': limit},
     );
+    return requireJsonArray(payload, context: 'practice history response')
+        .map(
+          (item) => PracticeRecordDto.fromJson(
+            requireJsonObject(item, context: 'practice history item'),
+          ),
+        )
+        .toList();
   }
 }

@@ -22,6 +22,6 @@ class RemoteStatsRepository implements StatsRepository {
 
   @override
   Future<StatsOverview> fetchOverview() async {
-    return mapper.overviewFromJson(await apiService.fetchOverview());
+    return mapper.overviewFromDto(await apiService.fetchOverview());
   }
 }

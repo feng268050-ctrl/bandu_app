@@ -1,3 +1,3 @@
-import 'package:bandu_wrong_notebook/application/app/bootstrap.dart';
+import 'package:bandu_wrong_notebook/build/bootstrap.dart';
 
 Future<void> main() => bootstrap();

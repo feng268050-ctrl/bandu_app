@@ -21,14 +21,16 @@ The Flutter client follows the five-layer design documented in
 
 ```text
 lib/application  pages, state, use cases, domain models, repository contracts
+lib/build        bootstrap and framework dependency composition
 lib/components   reusable UI and design system
 lib/framework    network, persistence, camera, device, and repository implementations
 lib/conversion   API DTOs, mappers, and persistence records
-lib/main.dart    build composition entry
+lib/main.dart    minimal process entry
 ```
 
-Framework implementations are injected at bootstrap. Architecture tests prevent
-application code from importing platform plugins or concrete repositories.
+Framework implementations are injected by `lib/build`. Architecture tests
+prevent application code from importing platform plugins or concrete
+repositories, and confine raw JSON maps to the conversion adapter boundary.
 
 ## Backend
 

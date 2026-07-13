@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:bandu_wrong_notebook/application/app/bandu_app.dart';
-import 'package:bandu_wrong_notebook/framework/di/framework_overrides.dart';
+import 'package:bandu_wrong_notebook/build/framework_overrides.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

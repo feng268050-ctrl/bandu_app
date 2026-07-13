@@ -1,20 +1,40 @@
 import 'package:bandu_wrong_notebook/application/features/profile/domain/avatar_settings.dart';
+import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/conversion/common/value_converter.dart';
 
-class AvatarSettingsMapper {
-  const AvatarSettingsMapper();
+class AvatarSettingsRecord {
+  const AvatarSettingsRecord({required this.colorValue, this.imagePath});
 
-  AvatarSettings fromJson(Map<String, Object?> json) {
-    return AvatarSettings(
+  factory AvatarSettingsRecord.fromJson(JsonObject json) {
+    return AvatarSettingsRecord(
       colorValue: nullableIntValue(json['avatarColor']) ?? 0xff2563eb,
       imagePath: json['avatarImagePath']?.toString(),
     );
   }
 
-  Map<String, Object?> toJson(AvatarSettings settings) {
-    return {
-      'avatarColor': settings.colorValue,
-      'avatarImagePath': settings.imagePath,
-    };
+  final int colorValue;
+  final String? imagePath;
+
+  JsonObject toJson() => {
+        'avatarColor': colorValue,
+        'avatarImagePath': imagePath,
+      };
+}
+
+class AvatarSettingsMapper {
+  const AvatarSettingsMapper();
+
+  AvatarSettings fromRecord(AvatarSettingsRecord record) {
+    return AvatarSettings(
+      colorValue: record.colorValue,
+      imagePath: record.imagePath,
+    );
+  }
+
+  AvatarSettingsRecord toRecord(AvatarSettings settings) {
+    return AvatarSettingsRecord(
+      colorValue: settings.colorValue,
+      imagePath: settings.imagePath,
+    );
   }
 }

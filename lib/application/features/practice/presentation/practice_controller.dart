@@ -35,8 +35,8 @@ class PracticeController extends Notifier<PracticeUiState> {
     );
     try {
       final question = await ref
-          .read(practiceRepositoryProvider)
-          .generate(errorItemId: items.first.id, difficulty: _difficulty);
+          .read(generatePracticeUseCaseProvider)
+          .call(errorItemId: items.first.id, difficulty: _difficulty);
       state = PracticeUiState(question: question);
     } catch (error) {
       state = state.copyWith(
@@ -63,7 +63,7 @@ class PracticeController extends Notifier<PracticeUiState> {
       noticeMessage: null,
     );
     try {
-      await ref.read(practiceRepositoryProvider).record(
+      await ref.read(recordPracticeResultUseCaseProvider).call(
             subject: question.subjectName,
             difficulty: _difficulty,
             isCorrect: isCorrect,

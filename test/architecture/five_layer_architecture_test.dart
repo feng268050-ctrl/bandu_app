@@ -14,6 +14,7 @@ void main() {
       entries,
       equals({
         'application',
+        'build',
         'components',
         'conversion',
         'framework',
@@ -38,13 +39,11 @@ void main() {
 
     for (final file in files) {
       final source = file.readAsStringSync();
-      if (!file.path.endsWith('/application/app/bootstrap.dart')) {
-        expect(
-          source,
-          isNot(contains('package:bandu_wrong_notebook/framework/')),
-          reason: file.path,
-        );
-      }
+      expect(
+        source,
+        isNot(contains('package:bandu_wrong_notebook/framework/')),
+        reason: file.path,
+      );
       for (final token in forbidden) {
         expect(source, isNot(contains(token)), reason: '${file.path}: $token');
       }
@@ -83,6 +82,28 @@ void main() {
     }
   });
 
+  test('raw json maps are confined to the json value adapter', () {
+    for (final file in _dartFiles(Directory('${lib.path}/conversion'))) {
+      if (file.path.endsWith('/conversion/common/json_value.dart')) {
+        continue;
+      }
+      final source = file.readAsStringSync();
+      expect(
+        source,
+        isNot(contains('Map<String, Object?>')),
+        reason: file.path,
+      );
+    }
+
+    for (final file in _dartFiles(
+      Directory('${lib.path}/framework/network/services'),
+    )) {
+      final source = file.readAsStringSync();
+      expect(source, isNot(contains('Future<Map<')), reason: file.path);
+      expect(source, isNot(contains('required Map<')), reason: file.path);
+    }
+  });
+
   test('json model factories live only in conversion', () {
     final files = _dartFiles(lib).where(
       (file) => !file.path.contains('/conversion/'),
@@ -101,9 +122,27 @@ void main() {
 
   test('main delegates to the single composition bootstrap', () {
     final source = File('${lib.path}/main.dart').readAsStringSync();
-    expect(source, contains('/application/app/bootstrap.dart'));
+    expect(source, contains('/build/bootstrap.dart'));
     expect(
         RegExp(r'^import ', multiLine: true).allMatches(source), hasLength(1));
+  });
+
+  test('build is the only layer allowed to compose application and framework',
+      () {
+    final buildSources = _dartFiles(Directory('${lib.path}/build'))
+        .map((file) => file.readAsStringSync())
+        .join('\n');
+
+    expect(buildSources, contains('application/app/bandu_app.dart'));
+    expect(buildSources, contains('framework/network/repositories/'));
+    expect(
+      Directory('${lib.path}/framework/di').existsSync(),
+      isFalse,
+    );
+    expect(
+      File('${lib.path}/application/app/bootstrap.dart').existsSync(),
+      isFalse,
+    );
   });
 }
 

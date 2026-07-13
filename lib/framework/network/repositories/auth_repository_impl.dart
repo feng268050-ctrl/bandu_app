@@ -30,10 +30,10 @@ class RemoteAuthRepository implements AuthRepository {
     required String email,
     required String password,
   }) async {
-    final data = await apiService.login(
-      request: mapper.loginRequest(email: email, password: password),
+    final dto = await apiService.login(
+      mapper.loginRequest(email: email, password: password),
     );
-    final session = mapper.sessionFromJson(data);
+    final session = mapper.sessionFromDto(dto);
     await tokenStore.save(
       TokenPair(
         accessToken: session.accessToken,
@@ -49,14 +49,14 @@ class RemoteAuthRepository implements AuthRepository {
     required String password,
     String? name,
   }) async {
-    final data = await apiService.register(
-      request: mapper.registerRequest(
+    final dto = await apiService.register(
+      mapper.registerRequest(
         email: email,
         password: password,
         name: name,
       ),
     );
-    final session = mapper.sessionFromJson(data);
+    final session = mapper.sessionFromDto(dto);
     await tokenStore.save(
       TokenPair(
         accessToken: session.accessToken,
@@ -74,7 +74,7 @@ class RemoteAuthRepository implements AuthRepository {
     }
 
     await apiService.refreshSession();
-    final user = mapper.userFromJson(await apiService.currentUser());
+    final user = mapper.userFromDto(await apiService.currentUser());
     final accessToken = await tokenStore.readAccessToken();
     final nextRefreshToken = await tokenStore.readRefreshToken();
 
@@ -95,14 +95,14 @@ class RemoteAuthRepository implements AuthRepository {
     required String educationStage,
     required int enrollmentYear,
   }) async {
-    final data = await apiService.updateProfile(
-      request: mapper.updateProfileRequest(
+    final dto = await apiService.updateProfile(
+      mapper.updateProfileRequest(
         name: name,
         educationStage: educationStage,
         enrollmentYear: enrollmentYear,
       ),
     );
-    return mapper.userFromJson(data);
+    return mapper.userFromDto(dto);
   }
 
   @override
@@ -110,8 +110,7 @@ class RemoteAuthRepository implements AuthRepository {
     final refreshToken = await tokenStore.readRefreshToken();
     try {
       await apiService.logout(
-        request:
-            refreshToken == null ? null : mapper.logoutRequest(refreshToken),
+        refreshToken == null ? null : mapper.logoutRequest(refreshToken),
       );
     } finally {
       await tokenStore.clear();

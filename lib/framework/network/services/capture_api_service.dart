@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:bandu_wrong_notebook/conversion/api/capture/capture_dto_mapper.dart';
+import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/framework/network/client/api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,15 +17,20 @@ class CaptureApiService {
 
   final ApiClient _apiClient;
 
-  Future<Map<String, Object?>> analyzeImage(String localImagePath) async {
+  Future<AnalyzeResultDto> analyzeImage(String localImagePath) async {
     final formData = FormData.fromMap({
       'image': await MultipartFile.fromFile(
         localImagePath,
         filename: p.basename(localImagePath),
       ),
     });
-
-    return _apiClient.post<Map<String, Object?>>('/analyze', data: formData);
+    final payload = await _apiClient.post<Object?>(
+      '/analyze',
+      data: formData,
+    );
+    return AnalyzeResultDto.fromJson(
+      requireJsonObject(payload, context: 'analyze response'),
+    );
   }
 
   Future<String> encodeImageDataUrl(String localImagePath) async {
@@ -39,12 +46,15 @@ class CaptureApiService {
     return 'data:$mimeType;base64,$imageBase64';
   }
 
-  Future<Map<String, Object?>> saveAnalysis({
-    required Map<String, Object?> request,
-  }) {
-    return _apiClient.post<Map<String, Object?>>(
+  Future<SavedErrorItemDto> saveAnalysis(
+    SaveAnalyzedCaptureRequestDto request,
+  ) async {
+    final payload = await _apiClient.post<Object?>(
       '/error-items',
-      data: request,
+      data: request.toJson(),
+    );
+    return SavedErrorItemDto.fromJson(
+      requireJsonObject(payload, context: 'save analysis response'),
     );
   }
 }

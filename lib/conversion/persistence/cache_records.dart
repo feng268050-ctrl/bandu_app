@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/conversion/common/value_converter.dart';
 
 class CachedErrorItem {
@@ -9,7 +10,7 @@ class CachedErrorItem {
     this.mastered = false,
   });
 
-  factory CachedErrorItem.fromJson(Map<String, Object?> json) {
+  factory CachedErrorItem.fromJson(JsonObject json) {
     return CachedErrorItem(
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '未命名错题',
@@ -25,7 +26,7 @@ class CachedErrorItem {
   final DateTime updatedAt;
   final bool mastered;
 
-  Map<String, Object?> toJson() {
+  JsonObject toJson() {
     return {
       'id': id,
       'title': title,
@@ -48,7 +49,7 @@ class CachedErrorItemDetail {
     this.updatedAt,
   });
 
-  factory CachedErrorItemDetail.fromJson(Map<String, Object?> json) {
+  factory CachedErrorItemDetail.fromJson(JsonObject json) {
     return CachedErrorItemDetail(
       id: json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? '未命名错题',
@@ -70,7 +71,7 @@ class CachedErrorItemDetail {
   final int masteryLevel;
   final DateTime? updatedAt;
 
-  Map<String, Object?> toJson() {
+  JsonObject toJson() {
     return {
       'id': id,
       'title': title,

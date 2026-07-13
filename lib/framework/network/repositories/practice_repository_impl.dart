@@ -25,13 +25,13 @@ class RemotePracticeRepository implements PracticeRepository {
     required String errorItemId,
     String difficulty = 'medium',
   }) async {
-    final data = await apiService.generate(
+    final dto = await apiService.generate(
       mapper.generateRequest(
         errorItemId: errorItemId,
         difficulty: difficulty,
       ),
     );
-    return mapper.questionFromJson(data);
+    return mapper.questionFromDto(dto);
   }
 
   @override
@@ -51,6 +51,6 @@ class RemotePracticeRepository implements PracticeRepository {
 
   @override
   Future<List<PracticeRecord>> history({int limit = 10}) async {
-    return mapper.historyFromJson(await apiService.history(limit: limit));
+    return mapper.historyFromDtos(await apiService.history(limit: limit));
   }
 }

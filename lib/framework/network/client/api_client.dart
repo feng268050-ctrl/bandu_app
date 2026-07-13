@@ -1,9 +1,10 @@
 import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/domain/token_store.dart';
 import 'package:bandu_wrong_notebook/conversion/api/auth/auth_dto_mapper.dart';
+import 'package:bandu_wrong_notebook/conversion/api/common/api_response.dart';
+import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/framework/config/app_config.dart';
 import 'package:bandu_wrong_notebook/framework/persistence/secure_storage/token_storage.dart';
-import 'package:bandu_wrong_notebook/conversion/api/common/api_response.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -160,11 +161,16 @@ class ApiClient {
 
     final response = await _dio.post<Object?>(
       '/auth/refresh',
-      data: _authMapper.refreshRequest(refreshToken),
+      data: RefreshSessionRequestDto(refreshToken: refreshToken).toJson(),
     );
-    final data = _unwrap<Map<String, Object?>>(response);
-    final tokens = _authMapper.refreshTokensFromJson(
-      data,
+    final dto = RefreshSessionDto.fromJson(
+      requireJsonObject(
+        _unwrap<Object?>(response),
+        context: 'refresh session response',
+      ),
+    );
+    final tokens = _authMapper.refreshTokensFromDto(
+      dto,
       previousRefreshToken: refreshToken,
     );
 

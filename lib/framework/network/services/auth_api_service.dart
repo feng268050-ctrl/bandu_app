@@ -1,3 +1,5 @@
+import 'package:bandu_wrong_notebook/conversion/api/auth/auth_dto_mapper.dart';
+import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/framework/network/client/api_client.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -10,45 +12,49 @@ class AuthApiService {
 
   final ApiClient _apiClient;
 
-  Future<Map<String, Object?>> login({
-    required Map<String, Object?> request,
-  }) {
-    return _apiClient.post<Map<String, Object?>>(
+  Future<AuthSessionDto> login(LoginRequestDto request) async {
+    final payload = await _apiClient.post<Object?>(
       '/auth/login',
-      data: request,
+      data: request.toJson(),
+    );
+    return AuthSessionDto.fromJson(
+      requireJsonObject(payload, context: 'login response'),
     );
   }
 
-  Future<Map<String, Object?>> register({
-    required Map<String, Object?> request,
-  }) {
-    return _apiClient.post<Map<String, Object?>>(
+  Future<AuthSessionDto> register(RegisterRequestDto request) async {
+    final payload = await _apiClient.post<Object?>(
       '/auth/register',
-      data: request,
+      data: request.toJson(),
+    );
+    return AuthSessionDto.fromJson(
+      requireJsonObject(payload, context: 'register response'),
     );
   }
 
-  Future<void> refreshSession() {
-    return _apiClient.refreshSession();
+  Future<void> refreshSession() => _apiClient.refreshSession();
+
+  Future<UserProfileDto> currentUser() async {
+    final payload = await _apiClient.get<Object?>('/users/me');
+    return UserProfileDto.fromJson(
+      requireJsonObject(payload, context: 'current user response'),
+    );
   }
 
-  Future<Map<String, Object?>> currentUser() {
-    return _apiClient.get<Map<String, Object?>>('/users/me');
-  }
-
-  Future<Map<String, Object?>> updateProfile({
-    required Map<String, Object?> request,
-  }) {
-    return _apiClient.patch<Map<String, Object?>>(
+  Future<UserProfileDto> updateProfile(UpdateProfileRequestDto request) async {
+    final payload = await _apiClient.patch<Object?>(
       '/users/me',
-      data: request,
+      data: request.toJson(),
+    );
+    return UserProfileDto.fromJson(
+      requireJsonObject(payload, context: 'update profile response'),
     );
   }
 
-  Future<void> logout({Map<String, Object?>? request}) async {
+  Future<void> logout(LogoutRequestDto? request) async {
     await _apiClient.post<Object?>(
       '/auth/logout',
-      data: request,
+      data: request?.toJson(),
     );
   }
 }

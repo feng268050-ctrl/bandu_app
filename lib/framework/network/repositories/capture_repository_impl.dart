@@ -51,8 +51,8 @@ class RemoteCaptureRepository implements CaptureRepository {
 
   @override
   Future<AnalyzeResult> analyzeImage(String localImagePath) async {
-    final data = await apiService.analyzeImage(localImagePath);
-    return mapper.analyzeResultFromJson(data);
+    final dto = await apiService.analyzeImage(localImagePath);
+    return mapper.analyzeResultFromDto(dto);
   }
 
   @override
@@ -62,13 +62,13 @@ class RemoteCaptureRepository implements CaptureRepository {
   }) async {
     final originalImageUrl =
         await apiService.encodeImageDataUrl(localImagePath);
-    final data = await apiService.saveAnalysis(
-      request: mapper.saveRequest(
+    final dto = await apiService.saveAnalysis(
+      mapper.saveRequest(
         result,
         originalImageUrl: originalImageUrl,
       ),
     );
-    final saved = mapper.savedErrorItemFromJson(data);
+    final saved = mapper.savedErrorItemFromDto(dto);
     await cacheDatabase.upsertErrorItemDetail(
       cacheMapper.savedItemToCache(saved),
     );

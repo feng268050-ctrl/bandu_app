@@ -1,6 +1,72 @@
 import 'package:bandu_wrong_notebook/application/features/auth/domain/auth_models.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/domain/token_store.dart';
+import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/conversion/common/value_converter.dart';
+
+class LoginRequestDto {
+  const LoginRequestDto({required this.email, required this.password});
+
+  final String email;
+  final String password;
+
+  JsonObject toJson() => {'email': email, 'password': password};
+}
+
+class RegisterRequestDto {
+  const RegisterRequestDto({
+    required this.email,
+    required this.password,
+    this.name,
+  });
+
+  final String email;
+  final String password;
+  final String? name;
+
+  JsonObject toJson() {
+    final normalizedName = name?.trim();
+    return {
+      'email': email,
+      'password': password,
+      if (normalizedName != null && normalizedName.isNotEmpty)
+        'name': normalizedName,
+    };
+  }
+}
+
+class UpdateProfileRequestDto {
+  const UpdateProfileRequestDto({
+    required this.name,
+    required this.educationStage,
+    required this.enrollmentYear,
+  });
+
+  final String name;
+  final String educationStage;
+  final int enrollmentYear;
+
+  JsonObject toJson() => {
+        'name': name,
+        'educationStage': educationStage,
+        'enrollmentYear': enrollmentYear,
+      };
+}
+
+class LogoutRequestDto {
+  const LogoutRequestDto({required this.refreshToken});
+
+  final String refreshToken;
+
+  JsonObject toJson() => {'refreshToken': refreshToken};
+}
+
+class RefreshSessionRequestDto {
+  const RefreshSessionRequestDto({required this.refreshToken});
+
+  final String refreshToken;
+
+  JsonObject toJson() => {'refreshToken': refreshToken};
+}
 
 class UserProfileDto {
   const UserProfileDto({
@@ -13,7 +79,7 @@ class UserProfileDto {
     this.role,
   });
 
-  factory UserProfileDto.fromJson(Map<String, Object?> json) {
+  factory UserProfileDto.fromJson(JsonObject json) {
     return UserProfileDto(
       id: json['id']?.toString() ?? '',
       email: json['email']?.toString() ?? '',
@@ -34,76 +100,85 @@ class UserProfileDto {
   final String? role;
 }
 
+class AuthSessionDto {
+  const AuthSessionDto({
+    required this.user,
+    required this.accessToken,
+    required this.refreshToken,
+  });
+
+  factory AuthSessionDto.fromJson(JsonObject json) {
+    return AuthSessionDto(
+      user: UserProfileDto.fromJson(
+        requireJsonObject(json['user'], context: 'AuthSessionDto.user'),
+      ),
+      accessToken: json['accessToken']?.toString() ?? '',
+      refreshToken: json['refreshToken']?.toString() ?? '',
+    );
+  }
+
+  final UserProfileDto user;
+  final String accessToken;
+  final String refreshToken;
+}
+
+class RefreshSessionDto {
+  const RefreshSessionDto({required this.accessToken, this.refreshToken});
+
+  factory RefreshSessionDto.fromJson(JsonObject json) {
+    return RefreshSessionDto(
+      accessToken: json['accessToken']?.toString() ?? '',
+      refreshToken: json['refreshToken']?.toString(),
+    );
+  }
+
+  final String accessToken;
+  final String? refreshToken;
+}
+
 class AuthDtoMapper {
   const AuthDtoMapper();
 
-  Map<String, Object?> loginRequest({
+  LoginRequestDto loginRequest({
     required String email,
     required String password,
   }) {
-    return {'email': email, 'password': password};
+    return LoginRequestDto(email: email, password: password);
   }
 
-  Map<String, Object?> registerRequest({
+  RegisterRequestDto registerRequest({
     required String email,
     required String password,
     String? name,
   }) {
-    return {
-      'email': email,
-      'password': password,
-      if (name != null && name.trim().isNotEmpty) 'name': name.trim(),
-    };
+    return RegisterRequestDto(email: email, password: password, name: name);
   }
 
-  Map<String, Object?> updateProfileRequest({
+  UpdateProfileRequestDto updateProfileRequest({
     required String name,
     required String educationStage,
     required int enrollmentYear,
   }) {
-    return {
-      'name': name,
-      'educationStage': educationStage,
-      'enrollmentYear': enrollmentYear,
-    };
+    return UpdateProfileRequestDto(
+      name: name,
+      educationStage: educationStage,
+      enrollmentYear: enrollmentYear,
+    );
   }
 
-  Map<String, Object?> logoutRequest(String refreshToken) {
-    return {'refreshToken': refreshToken};
+  LogoutRequestDto logoutRequest(String refreshToken) {
+    return LogoutRequestDto(refreshToken: refreshToken);
   }
 
-  Map<String, Object?> refreshRequest(String refreshToken) {
-    return {'refreshToken': refreshToken};
-  }
-
-  AuthSession sessionFromJson(Map<String, Object?> data) {
-    final userPayload = data['user'];
-    if (userPayload is! Map<String, Object?>) {
-      throw const FormatException('登录响应缺少 user');
-    }
-
+  AuthSession sessionFromDto(AuthSessionDto dto) {
     return AuthSession(
-      user: _userToDomain(UserProfileDto.fromJson(userPayload)),
-      accessToken: data['accessToken']?.toString() ?? '',
-      refreshToken: data['refreshToken']?.toString() ?? '',
+      user: userFromDto(dto.user),
+      accessToken: dto.accessToken,
+      refreshToken: dto.refreshToken,
     );
   }
 
-  UserProfile userFromJson(Map<String, Object?> data) {
-    return _userToDomain(UserProfileDto.fromJson(data));
-  }
-
-  TokenPair refreshTokensFromJson(
-    Map<String, Object?> data, {
-    required String previousRefreshToken,
-  }) {
-    return TokenPair(
-      accessToken: data['accessToken']?.toString() ?? '',
-      refreshToken: data['refreshToken']?.toString() ?? previousRefreshToken,
-    );
-  }
-
-  UserProfile _userToDomain(UserProfileDto dto) {
+  UserProfile userFromDto(UserProfileDto dto) {
     return UserProfile(
       id: dto.id,
       email: dto.email,
@@ -112,6 +187,16 @@ class AuthDtoMapper {
       educationStage: dto.educationStage,
       enrollmentYear: dto.enrollmentYear,
       role: dto.role,
+    );
+  }
+
+  TokenPair refreshTokensFromDto(
+    RefreshSessionDto dto, {
+    required String previousRefreshToken,
+  }) {
+    return TokenPair(
+      accessToken: dto.accessToken,
+      refreshToken: dto.refreshToken ?? previousRefreshToken,
     );
   }
 }
