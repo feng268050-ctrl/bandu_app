@@ -15,6 +15,8 @@ pubspec.lock
 # Local env
 .env
 .env.*
+!.env.example
+.emulator.pid
 
 # Android local build state
 android/.gradle/
