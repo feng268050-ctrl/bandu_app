@@ -4,6 +4,7 @@ class StatsOverview {
     required this.masteredCount,
     required this.masteryRate,
     required this.practiceTotal,
+    required this.practiceCorrect,
     required this.practiceAccuracy,
   });
 
@@ -11,5 +12,6 @@ class StatsOverview {
   final int masteredCount;
   final double masteryRate;
   final int practiceTotal;
+  final int practiceCorrect;
   final double practiceAccuracy;
 }

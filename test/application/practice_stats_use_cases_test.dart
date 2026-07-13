@@ -94,6 +94,7 @@ class _FakeStatsRepository implements StatsRepository {
       masteredCount: 2,
       masteryRate: 0.5,
       practiceTotal: 3,
+      practiceCorrect: 2,
       practiceAccuracy: 2 / 3,
     );
   }

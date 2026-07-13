@@ -17,28 +17,35 @@ class HomeMetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card.filled(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: SizedBox(
-          height: 156,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.large),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(icon),
-                    const Spacer(),
-                    const Icon(Icons.chevron_right),
-                  ],
-                ),
-                const Spacer(),
-                Text(value, style: Theme.of(context).textTheme.headlineMedium),
-                Text(label, style: Theme.of(context).textTheme.bodyMedium),
-              ],
+    return Semantics(
+      button: true,
+      label: '查看$label详情',
+      child: Card.filled(
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: SizedBox(
+            height: 156,
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.large),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(icon),
+                      const Spacer(),
+                      const Icon(Icons.chevron_right),
+                    ],
+                  ),
+                  const Spacer(),
+                  Text(
+                    value,
+                    style: Theme.of(context).textTheme.headlineMedium,
+                  ),
+                  Text(label, style: Theme.of(context).textTheme.bodyMedium),
+                ],
+              ),
             ),
           ),
         ),

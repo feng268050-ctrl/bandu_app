@@ -32,6 +32,7 @@ class _FakeStatsApiService implements StatsApiService {
       masteredCount: 7,
       masteryRate: 7 / 12,
       practiceTotal: 20,
+      practiceCorrect: 15,
       practiceAccuracy: 0.75,
     );
   }

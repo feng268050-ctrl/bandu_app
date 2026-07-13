@@ -1,5 +1,5 @@
 import 'package:bandu_wrong_notebook/application/features/home/presentation/widgets/home_metric_card.dart';
-import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
+import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_metric.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/stats_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_period.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_default_button.dart';
@@ -17,14 +17,12 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> {
-  StatsPeriod _period = StatsPeriod.week;
+  StatsPeriod _period = StatsPeriod.today;
 
   @override
   Widget build(BuildContext context) {
-    final library = ref.watch(libraryControllerProvider);
     final stats = ref.watch(statsOverviewProvider(_period));
-    final cachedItemCount = library.valueOrNull?.length ?? 0;
-    final totalErrors = stats.valueOrNull?.totalErrors ?? cachedItemCount;
+    final totalErrors = stats.valueOrNull?.totalErrors ?? 0;
     final masteredCount = stats.valueOrNull?.masteredCount ?? 0;
     final practiceAccuracy = stats.valueOrNull?.practiceAccuracy ?? 0;
 
@@ -43,7 +41,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   .map(
                     (period) => PopupMenuItem(
                       value: period,
-                      child: Text(_periodLabel(period)),
+                      child: Text(period.label),
                     ),
                   )
                   .toList(),
@@ -51,7 +49,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _periodLabel(_period),
+                    _period.label,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const Icon(Icons.arrow_drop_down),
@@ -67,7 +65,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   label: '错题',
                   value: totalErrors.toString(),
                   icon: Icons.library_books_outlined,
-                  onTap: () => _openDetails('errors'),
+                  onTap: () => _openDetails(StatsMetric.errors),
                 ),
               ),
               const SizedBox(width: AppSpacing.medium),
@@ -76,7 +74,7 @@ class _HomePageState extends ConsumerState<HomePage> {
                   label: '已掌握',
                   value: masteredCount.toString(),
                   icon: Icons.task_alt_outlined,
-                  onTap: () => _openDetails('mastered'),
+                  onTap: () => _openDetails(StatsMetric.mastered),
                 ),
               ),
             ],
@@ -86,7 +84,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: '练习正确率',
             value: '${(practiceAccuracy * 100).toStringAsFixed(0)}%',
             icon: Icons.trending_up,
-            onTap: () => _openDetails('accuracy'),
+            onTap: () => _openDetails(StatsMetric.accuracy),
           ),
           const SizedBox(height: AppSpacing.xLarge),
           AppPrimaryButton(
@@ -107,13 +105,9 @@ class _HomePageState extends ConsumerState<HomePage> {
     );
   }
 
-  void _openDetails(String metric) {
+  void _openDetails(StatsMetric metric) {
     context.go(
-      '/home/stats?period=${_period.apiValue}&metric=$metric',
+      '/home/stats/${metric.routeValue}?period=${_period.apiValue}',
     );
-  }
-
-  String _periodLabel(StatsPeriod period) {
-    return period == StatsPeriod.week ? '本周' : '本月';
   }
 }

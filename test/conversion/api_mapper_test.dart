@@ -66,6 +66,7 @@ void main() {
         'masteredCount': 7,
         'masteryRate': 0.58,
         'practiceTotal': 20,
+        'practiceCorrect': 15,
         'practiceAccuracy': '0.75',
       }),
     );
@@ -73,6 +74,7 @@ void main() {
     expect(question.subjectName, '数学');
     expect(question.tags, ['计算']);
     expect(stats.totalErrors, 12);
+    expect(stats.practiceCorrect, 15);
     expect(stats.practiceAccuracy, 0.75);
   });
 

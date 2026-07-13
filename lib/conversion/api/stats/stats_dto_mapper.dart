@@ -8,6 +8,7 @@ class StatsOverviewDto {
     required this.masteredCount,
     required this.masteryRate,
     required this.practiceTotal,
+    required this.practiceCorrect,
     required this.practiceAccuracy,
   });
 
@@ -17,6 +18,7 @@ class StatsOverviewDto {
       masteredCount: intValue(json['masteredCount']),
       masteryRate: doubleValue(json['masteryRate']),
       practiceTotal: intValue(json['practiceTotal']),
+      practiceCorrect: intValue(json['practiceCorrect']),
       practiceAccuracy: doubleValue(json['practiceAccuracy']),
     );
   }
@@ -25,6 +27,7 @@ class StatsOverviewDto {
   final int masteredCount;
   final double masteryRate;
   final int practiceTotal;
+  final int practiceCorrect;
   final double practiceAccuracy;
 }
 
@@ -37,6 +40,7 @@ class StatsDtoMapper {
       masteredCount: dto.masteredCount,
       masteryRate: dto.masteryRate,
       practiceTotal: dto.practiceTotal,
+      practiceCorrect: dto.practiceCorrect,
       practiceAccuracy: dto.practiceAccuracy,
     );
   }
