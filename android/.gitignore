@@ -1,7 +1,5 @@
-.gradle/
-**/build/
-**/bin/
-local.properties
-captures/
-.idea/
-*.iml
+gradle-wrapper.jar
+/.gradle
+/captures/
+/local.properties
+/GeneratedPluginRegistrant.java

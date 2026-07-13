@@ -1,80 +1,21 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+build/
+coverage/
+pubspec.lock
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.*
-.yarn/*
-!.yarn/patches
-!.yarn/plugins
-!.yarn/releases
-!.yarn/versions
-
-# testing
-/coverage
-
-# next.js
-/.next/
-/out/
-
-# production
-/build
-
-# misc
+# IDE
+.idea/
+*.iml
 .DS_Store
-*.pem
 
-# debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
+# Local env
+.env
+.env.*
 
-# env files (can opt-in for committing if needed)
-.env*
-!.env.example
-
-# vercel
-.vercel
-
-# typescript
-*.tsbuildinfoconfig
-*.tsbuildinfo
-next-env.d.ts
-
-/src/generated/prisma
-
-
-# App config (contains secrets)
-/config/app-config.json
-dist-scripts
-
-# Playwright
-/playwright-report/
-/test-results/
-/blob-report/
-/playwright/.cache/
-
-# Local Database
-*.db
-*.db-journal
-*.sqlite
-*.sqlite-journal
-
-# Logs & Output
-*.log
-test_output*.txt
-upload_test_output*.txt
-
-# data
-/data/
-.next-prebuilt/
-
-# Flutter client
-/flutter_app/.dart_tool/
-/flutter_app/.flutter-plugins
-/flutter_app/.flutter-plugins-dependencies
-/flutter_app/.packages
-/flutter_app/build/
-/flutter_app/coverage/
-/flutter_app/.idea/
+# Android local build state
+android/.gradle/
+android/local.properties
