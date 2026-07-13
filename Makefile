@@ -5,12 +5,13 @@ APP_ID := com.bandu.tiji
 ADB_SERIAL ?= emulator-5556
 API_BASE_URL ?= http://10.0.2.2:3000/api/mobile/v1
 APP_VERSION ?= $(shell tr -d ' \n\r' < VERSION 2>/dev/null || echo v0.1.1)
+BYPASS_AUTH ?= false
 
-FLUTTER_DART_DEFINES := --dart-define=API_BASE_URL=$(API_BASE_URL) --dart-define=APP_VERSION=$(APP_VERSION)
+FLUTTER_DART_DEFINES := --dart-define=API_BASE_URL=$(API_BASE_URL) --dart-define=APP_VERSION=$(APP_VERSION) --dart-define=BYPASS_AUTH=$(BYPASS_AUTH)
 
 define with_dotenv
 @set -euo pipefail; \
-	export APP_ID="$(APP_ID)" ADB_SERIAL="$(ADB_SERIAL)" API_BASE_URL="$(API_BASE_URL)" APP_VERSION="$(APP_VERSION)"; \
+	export APP_ID="$(APP_ID)" ADB_SERIAL="$(ADB_SERIAL)" API_BASE_URL="$(API_BASE_URL)" APP_VERSION="$(APP_VERSION)" BYPASS_AUTH="$(BYPASS_AUTH)"; \
 	[ -f .env ] && set -a && source .env && set +a; \
 	$(1)
 endef
@@ -50,7 +51,7 @@ run:
 emulator:
 	@chmod +x scripts/emulator-launch.sh
 	@$(call with_dotenv,./scripts/emulator-launch.sh)
-	@$(call with_dotenv,flutter run -d "$$ADB_SERIAL" --dart-define=API_BASE_URL="$$API_BASE_URL" --dart-define=APP_VERSION="$$APP_VERSION")
+	@$(call with_dotenv,flutter run -d "$$ADB_SERIAL" --dart-define=API_BASE_URL="$$API_BASE_URL" --dart-define=APP_VERSION="$$APP_VERSION" --dart-define=BYPASS_AUTH="$$BYPASS_AUTH")
 
 sync:
 	@chmod +x scripts/flutter-sync.sh

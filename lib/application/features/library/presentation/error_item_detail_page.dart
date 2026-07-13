@@ -100,7 +100,7 @@ class ErrorItemDetailPage extends ConsumerWidget {
       ref.invalidate(statsOverviewProvider);
       if (context.mounted) {
         showAppSuccessSnackBar(context, '错题已删除');
-        context.go('/library');
+        context.go('/home/library');
       }
     } catch (error) {
       if (context.mounted) {

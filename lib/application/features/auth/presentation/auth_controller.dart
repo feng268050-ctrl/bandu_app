@@ -39,13 +39,26 @@ class AuthState {
 }
 
 class AuthController extends Notifier<AuthState> {
+  bool get _bypassAuth => ref.read(authBypassProvider);
+
   @override
   AuthState build() {
+    if (_bypassAuth) {
+      return const AuthState(
+        status: AuthStatus.signedIn,
+        user: guestUserProfile,
+      );
+    }
+
     unawaited(_restoreSession());
     return const AuthState(status: AuthStatus.unknown);
   }
 
   Future<void> login({required String email, required String password}) async {
+    if (_bypassAuth) {
+      return;
+    }
+
     state = state.copyWith(isBusy: true, errorMessage: null);
 
     try {
@@ -67,6 +80,10 @@ class AuthController extends Notifier<AuthState> {
     required String password,
     String? name,
   }) async {
+    if (_bypassAuth) {
+      return;
+    }
+
     state = state.copyWith(isBusy: true, errorMessage: null);
 
     try {
@@ -84,6 +101,10 @@ class AuthController extends Notifier<AuthState> {
   }
 
   Future<void> logout() async {
+    if (_bypassAuth) {
+      return;
+    }
+
     state = state.copyWith(isBusy: true, errorMessage: null);
     await ref.read(logoutUseCaseProvider).call();
     state = const AuthState(status: AuthStatus.signedOut);

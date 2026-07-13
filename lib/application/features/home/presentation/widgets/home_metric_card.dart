@@ -6,26 +6,41 @@ class HomeMetricCard extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
+    required this.onTap,
     super.key,
   });
 
   final String label;
   final String value;
   final IconData icon;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return Card.filled(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.large),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon),
-            const SizedBox(height: AppSpacing.large),
-            Text(value, style: Theme.of(context).textTheme.headlineMedium),
-            Text(label, style: Theme.of(context).textTheme.bodyMedium),
-          ],
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: SizedBox(
+          height: 156,
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.large),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(icon),
+                    const Spacer(),
+                    const Icon(Icons.chevron_right),
+                  ],
+                ),
+                const Spacer(),
+                Text(value, style: Theme.of(context).textTheme.headlineMedium),
+                Text(label, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
         ),
       ),
     );

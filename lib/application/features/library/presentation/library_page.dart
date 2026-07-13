@@ -53,7 +53,7 @@ class LibraryPage extends ConsumerWidget {
               final item = data[index];
               return ErrorItemCard(
                 item: item,
-                onTap: () => context.go('/library/${item.id}'),
+                onTap: () => context.go('/home/library/${item.id}'),
               );
             },
           );

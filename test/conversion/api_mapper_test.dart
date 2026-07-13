@@ -2,7 +2,9 @@ import 'package:bandu_wrong_notebook/application/features/library/domain/error_i
 import 'package:bandu_wrong_notebook/conversion/api/auth/auth_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/api/error_items/error_item_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/api/practice/practice_dto_mapper.dart';
+import 'package:bandu_wrong_notebook/conversion/api/question_bank/pdf_question_bank_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/api/stats/stats_dto_mapper.dart';
+import 'package:bandu_wrong_notebook/conversion/api/tutor/tutor_dto_mapper.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -72,5 +74,46 @@ void main() {
     expect(question.tags, ['计算']);
     expect(stats.totalErrors, 12);
     expect(stats.practiceAccuracy, 0.75);
+  });
+
+  test('PDF import and tutor payloads map into typed domain models', () {
+    const bankMapper = PdfQuestionBankDtoMapper();
+    const tutorMapper = TutorDtoMapper();
+
+    final preview = bankMapper.previewFromDto(
+      PdfImportPreviewDto.fromJson({
+        'fileName': 'math.pdf',
+        'totalPages': 3,
+        'parser': 'ai',
+        'questions': [
+          {
+            'stem': '1 + 1 = ?',
+            'options': ['A. 1', 'B. 2'],
+            'answer': 'B',
+            'questionType': 'SINGLE_CHOICE',
+            'difficulty': 'EASY',
+            'tags': ['加法'],
+            'sourcePage': 1,
+            'needsReview': false,
+          },
+        ],
+      }),
+      localPdfPath: '/tmp/math.pdf',
+    );
+    final model = tutorMapper.modelFromDto(
+      TutorModelDto.fromJson({
+        'id': 'openai:one',
+        'name': '辅导模型',
+        'provider': 'openai',
+        'model': 'model-a',
+        'isDefault': true,
+      }),
+    );
+
+    expect(preview.questions, hasLength(1));
+    expect(preview.questions.single.options, ['A. 1', 'B. 2']);
+    expect(preview.needsReviewCount, 0);
+    expect(model.id, 'openai:one');
+    expect(model.isDefault, isTrue);
   });
 }

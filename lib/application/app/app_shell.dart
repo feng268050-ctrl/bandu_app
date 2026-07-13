@@ -25,9 +25,9 @@ class AppShell extends StatelessWidget {
             label: '首页',
           ),
           NavigationDestination(
-            icon: Icon(Icons.library_books_outlined),
-            selectedIcon: Icon(Icons.library_books),
-            label: '错题本',
+            icon: Icon(Icons.forum_outlined),
+            selectedIcon: Icon(Icons.forum),
+            label: 'AI 辅导',
           ),
           NavigationDestination(
             icon: Icon(Icons.add_circle_outline),

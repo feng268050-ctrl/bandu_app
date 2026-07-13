@@ -1,4 +1,5 @@
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_overview.dart';
+import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_period.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_repository.dart';
 import 'package:bandu_wrong_notebook/conversion/api/stats/stats_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/framework/network/services/stats_api_service.dart';
@@ -21,7 +22,7 @@ class RemoteStatsRepository implements StatsRepository {
   final StatsDtoMapper mapper;
 
   @override
-  Future<StatsOverview> fetchOverview() async {
-    return mapper.overviewFromDto(await apiService.fetchOverview());
+  Future<StatsOverview> fetchOverview(StatsPeriod period) async {
+    return mapper.overviewFromDto(await apiService.fetchOverview(period));
   }
 }

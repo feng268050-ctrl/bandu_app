@@ -3,6 +3,7 @@ import 'package:bandu_wrong_notebook/application/features/practice/domain/practi
 import 'package:bandu_wrong_notebook/application/features/practice/domain/practice_repository.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/application/stats_use_cases.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_overview.dart';
+import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_period.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -30,7 +31,8 @@ void main() {
   test('stats use case fetches overview from repository', () async {
     final repository = _FakeStatsRepository();
 
-    final overview = await FetchStatsOverviewUseCase(repository)();
+    final overview =
+        await FetchStatsOverviewUseCase(repository)(StatsPeriod.week);
 
     expect(repository.calls, 1);
     expect(overview.totalErrors, 4);
@@ -85,7 +87,7 @@ class _FakeStatsRepository implements StatsRepository {
   int calls = 0;
 
   @override
-  Future<StatsOverview> fetchOverview() async {
+  Future<StatsOverview> fetchOverview(StatsPeriod period) async {
     calls += 1;
     return const StatsOverview(
       totalErrors: 4,

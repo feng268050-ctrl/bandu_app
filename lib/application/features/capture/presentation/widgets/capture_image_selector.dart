@@ -10,6 +10,7 @@ class CaptureImageSelector extends StatelessWidget {
     required this.isBusy,
     required this.onTakePhoto,
     required this.onPickFromGallery,
+    required this.onImportPdf,
     super.key,
   });
 
@@ -17,6 +18,7 @@ class CaptureImageSelector extends StatelessWidget {
   final bool isBusy;
   final VoidCallback onTakePhoto;
   final VoidCallback onPickFromGallery;
+  final VoidCallback onImportPdf;
 
   @override
   Widget build(BuildContext context) {
@@ -43,9 +45,9 @@ class CaptureImageSelector extends StatelessWidget {
           children: [
             Expanded(
               child: AppPrimaryButton(
-                label: '拍照',
-                icon: const Icon(Icons.camera_alt_outlined),
-                onPressed: isBusy ? null : onTakePhoto,
+                label: '导入 PDF 题集',
+                icon: const Icon(Icons.picture_as_pdf_outlined),
+                onPressed: isBusy ? null : onImportPdf,
               ),
             ),
             const SizedBox(width: AppSpacing.medium),

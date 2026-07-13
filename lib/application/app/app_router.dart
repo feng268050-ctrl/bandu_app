@@ -1,5 +1,6 @@
 import 'package:bandu_wrong_notebook/application/app/app_shell.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/presentation/auth_controller.dart';
+import 'package:bandu_wrong_notebook/application/features/auth/auth_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/presentation/login_page.dart';
 import 'package:bandu_wrong_notebook/application/features/capture/presentation/capture_page.dart';
 import 'package:bandu_wrong_notebook/application/features/home/presentation/home_page.dart';
@@ -7,15 +8,24 @@ import 'package:bandu_wrong_notebook/application/features/library/presentation/e
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_page.dart';
 import 'package:bandu_wrong_notebook/application/features/practice/presentation/practice_page.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/presentation/profile_page.dart';
+import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/pdf_question_bank_page.dart';
+import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_period.dart';
+import 'package:bandu_wrong_notebook/application/features/stats/presentation/stats_page.dart';
+import 'package:bandu_wrong_notebook/application/features/tutor/presentation/tutor_page.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authControllerProvider);
+  final bypassAuth = ref.watch(authBypassProvider);
 
   return GoRouter(
     initialLocation: '/home',
     redirect: (context, state) {
+      if (bypassAuth) {
+        return null;
+      }
+
       final isLoginRoute = state.matchedLocation == '/login';
       final isSignedIn = authState.status == AuthStatus.signedIn;
       final isSignedOut = authState.status == AuthStatus.signedOut;
@@ -42,22 +52,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/home',
                 builder: (context, state) => const HomePage(),
-              ),
-            ],
-          ),
-          StatefulShellBranch(
-            routes: [
-              GoRoute(
-                path: '/library',
-                builder: (context, state) => const LibraryPage(),
                 routes: [
                   GoRoute(
-                    path: ':id',
-                    builder: (context, state) {
-                      return ErrorItemDetailPage(
-                        errorItemId: state.pathParameters['id']!,
-                      );
-                    },
+                    path: 'library',
+                    builder: (context, state) => const LibraryPage(),
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        builder: (context, state) => ErrorItemDetailPage(
+                          errorItemId: state.pathParameters['id']!,
+                        ),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'stats',
+                    builder: (context, state) => StatsPage(
+                      initialPeriod: StatsPeriod.fromApiValue(
+                        state.uri.queryParameters['period'],
+                      ),
+                      highlightedMetric: state.uri.queryParameters['metric'],
+                    ),
                   ),
                 ],
               ),
@@ -66,8 +81,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
           StatefulShellBranch(
             routes: [
               GoRoute(
+                path: '/tutor',
+                builder: (context, state) => const TutorPage(),
+              ),
+            ],
+          ),
+          StatefulShellBranch(
+            routes: [
+              GoRoute(
                 path: '/capture',
                 builder: (context, state) => const CapturePage(),
+                routes: [
+                  GoRoute(
+                    path: 'pdf-import',
+                    builder: (context, state) => const PdfQuestionBankPage(),
+                  ),
+                ],
               ),
             ],
           ),

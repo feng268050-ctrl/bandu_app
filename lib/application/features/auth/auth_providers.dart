@@ -3,6 +3,8 @@ import 'package:bandu_wrong_notebook/application/features/auth/application/auth_
 import 'package:bandu_wrong_notebook/application/features/auth/domain/auth_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+final authBypassProvider = Provider<bool>((ref) => false);
+
 final authRepositoryProvider = Provider<AuthRepository>(
   (ref) => missingDependency('AuthRepository'),
 );

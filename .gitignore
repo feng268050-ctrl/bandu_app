@@ -19,5 +19,6 @@ coverage/
 
 # Android local build state
 android/.gradle/
+android/build/
 android/local.properties
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java

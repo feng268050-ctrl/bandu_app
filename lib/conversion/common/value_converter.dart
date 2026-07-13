@@ -19,6 +19,16 @@ int? nullableIntValue(Object? value) {
   };
 }
 
+bool boolValue(Object? value, {bool fallback = false}) {
+  return switch (value) {
+    final bool flag => flag,
+    final num number => number != 0,
+    final String text when text.toLowerCase() == 'true' => true,
+    final String text when text.toLowerCase() == 'false' => false,
+    _ => fallback,
+  };
+}
+
 double doubleValue(Object? value, {double fallback = 0}) {
   return switch (value) {
     final double number => number,

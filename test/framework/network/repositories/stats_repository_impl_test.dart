@@ -1,6 +1,7 @@
 import 'package:bandu_wrong_notebook/conversion/api/stats/stats_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/framework/network/repositories/stats_repository_impl.dart';
 import 'package:bandu_wrong_notebook/framework/network/services/stats_api_service.dart';
+import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_period.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -11,7 +12,7 @@ void main() {
       mapper: const StatsDtoMapper(),
     );
 
-    final overview = await repository.fetchOverview();
+    final overview = await repository.fetchOverview(StatsPeriod.week);
 
     expect(service.calls, 1);
     expect(overview.totalErrors, 12);
@@ -24,7 +25,7 @@ class _FakeStatsApiService implements StatsApiService {
   int calls = 0;
 
   @override
-  Future<StatsOverviewDto> fetchOverview() async {
+  Future<StatsOverviewDto> fetchOverview(StatsPeriod period) async {
     calls += 1;
     return const StatsOverviewDto(
       totalErrors: 12,

@@ -65,11 +65,15 @@ class ApiClient {
     String path, {
     Object? data,
     Map<String, Object?>? queryParameters,
+    Duration? receiveTimeout,
   }) async {
     final response = await _dio.post<Object?>(
       path,
       data: data,
       queryParameters: queryParameters,
+      options: receiveTimeout == null
+          ? null
+          : Options(receiveTimeout: receiveTimeout),
     );
     return _unwrap<T>(response);
   }

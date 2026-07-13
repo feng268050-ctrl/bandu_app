@@ -8,6 +8,7 @@ APP_ACTIVITY="${APP_ACTIVITY:-${APP_ID}/.MainActivity}"
 DEBUG_APK="${DEBUG_APK:-${ROOT_DIR}/build/app/outputs/flutter-apk/app-debug.apk}"
 API_BASE_URL="${API_BASE_URL:-http://10.0.2.2:3000/api/mobile/v1}"
 APP_VERSION="${APP_VERSION:-v0.1.1}"
+BYPASS_AUTH="${BYPASS_AUTH:-false}"
 SYNC_SKIP_BUILD="${SYNC_SKIP_BUILD:-0}"
 SYNC_RELAUNCH="${SYNC_RELAUNCH:-1}"
 
@@ -97,7 +98,8 @@ build_debug_apk() {
     cd "${ROOT_DIR}"
     flutter build apk --debug \
       --dart-define="API_BASE_URL=${API_BASE_URL}" \
-      --dart-define="APP_VERSION=${APP_VERSION}"
+      --dart-define="APP_VERSION=${APP_VERSION}" \
+      --dart-define="BYPASS_AUTH=${BYPASS_AUTH}"
   )
   [[ -f "${DEBUG_APK}" ]] || die "debug APK not found: ${DEBUG_APK}"
 }

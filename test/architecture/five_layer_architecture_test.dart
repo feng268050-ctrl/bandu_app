@@ -32,6 +32,8 @@ void main() {
       'package:dio/',
       'package:camera/',
       'package:image_picker/',
+      'package:file_selector/',
+      'package:speech_to_text/',
       'package:flutter_secure_storage/',
       'MethodChannel(',
       "import 'dart:io'",

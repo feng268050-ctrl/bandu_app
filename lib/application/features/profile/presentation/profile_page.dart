@@ -1,4 +1,5 @@
 import 'package:bandu_wrong_notebook/application/features/auth/presentation/auth_controller.dart';
+import 'package:bandu_wrong_notebook/application/features/auth/auth_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/domain/avatar_settings.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/domain/profile_models.dart';
@@ -28,6 +29,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authControllerProvider);
+    final bypassAuth = ref.watch(authBypassProvider);
     final user = authState.user;
     final deviceName = ref.watch(deviceNameProvider).valueOrNull ?? '读取中';
     final overview = ProfileOverviewState.fromUser(
@@ -75,13 +77,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
             const SizedBox(height: AppSpacing.small),
           ],
-          const SizedBox(height: AppSpacing.small),
-          AppSecondaryButton(
-            label: '退出登录',
-            expanded: true,
-            onPressed: authState.isBusy ? null : _logout,
-            icon: const Icon(Icons.logout),
-          ),
+          if (!bypassAuth) ...[
+            const SizedBox(height: AppSpacing.small),
+            AppSecondaryButton(
+              label: '退出登录',
+              expanded: true,
+              onPressed: authState.isBusy ? null : _logout,
+              icon: const Icon(Icons.logout),
+            ),
+          ],
         ],
       ),
     );

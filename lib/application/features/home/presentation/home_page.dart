@@ -1,6 +1,7 @@
 import 'package:bandu_wrong_notebook/application/features/home/presentation/widgets/home_metric_card.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/stats_providers.dart';
+import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_period.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_default_button.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_primary_button.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
@@ -8,13 +9,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> {
+  StatsPeriod _period = StatsPeriod.week;
+
+  @override
+  Widget build(BuildContext context) {
     final library = ref.watch(libraryControllerProvider);
-    final stats = ref.watch(statsOverviewProvider);
+    final stats = ref.watch(statsOverviewProvider(_period));
     final cachedItemCount = library.valueOrNull?.length ?? 0;
     final totalErrors = stats.valueOrNull?.totalErrors ?? cachedItemCount;
     final masteredCount = stats.valueOrNull?.masteredCount ?? 0;
@@ -25,7 +33,32 @@ class HomePage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.page),
         children: [
-          Text('今日', style: Theme.of(context).textTheme.titleLarge),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: PopupMenuButton<StatsPeriod>(
+              tooltip: '选择统计周期',
+              initialValue: _period,
+              onSelected: (period) => setState(() => _period = period),
+              itemBuilder: (context) => StatsPeriod.values
+                  .map(
+                    (period) => PopupMenuItem(
+                      value: period,
+                      child: Text(_periodLabel(period)),
+                    ),
+                  )
+                  .toList(),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _periodLabel(_period),
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Icon(Icons.arrow_drop_down),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: AppSpacing.medium),
           Row(
             children: [
@@ -34,6 +67,7 @@ class HomePage extends ConsumerWidget {
                   label: '错题',
                   value: totalErrors.toString(),
                   icon: Icons.library_books_outlined,
+                  onTap: () => _openDetails('errors'),
                 ),
               ),
               const SizedBox(width: AppSpacing.medium),
@@ -42,6 +76,7 @@ class HomePage extends ConsumerWidget {
                   label: '已掌握',
                   value: masteredCount.toString(),
                   icon: Icons.task_alt_outlined,
+                  onTap: () => _openDetails('mastered'),
                 ),
               ),
             ],
@@ -51,6 +86,7 @@ class HomePage extends ConsumerWidget {
             label: '练习正确率',
             value: '${(practiceAccuracy * 100).toStringAsFixed(0)}%',
             icon: Icons.trending_up,
+            onTap: () => _openDetails('accuracy'),
           ),
           const SizedBox(height: AppSpacing.xLarge),
           AppPrimaryButton(
@@ -64,10 +100,20 @@ class HomePage extends ConsumerWidget {
             label: '查看错题本',
             expanded: true,
             icon: const Icon(Icons.search),
-            onPressed: () => context.go('/library'),
+            onPressed: () => context.go('/home/library'),
           ),
         ],
       ),
     );
+  }
+
+  void _openDetails(String metric) {
+    context.go(
+      '/home/stats?period=${_period.apiValue}&metric=$metric',
+    );
+  }
+
+  String _periodLabel(StatsPeriod period) {
+    return period == StatsPeriod.week ? '本周' : '本月';
   }
 }

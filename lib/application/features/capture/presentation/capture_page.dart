@@ -8,6 +8,7 @@ import 'package:bandu_wrong_notebook/components/actions/app_primary_button.dart'
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 class CapturePage extends ConsumerWidget {
   const CapturePage({super.key});
@@ -31,6 +32,7 @@ class CapturePage extends ConsumerWidget {
             isBusy: isBusy,
             onTakePhoto: controller.takePhoto,
             onPickFromGallery: controller.pickFromGallery,
+            onImportPdf: () => context.go('/capture/pdf-import'),
           ),
           const SizedBox(height: AppSpacing.medium),
           AppAsyncPrimaryButton(

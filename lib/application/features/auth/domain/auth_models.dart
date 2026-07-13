@@ -29,3 +29,11 @@ class UserProfile {
   final int? enrollmentYear;
   final String? role;
 }
+
+const guestUserProfile = UserProfile(
+  id: 'guest-local',
+  email: 'guest@local.dev',
+  name: '本地体验用户',
+  educationStage: '初中',
+  enrollmentYear: 2024,
+);
