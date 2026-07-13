@@ -1,5 +1,5 @@
-import 'package:bandu_wrong_notebook/application/features/auth/presentation/auth_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/auth_providers.dart';
+import 'package:bandu_wrong_notebook/application/features/auth/presentation/auth_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/domain/avatar_settings.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/domain/profile_models.dart';

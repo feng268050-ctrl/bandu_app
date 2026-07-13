@@ -46,10 +46,9 @@ class AuthController extends Notifier<AuthState> {
     if (_bypassAuth) {
       return const AuthState(
         status: AuthStatus.signedIn,
-        user: guestUserProfile,
+        user: kGuestUserProfile,
       );
     }
-
     unawaited(_restoreSession());
     return const AuthState(status: AuthStatus.unknown);
   }
@@ -58,7 +57,6 @@ class AuthController extends Notifier<AuthState> {
     if (_bypassAuth) {
       return;
     }
-
     state = state.copyWith(isBusy: true, errorMessage: null);
 
     try {
@@ -83,7 +81,6 @@ class AuthController extends Notifier<AuthState> {
     if (_bypassAuth) {
       return;
     }
-
     state = state.copyWith(isBusy: true, errorMessage: null);
 
     try {
@@ -104,7 +101,6 @@ class AuthController extends Notifier<AuthState> {
     if (_bypassAuth) {
       return;
     }
-
     state = state.copyWith(isBusy: true, errorMessage: null);
     await ref.read(logoutUseCaseProvider).call();
     state = const AuthState(status: AuthStatus.signedOut);

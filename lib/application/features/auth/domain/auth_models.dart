@@ -1,3 +1,9 @@
+const kGuestUserProfile = UserProfile(
+  id: 'local-guest',
+  email: 'guest@local',
+  name: '本地访客',
+);
+
 class AuthSession {
   const AuthSession({
     required this.user,
@@ -29,11 +35,3 @@ class UserProfile {
   final int? enrollmentYear;
   final String? role;
 }
-
-const guestUserProfile = UserProfile(
-  id: 'guest-local',
-  email: 'guest@local.dev',
-  name: '本地体验用户',
-  educationStage: '初中',
-  enrollmentYear: 2024,
-);
