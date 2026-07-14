@@ -27,10 +27,10 @@ Tailscale 节点在线；Mac 到 WSL 可达，最新复验走 DERP(lax) 中继�
 Mac 到 Web 根路径返回 307 /login，并带 CSP、COOP、Permissions-Policy、HSTS、nosniff、X-Frame-Options 等安全头
 Mac 到 Mobile API：ai-configs 未认证返回 401，并带安全头；100.69.41.14 实测 TTFB 约 677 ms
 MagicDNS HTTP :3000 可用，ai-configs 未认证返回 401；实测 TTFB 约 488 ms
-MagicDNS HTTPS 443 当前不可连接，Tailscale Serve 尚未启用
+MagicDNS HTTPS 443 当前不可连接，Tailscale Serve 尚未启用；WSL 执行 `tailscale serve --bg --https=443 3000` 返回 tailnet 未开启 Serve
 Emulator 到 WSL：ICMP 0% 丢包，3000/TCP 可连接
-Flutter 静态分析无问题，37 项测试通过，Debug APK 已安装到 emulator-5556
-应用启动后显示真实登录页，BYPASS_AUTH=false 已生效
+Flutter 静态分析无问题，37 项测试通过，Debug APK 已重新安装到 emulator-5556
+应用已在 emulator-5556 前台启动，显示真实登录页，BYPASS_AUTH=false 已生效
 Debug 合并清单允许当前 HTTP；Release 合并清单未启用明文流量
 22/TCP 和 3000/TCP 开放；80/TCP、443/TCP 关闭
 未认证访问 users/me、ai-configs、tutor/models 均返回 401
@@ -68,7 +68,7 @@ Mobile API 功能闭环：通过
 
 ```text
 1. 在 Tailscale 管理后台确认 ACL/Grant 只允许 Mac peer 访问 WSL 节点的 3000，以及启用 Serve 后的 443
-2. Tailscale Serve 当前未启用；启用前 Release 不能使用 HTTPS 目标地址
+2. Tailscale Serve 当前未启用；WSL CLI 返回需在后台开启：https://login.tailscale.com/f/serve?node=nx7hcn5wWP11CNTRL
 3. 当前 443 未监听，发布构建不能使用现有 HTTP 地址
 4. 全量 npm run lint 仍有项目既有无关问题；本次改动文件 targeted lint 通过
 5. Mac 到 WSL 当前经 DERP 中继，联调可用但延迟高；需要排查双方 NAT/防火墙/UDP 直连能力
@@ -682,6 +682,32 @@ Tailscale 节点间流量由 Tailnet 加密，因此当前 HTTP 地址可用于�
 
 发布构建应先通过 Tailscale Serve 或反向代理提供 HTTPS，再将 `API_BASE_URL` 改为 `https://.../api/mobile/v1`。服务端当前已补充 CSP、COOP、Permissions-Policy、Referrer-Policy、HSTS、`X-Content-Type-Options: nosniff` 和 `X-Frame-Options: DENY` 等响应头。
 
+当前 WSL 启用命令：
+
+```bash
+tailscale serve --bg --https=443 3000
+```
+
+若返回：
+
+```text
+Serve is not enabled on your tailnet.
+```
+
+需要先在 Tailscale 管理后台开启 Serve：
+
+```text
+https://login.tailscale.com/f/serve?node=nx7hcn5wWP11CNTRL
+```
+
+开启后重新执行上面的 `tailscale serve` 命令，并从 Mac 验证：
+
+```bash
+curl -I https://desktop-wsl.tail5143ee.ts.net/api/mobile/v1/ai-configs
+```
+
+预期状态为 `401 Unauthorized`，且带安全响应头。
+
 ### 11.5 数据库备份
 
 SQLite 运行中不要直接 `cp` 主数据库。使用 SQLite 在线备份接口并校验备份文件：
@@ -916,7 +942,7 @@ AI 推理服务
 
 2. Mac 可访问 WSL 3000/TCP，Web 根路径返回 307 /login 且带安全响应头。
 
-3. emulator-5556 已安装使用 WSL API 地址的 Debug APK，并显示真实登录页。
+3. emulator-5556 已重新安装使用 WSL API 地址的 Debug APK，前台 Activity 为 `com.bandu.tiji/.MainActivity`，并显示真实登录页。
 
 4. 未认证请求返回 401，登录、用户信息读取、logout 后 access/refresh 失效均正常。
 
