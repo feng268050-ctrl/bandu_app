@@ -9,7 +9,7 @@
 
 ---
 
-## 0. 2026-07-14 Mac 侧验收结论
+## 0. 2026-07-14 验收结论
 
 当前验收目标：
 
@@ -17,13 +17,17 @@
 WSL Tailscale IPv4：100.69.41.14
 MagicDNS：desktop-wsl.tail5143ee.ts.net
 Mobile API：http://100.69.41.14:3000/api/mobile/v1
+HTTPS 目标：https://desktop-wsl.tail5143ee.ts.net/api/mobile/v1
 ```
 
 实测结果：
 
 ```text
-Tailscale 节点在线，Mac 到 WSL 为直连，延迟约 6 ms
-Mac 到 Mobile API：连接约 15 ms，首字节约 33 ms
+Tailscale 节点在线；Mac 到 WSL 可达，最新复验走 DERP(lax) 中继，约 330-750 ms，未建立直连
+Mac 到 Web 根路径返回 307 /login，并带 CSP、COOP、Permissions-Policy、HSTS、nosniff、X-Frame-Options 等安全头
+Mac 到 Mobile API：ai-configs 未认证返回 401，并带安全头；100.69.41.14 实测 TTFB 约 677 ms
+MagicDNS HTTP :3000 可用，ai-configs 未认证返回 401；实测 TTFB 约 488 ms
+MagicDNS HTTPS 443 当前不可连接，Tailscale Serve 尚未启用
 Emulator 到 WSL：ICMP 0% 丢包，3000/TCP 可连接
 Flutter 静态分析无问题，37 项测试通过，Debug APK 已安装到 emulator-5556
 应用启动后显示真实登录页，BYPASS_AUTH=false 已生效
@@ -31,10 +35,12 @@ Debug 合并清单允许当前 HTTP；Release 合并清单未启用明文流量
 22/TCP 和 3000/TCP 开放；80/TCP、443/TCP 关闭
 未认证访问 users/me、ai-configs、tutor/models 均返回 401
 错误密码返回统一 INVALID_CREDENTIALS，不泄露账号是否存在
-Access Token、Refresh Token 登录正常，Refresh Token 会轮换且旧令牌不可重放
-注销后 Refresh Token 立即失效
+Access Token、Refresh Token 登录正常；users/me 登录后返回 200
+注销后当前 Access Token 立即返回 401，Refresh Token 立即返回 401
 AI 配置新增、掩码读取、空密钥编辑保留、Tutor 模型联动和删除清理均通过
 API 响应未返回明文 API Key 或 apiKeyCiphertext
+Mobile 登录接口已添加失败限流，5 次失败后第 6 次返回 429，Retry-After=900
+bandu_web 已从 tmux + next dev 切换为生产构建 + systemd 用户服务
 ```
 
 当前判定：
@@ -42,29 +48,33 @@ API 响应未返回明文 API Key 或 apiKeyCiphertext
 ```text
 开发联调可用性：通过
 Mobile API 功能闭环：通过
-长期无人值守运行：未通过，当前仍是 tmux + Next dev
-安全验收：有条件通过，完成下列 P0 项后才能保存真实 AI Key
+长期无人值守运行：WSL 本机通过，仍需确认 Windows 登录后自动拉起 WSL
+安全验收：联调环境通过；真实 AI Key 建议在完成 ACL 后保存
 ```
 
-P0 安全门槛：
+已完成的 P0 安全项：
 
 ```text
-1. 将 WSL .env 中的 NEXTAUTH_SECRET 和 MOBILE_AUTH_SECRET 更换为独立随机值
-2. 立即修改 admin@localhost 的默认密码
-3. 在 Tailscale 管理后台确认 ACL 只允许指定用户/设备访问 WSL
-4. 保存首个真实 AI Key 前固定 MOBILE_AUTH_SECRET；之后修改会导致已加密 Key 无法解密
+1. WSL .env 中的 NEXTAUTH_SECRET 和 MOBILE_AUTH_SECRET 已更换为两个不同的随机值
+2. admin@localhost / 123456 已失效，新密码仅保存在 WSL /tmp/bandu_admin_password.txt，权限 600
+3. DATABASE_URL 已改为绝对 SQLite 路径，避免 standalone 工作目录读错数据库
+4. Mobile 登录限流已启用
+5. logout 后当前 Access Token 已立即失效
+6. 服务端安全响应头已启用
+7. MOBILE_AUTH_SECRET 已固定；保存真实 AI Key 后不要直接更换
 ```
 
-已知残余风险：
+仍需人工确认：
 
 ```text
-Mobile 登录接口当前没有失败次数限流
-注销只撤销 Refresh Token，已签发 Access Token 最长仍可使用 15 分钟
-Next 响应暂未配置 CSP、X-Frame-Options、X-Content-Type-Options 等安全头
-当前 443 未监听，发布构建不能使用现有 HTTP 地址
+1. 在 Tailscale 管理后台确认 ACL/Grant 只允许 Mac peer 访问 WSL 节点的 3000，以及启用 Serve 后的 443
+2. Tailscale Serve 当前未启用；启用前 Release 不能使用 HTTPS 目标地址
+3. 当前 443 未监听，发布构建不能使用现有 HTTP 地址
+4. 全量 npm run lint 仍有项目既有无关问题；本次改动文件 targeted lint 通过
+5. Mac 到 WSL 当前经 DERP 中继，联调可用但延迟高；需要排查双方 NAT/防火墙/UDP 直连能力
 ```
 
-这些风险在“仅限受控 Tailnet 的个人开发环境”中可以暂时接受；扩大用户或网络范围前必须修复。
+当前 HTTP 地址仅用于“受控 Tailnet + Flutter Debug”联调；Release 必须切换到 HTTPS。
 
 ---
 
@@ -209,7 +219,7 @@ Seed 创建的开发管理员为 `admin@localhost / 123456`。首次登录后必
 make dev
 ```
 
-`make dev` 启动的是 Next 开发服务器，只适合调试；长期常驻必须先 `npm run build`，再使用 `make start`。
+`make dev` 启动的是 Next 开发服务器，只适合调试；长期常驻必须先 `npm run build`，再用 systemd 启动 `.next/standalone/server.js` 或等价的生产启动脚本。
 
 ### 3.3 确认服务监听
 
@@ -422,7 +432,7 @@ wsl --shutdown
 
 ---
 
-### 8.2 创建 systemd 服务
+### 8.2 创建 systemd 用户服务
 
 先在服务目录完成生产构建：
 
@@ -434,6 +444,18 @@ npx prisma migrate deploy
 npm run build
 ```
 
+当前落地方式为 systemd 用户服务：
+
+```text
+/home/gin/.config/systemd/user/bandu-web.service
+```
+
+当前服务应启动 Next standalone 产物：
+
+```text
+.next/standalone/server.js
+```
+
 确认信息：
 
 ```bash
@@ -441,12 +463,14 @@ whoami
 realpath ~/projects/bandu_web
 command -v make
 command -v npm
+command -v node
 ```
 
 创建服务：
 
 ```bash
-sudo nano /etc/systemd/system/bandu-web.service
+mkdir -p ~/.config/systemd/user
+nano ~/.config/systemd/user/bandu-web.service
 ```
 
 示例：
@@ -454,26 +478,24 @@ sudo nano /etc/systemd/system/bandu-web.service
 ```ini
 [Unit]
 Description=Bandu Web Service
-After=network-online.target tailscaled.service
-Wants=network-online.target
+After=network-online.target
 
 [Service]
 Type=simple
-User=feng
-WorkingDirectory=/home/feng/projects/bandu_web
+WorkingDirectory=/home/gin/projects/bandu_web
 Environment=NODE_ENV=production
-ExecStart=/usr/bin/make start
+Environment=PORT=3000
+ExecStart=/usr/bin/node /home/gin/projects/bandu_web/.next/standalone/server.js
 Restart=always
 RestartSec=5
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
 ```
 
 替换：
 
 ```text
-User
 WorkingDirectory
 ExecStart
 ```
@@ -485,20 +507,35 @@ ExecStart
 启用服务：
 
 ```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now bandu-web
+systemctl --user daemon-reload
+systemctl --user enable --now bandu-web
 ```
 
 查看状态：
 
 ```bash
-systemctl status bandu-web
+systemctl --user status bandu-web
 ```
 
 查看日志：
 
 ```bash
-journalctl -u bandu-web -f
+journalctl --user -u bandu-web -f
+```
+
+如果需要用户未登录时也保持用户服务可拉起，启用 linger：
+
+```bash
+sudo loginctl enable-linger gin
+```
+
+本次 WSL 本机落地状态：
+
+```text
+service: /home/gin/.config/systemd/user/bandu-web.service
+status: active (running)
+listen: 0.0.0.0:3000
+startup: .next/standalone/server.js
 ```
 
 ---
@@ -614,7 +651,9 @@ MOBILE_AUTH_SECRET 在保存首个真实 AI Key 前固定并纳入安全备份
 WSL 的 .env 不提交 Git，不通过聊天或日志传输
 ```
 
-当前 Mobile 登录接口没有失败次数限流，注销也只会立即撤销 Refresh Token；已签发的 Access Token 最长仍可使用 15 分钟。扩大到多人使用前，应增加账号/IP 限流和 Access Token 撤销机制。
+当前 Mobile 登录接口已增加失败限流：连续 5 次失败后第 6 次返回 `429`，并带 `Retry-After: 900`。logout 后当前 Refresh Token 和当前 Access Token 都应立即失效。
+
+扩大到多人使用前，仍建议把限流、封禁、审计日志和异常登录告警纳入统一运维策略。
 
 ### 11.3 API Key 只放服务端
 
@@ -641,7 +680,7 @@ Mobile API 返回配置时只能提供固定掩码和 `hasApiKey` 状态，不�
 
 Tailscale 节点间流量由 Tailnet 加密，因此当前 HTTP 地址可用于受控设备上的开发联调。Flutter 主清单和 Release 构建不应全局允许明文 HTTP；本项目仅在 `android/app/src/debug/AndroidManifest.xml` 开启该能力。
 
-发布构建应先通过 Tailscale Serve 或反向代理提供 HTTPS，再将 `API_BASE_URL` 改为 `https://.../api/mobile/v1`。服务端还应补充 CSP、`X-Frame-Options`、`X-Content-Type-Options` 和 `Referrer-Policy` 等响应头。
+发布构建应先通过 Tailscale Serve 或反向代理提供 HTTPS，再将 `API_BASE_URL` 改为 `https://.../api/mobile/v1`。服务端当前已补充 CSP、COOP、Permissions-Policy、Referrer-Policy、HSTS、`X-Content-Type-Options: nosniff` 和 `X-Frame-Options: DENY` 等响应头。
 
 ### 11.5 数据库备份
 
@@ -669,13 +708,13 @@ npm ci
 npx prisma generate
 npx prisma migrate deploy
 npm run build
-sudo systemctl restart bandu-web
+systemctl --user restart bandu-web
 ```
 
 查看日志：
 
 ```bash
-journalctl -u bandu-web -f
+journalctl --user -u bandu-web -f
 ```
 
 ### Mac
@@ -857,13 +896,13 @@ AI 推理服务
 
 8. make sync 重新构建安装
 
-9. 完成生产构建并配置 systemd 常驻服务
+9. 完成生产构建并配置 systemd 用户服务
 
 10. 配置 Windows 登录时启动 WSL
 
 11. 增加 SQLite 在线备份和完整性校验
 
-12. 发布前配置 HTTPS、Release API 地址和服务端安全响应头
+12. 发布前配置 Tailscale Serve/HTTPS 和 Release API 地址
 ```
 
 ---
@@ -873,15 +912,21 @@ AI 推理服务
 本次 Mac 侧已通过：
 
 ```text
-1. Mac Tailscale 可直连 100.69.41.14，延迟约 6 ms。
+1. Mac Tailscale 可访问 100.69.41.14；最新复验走 DERP 中继，约 330-750 ms，未建立直连。
 
-2. Mac 和 emulator-5556 均可连接 WSL 3000/TCP。
+2. Mac 可访问 WSL 3000/TCP，Web 根路径返回 307 /login 且带安全响应头。
 
-3. 未认证请求返回 401，登录、刷新轮换、旧令牌拒绝和注销均正常。
+3. emulator-5556 已安装使用 WSL API 地址的 Debug APK，并显示真实登录页。
 
-4. AI 配置的掩码、保留密钥、模型联动和删除闭环正常。
+4. 未认证请求返回 401，登录、用户信息读取、logout 后 access/refresh 失效均正常。
 
-5. Flutter Debug 构建使用 WSL API 地址且 BYPASS_AUTH=false。
+5. AI 配置的掩码、保留密钥、模型联动和删除闭环正常。
+
+6. Flutter Debug 构建使用 WSL API 地址且 BYPASS_AUTH=false。
+
+7. WSL 本机 production systemd 用户服务 active，监听 0.0.0.0:3000。
+
+8. MagicDNS HTTP :3000 可访问；HTTPS 443 当前不可连接。
 ```
 
 完整部署仍需满足：
@@ -889,19 +934,23 @@ AI 推理服务
 ```text
 1. NEXTAUTH_SECRET 和 MOBILE_AUTH_SECRET 已更换为独立随机值。
 
-2. 默认管理员密码已修改，Tailscale ACL 已按最小权限核对。
+2. 默认管理员密码已修改。
 
-3. Win11 登录后 WSL 自动启动，bandu_web 由 systemd 运行生产构建。
+3. Tailscale ACL/Grant 已在管理后台按最小权限核对。
 
-4. Flutter 不再请求 10.0.2.2 访问远程 WSL。
+4. Win11 登录后 WSL 自动启动，bandu_web 由 systemd 运行生产构建。
 
-5. AI API Key 只保存在 bandu_web，备份后可恢复。
+5. Flutter 不再请求 10.0.2.2 访问远程 WSL。
 
-6. Mac 关闭后，Win11 上的服务端仍可运行。
+6. AI API Key 只保存在 bandu_web，备份后可恢复。
 
-7. SQLite 在线备份定时执行且 `PRAGMA integrity_check` 返回 `ok`。
+7. Mac 关闭后，Win11 上的服务端仍可运行。
 
-8. Release 使用 HTTPS，不依赖 Debug 明文流量配置。
+8. SQLite 在线备份定时执行且 `PRAGMA integrity_check` 返回 `ok`。
+
+9. Release 使用 HTTPS，不依赖 Debug 明文流量配置。
+
+10. Tailscale Serve 或反向代理启用后，`https://desktop-wsl.tail5143ee.ts.net/api/mobile/v1` 可访问。
 ```
 
 ---
