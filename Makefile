@@ -5,7 +5,7 @@ APP_ID := com.bandu.tiji
 ADB_SERIAL ?= emulator-5556
 API_BASE_URL ?= http://10.0.2.2:3000/api/mobile/v1
 APP_VERSION ?= $(shell tr -d ' \n\r' < VERSION 2>/dev/null || echo v0.1.1)
-BYPASS_AUTH ?= true
+BYPASS_AUTH ?= false
 
 FLUTTER_DART_DEFINES := --dart-define=API_BASE_URL=$(API_BASE_URL) --dart-define=APP_VERSION=$(APP_VERSION) --dart-define=BYPASS_AUTH=$(BYPASS_AUTH)
 
