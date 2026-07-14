@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bandu_wrong_notebook/application/features/auth/domain/token_store.dart';
 import 'package:bandu_wrong_notebook/framework/network/services/auth_api_service.dart';
 import 'package:bandu_wrong_notebook/framework/persistence/secure_storage/token_storage.dart';
@@ -109,9 +111,13 @@ class RemoteAuthRepository implements AuthRepository {
   Future<void> logout() async {
     final refreshToken = await tokenStore.readRefreshToken();
     try {
-      await apiService.logout(
-        refreshToken == null ? null : mapper.logoutRequest(refreshToken),
-      );
+      await apiService
+          .logout(
+            refreshToken == null ? null : mapper.logoutRequest(refreshToken),
+          )
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // Local logout must not be blocked by an expired token or unavailable API.
     } finally {
       await tokenStore.clear();
     }

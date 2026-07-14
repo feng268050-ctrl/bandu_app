@@ -102,8 +102,11 @@ class AuthController extends Notifier<AuthState> {
       return;
     }
     state = state.copyWith(isBusy: true, errorMessage: null);
-    await ref.read(logoutUseCaseProvider).call();
-    state = const AuthState(status: AuthStatus.signedOut);
+    try {
+      await ref.read(logoutUseCaseProvider).call();
+    } finally {
+      state = const AuthState(status: AuthStatus.signedOut);
+    }
   }
 
   Future<bool> updateProfile({

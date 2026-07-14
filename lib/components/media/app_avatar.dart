@@ -45,7 +45,9 @@ class AppAvatar extends StatelessWidget {
         initial,
         style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: fallbackTextColor,
+              fontSize: size * 0.5,
               fontWeight: FontWeight.w700,
+              height: 1,
             ),
       ),
     );

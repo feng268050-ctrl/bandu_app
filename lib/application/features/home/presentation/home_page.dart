@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/application/features/capture/presentation/capture_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/home/presentation/widgets/home_metric_card.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_metric.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/stats_providers.dart';
@@ -26,6 +27,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final masteredCount = stats.valueOrNull?.masteredCount ?? 0;
     final practiceTotal = stats.valueOrNull?.practiceTotal ?? 0;
     final practiceAccuracy = stats.valueOrNull?.practiceAccuracy ?? 0;
+    final hasPractice = practiceTotal > 0;
 
     return Scaffold(
       appBar: AppBar(title: const Text('首页')),
@@ -83,10 +85,11 @@ class _HomePageState extends ConsumerState<HomePage> {
           const SizedBox(height: AppSpacing.medium),
           HomeMetricCard(
             label: '练习正确率',
-            value: practiceTotal == 0
-                ? '${_period.label}未开始练习'
-                : '${(practiceAccuracy * 100).toStringAsFixed(0)}%',
+            value: hasPractice
+                ? '${(practiceAccuracy * 100).toStringAsFixed(0)}%'
+                : '${_period.label}未开始练习',
             icon: Icons.trending_up,
+            showLabel: hasPractice,
             onTap: () => _openDetails(StatsMetric.accuracy),
           ),
           const SizedBox(height: AppSpacing.xLarge),
@@ -94,7 +97,7 @@ class _HomePageState extends ConsumerState<HomePage> {
             label: '拍题',
             expanded: true,
             icon: const Icon(Icons.camera_alt_outlined),
-            onPressed: () => context.go('/capture'),
+            onPressed: _takePhotoFromHome,
           ),
           const SizedBox(height: AppSpacing.medium),
           AppDefaultButton(
@@ -112,5 +115,14 @@ class _HomePageState extends ConsumerState<HomePage> {
     context.go(
       '/home/stats/${metric.routeValue}?period=${_period.apiValue}',
     );
+  }
+
+  Future<void> _takePhotoFromHome() async {
+    final captured =
+        await ref.read(captureControllerProvider.notifier).takePhoto();
+    if (!mounted || !captured) {
+      return;
+    }
+    context.go('/capture');
   }
 }

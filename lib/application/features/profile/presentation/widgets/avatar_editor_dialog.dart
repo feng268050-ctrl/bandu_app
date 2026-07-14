@@ -56,7 +56,6 @@ class _AvatarEditorDialogState extends State<_AvatarEditorDialog> {
     Color(0xffd81b60),
     Color(0xffc62828),
     Color(0xffe65100),
-    Color(0xff6d4c41),
   ];
 
   late Color _draftColor;
@@ -90,9 +89,10 @@ class _AvatarEditorDialogState extends State<_AvatarEditorDialog> {
               imagePath: _draftImagePath,
             ),
             const SizedBox(height: AppSpacing.xLarge),
-            Align(
-              alignment: Alignment.centerLeft,
+            SizedBox(
+              width: AppSizes.minTouchTarget * 4 + AppSpacing.medium * 3,
               child: Wrap(
+                alignment: WrapAlignment.center,
                 spacing: AppSpacing.medium,
                 runSpacing: AppSpacing.medium,
                 children: [

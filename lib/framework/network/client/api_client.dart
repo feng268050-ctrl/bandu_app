@@ -114,9 +114,10 @@ class ApiClient {
   ) async {
     final statusCode = error.response?.statusCode;
     final isRefreshCall = error.requestOptions.path.endsWith('/auth/refresh');
+    final isLogoutCall = error.requestOptions.path.endsWith('/auth/logout');
     final wasRetried = error.requestOptions.extra['authRetried'] == true;
 
-    if (statusCode != 401 || isRefreshCall || wasRetried) {
+    if (statusCode != 401 || isRefreshCall || isLogoutCall || wasRetried) {
       handler.next(error);
       return;
     }

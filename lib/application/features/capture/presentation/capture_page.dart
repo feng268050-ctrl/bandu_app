@@ -30,8 +30,8 @@ class CapturePage extends ConsumerWidget {
           CaptureImageSelector(
             imagePath: state.localImagePath,
             isBusy: isBusy,
-            onTakePhoto: controller.takePhoto,
-            onPickFromGallery: controller.pickFromGallery,
+            onTakePhoto: () => controller.takePhoto(),
+            onPickFromGallery: () => controller.pickFromGallery(),
             onImportPdf: () => context.go('/capture/pdf-import'),
           ),
           const SizedBox(height: AppSpacing.medium),

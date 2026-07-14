@@ -114,7 +114,10 @@ class _StudentProfileEditorPageState
                       if (year == null || year < 1900 || year > currentYear) {
                         return '请输入有效的入学年份';
                       }
-                      return null;
+                      return _validateGradeYear(
+                        educationStage: _educationStage,
+                        enrollmentYear: year,
+                      );
                     },
                     onFieldSubmitted: (_) {
                       if (!authState.isBusy) {
@@ -168,4 +171,40 @@ class _StudentProfileEditorPageState
       });
     }
   }
+}
+
+String? _validateGradeYear({
+  required String educationStage,
+  required int enrollmentYear,
+}) {
+  final grade = DateTime.now().year - enrollmentYear;
+  if (grade < 1) {
+    return '入学年份必须早于当前年份';
+  }
+
+  final maxGrade = _maxGradeForStage(educationStage);
+  if (maxGrade != null && grade > maxGrade) {
+    return '${_educationStageLabel(educationStage)}年级不能超过 $maxGrade 年级';
+  }
+
+  return null;
+}
+
+int? _maxGradeForStage(String educationStage) {
+  return switch (educationStage) {
+    'primary' => 6,
+    'junior_high' || 'senior_high' => 3,
+    'university' => 4,
+    _ => null,
+  };
+}
+
+String _educationStageLabel(String educationStage) {
+  return switch (educationStage) {
+    'primary' => '小学',
+    'junior_high' => '初中',
+    'senior_high' => '高中',
+    'university' => '大学',
+    _ => '当前教育阶段',
+  };
 }

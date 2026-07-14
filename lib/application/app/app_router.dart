@@ -17,7 +17,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authControllerProvider);
+  final authStatus = ref.watch(
+    authControllerProvider.select((state) => state.status),
+  );
   final bypassAuth = ref.watch(authBypassProvider);
 
   return GoRouter(
@@ -29,8 +31,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         return isLoginRoute ? '/home' : null;
       }
 
-      final isSignedIn = authState.status == AuthStatus.signedIn;
-      final isSignedOut = authState.status == AuthStatus.signedOut;
+      final isSignedIn = authStatus == AuthStatus.signedIn;
+      final isSignedOut = authStatus == AuthStatus.signedOut;
 
       if (isSignedOut && !isLoginRoute) {
         return '/login';

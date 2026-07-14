@@ -18,4 +18,19 @@ void main() {
     expect(summary.educationStageLabel, '小学');
     expect(summary.gradeLabel, '4年级');
   });
+
+  test('grade is capped by education stage', () {
+    final user = UserProfile(
+      id: 'u1',
+      email: 'student@example.com',
+      name: '小伴',
+      educationStage: 'primary',
+      enrollmentYear: DateTime.now().year - 24,
+    );
+
+    final summary = StudentProfileSummary.fromUser(user);
+
+    expect(summary.headline, '小学');
+    expect(summary.gradeLabel, isNull);
+  });
 }

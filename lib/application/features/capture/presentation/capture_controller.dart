@@ -11,12 +11,12 @@ class CaptureController extends Notifier<CaptureUiState> {
   @override
   CaptureUiState build() => CaptureUiState.initial();
 
-  Future<void> takePhoto() async {
-    await _pickImage(ref.read(takePhotoUseCaseProvider).call);
+  Future<bool> takePhoto() async {
+    return _pickImage(ref.read(takePhotoUseCaseProvider).call);
   }
 
-  Future<void> pickFromGallery() async {
-    await _pickImage(ref.read(pickCaptureImageUseCaseProvider).call);
+  Future<bool> pickFromGallery() async {
+    return _pickImage(ref.read(pickCaptureImageUseCaseProvider).call);
   }
 
   Future<void> analyze() async {
@@ -80,20 +80,22 @@ class CaptureController extends Notifier<CaptureUiState> {
     state = CaptureUiState.initial();
   }
 
-  Future<void> _pickImage(Future<String?> Function() picker) async {
+  Future<bool> _pickImage(Future<String?> Function() picker) async {
     state = const CaptureUiState(phase: CapturePhase.capturing);
     try {
       final path = await picker();
       if (path == null) {
         state = CaptureUiState.initial();
-        return;
+        return false;
       }
       state = CaptureUiState(phase: CapturePhase.preview, localImagePath: path);
+      return true;
     } catch (error) {
       state = CaptureUiState(
         phase: CapturePhase.failed,
         errorMessage: error.toString(),
       );
+      return false;
     }
   }
 }

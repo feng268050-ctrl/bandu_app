@@ -7,6 +7,7 @@ class HomeMetricCard extends StatelessWidget {
     required this.value,
     required this.icon,
     required this.onTap,
+    this.showLabel = true,
     super.key,
   });
 
@@ -14,6 +15,7 @@ class HomeMetricCard extends StatelessWidget {
   final String value;
   final IconData icon;
   final VoidCallback onTap;
+  final bool showLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +45,8 @@ class HomeMetricCard extends StatelessWidget {
                     value,
                     style: Theme.of(context).textTheme.headlineMedium,
                   ),
-                  Text(label, style: Theme.of(context).textTheme.bodyMedium),
+                  if (showLabel)
+                    Text(label, style: Theme.of(context).textTheme.bodyMedium),
                 ],
               ),
             ),
