@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/widgets/error_item_card.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
@@ -30,7 +31,7 @@ class LibraryPage extends ConsumerWidget {
       body: items.when(
         loading: () => const AppLoadingView(message: '正在加载错题'),
         error: (error, stackTrace) => AppErrorView(
-          message: error.toString(),
+          message: appFailureUserMessage(error),
           onRetry: () => ref.read(libraryControllerProvider.notifier).refresh(),
         ),
         data: (data) {

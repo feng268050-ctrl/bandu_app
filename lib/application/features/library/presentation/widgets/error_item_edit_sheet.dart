@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/library/domain/error_item.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_async_primary_button.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
@@ -159,7 +160,7 @@ class _ErrorItemEditSheetState extends State<_ErrorItemEditSheet> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _errorMessage = error.toString();
+          _errorMessage = appFailureUserMessage(error);
         });
       }
     }

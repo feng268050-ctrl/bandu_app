@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/practice/domain/practice_models.dart';
 import 'package:bandu_wrong_notebook/application/features/practice/practice_providers.dart';
@@ -41,7 +42,7 @@ class PracticeController extends Notifier<PracticeUiState> {
     } catch (error) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage: error.toString(),
+        errorMessage: appFailureUserMessage(error),
         noticeMessage: null,
       );
     }
@@ -78,7 +79,7 @@ class PracticeController extends Notifier<PracticeUiState> {
     } catch (error) {
       state = state.copyWith(
         isBusy: false,
-        errorMessage: error.toString(),
+        errorMessage: appFailureUserMessage(error),
         noticeMessage: null,
       );
     }

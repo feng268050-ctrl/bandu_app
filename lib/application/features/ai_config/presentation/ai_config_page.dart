@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/application/features/ai_config/presentation/ai_config_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/ai_config/presentation/ai_config_editor_page.dart';
@@ -57,7 +58,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
       body: configs.when(
         loading: () => const AppLoadingView(message: '正在读取 AI 配置'),
         error: (error, _) => AppErrorView(
-          message: error.toString(),
+          message: appFailureUserMessage(error),
           onRetry: ref.read(aiConfigControllerProvider.notifier).refresh,
         ),
         data: (items) {
@@ -128,7 +129,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
       _closeEditor();
     } catch (error) {
       if (mounted) {
-        showAppErrorSnackBar(context, error.toString());
+        showAppErrorSnackBar(context, appFailureUserMessage(error));
       }
     }
   }
@@ -142,7 +143,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
       }
     } catch (error) {
       if (mounted) {
-        showAppErrorSnackBar(context, error.toString());
+        showAppErrorSnackBar(context, appFailureUserMessage(error));
       }
     }
   }
@@ -165,7 +166,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
       }
     } catch (error) {
       if (mounted) {
-        showAppErrorSnackBar(context, error.toString());
+        showAppErrorSnackBar(context, appFailureUserMessage(error));
       }
     }
   }

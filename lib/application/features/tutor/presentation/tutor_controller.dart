@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_models.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/tutor_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -362,9 +363,6 @@ class TutorController extends Notifier<TutorUiState> {
   }
 
   String _message(Object error) {
-    final message = error.toString();
-    return message
-        .replaceFirst('Exception: ', '')
-        .replaceFirst('Bad state: ', '');
+    return appFailureUserMessage(error);
   }
 }

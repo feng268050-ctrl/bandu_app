@@ -15,7 +15,9 @@ class ErrorItemCard extends StatelessWidget {
           item.mastered ? Icons.check_circle_outline : Icons.menu_book_outlined,
         ),
         title: Text(item.title, maxLines: 2, overflow: TextOverflow.ellipsis),
-        subtitle: Text(item.subjectName),
+        subtitle: Text(
+          item.isFromCache ? '${item.subjectName} · 离线缓存' : item.subjectName,
+        ),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
       ),

@@ -11,6 +11,8 @@ import 'package:bandu_wrong_notebook/application/features/profile/presentation/w
 import 'package:bandu_wrong_notebook/application/features/profile/presentation/widgets/profile_header.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/presentation/widgets/profile_section_tile.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/profile_providers.dart';
+import 'package:bandu_wrong_notebook/application/features/settings/presentation/app_settings_page.dart';
+import 'package:bandu_wrong_notebook/application/features/settings/settings_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/presentation/tutor_controller.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_secondary_button.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
@@ -57,6 +59,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       return AiConfigPage(
         onBack: () => setState(() => _currentSection = null),
         onChanged: ref.read(tutorControllerProvider.notifier).refreshModels,
+      );
+    }
+    if (_currentSection == ProfileSection.settings) {
+      return AppSettingsPage(
+        onBack: () => setState(() => _currentSection = null),
       );
     }
     if (_currentSection != null) {
@@ -161,7 +168,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final confirmed = await showAppConfirmDialog(
       context: context,
       title: '清除本地数据',
-      message: '将清除本机错题缓存和头像配置，服务端错题不会删除。',
+      message: '将清除本机缓存、头像配置及临时图片，服务端错题不会删除。',
       confirmLabel: '清除',
       isDestructive: true,
     );
@@ -170,6 +177,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     }
     await ref.read(clearLocalDataUseCaseProvider).call();
     ref.invalidate(avatarSettingsProvider);
+    ref.invalidate(appPreferencesControllerProvider);
     ref.invalidate(libraryControllerProvider);
     if (mounted) {
       showAppSuccessSnackBar(context, '本地数据已清除');

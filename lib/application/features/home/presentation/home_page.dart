@@ -27,6 +27,7 @@ class _HomePageState extends ConsumerState<HomePage> {
     final masteredCount = stats.valueOrNull?.masteredCount ?? 0;
     final practiceTotal = stats.valueOrNull?.practiceTotal ?? 0;
     final practiceAccuracy = stats.valueOrNull?.practiceAccuracy ?? 0;
+    final isFromCache = stats.valueOrNull?.isFromCache == true;
     final hasPractice = practiceTotal > 0;
 
     return Scaffold(
@@ -61,6 +62,16 @@ class _HomePageState extends ConsumerState<HomePage> {
             ),
           ),
           const SizedBox(height: AppSpacing.medium),
+          if (isFromCache) ...[
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Chip(
+                avatar: Icon(Icons.offline_bolt_outlined, size: 18),
+                label: Text('正在显示离线缓存'),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.medium),
+          ],
           Row(
             children: [
               Expanded(

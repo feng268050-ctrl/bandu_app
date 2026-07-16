@@ -62,8 +62,11 @@ class ProfileSectionPage extends StatelessWidget {
           _InfoRow('设备名称', overview.deviceNameLabel),
           const _InfoRow('数据连接', '通过 HTTPS Mobile API'),
         ],
+      ProfileSection.settings => const [],
+      ProfileSection.network => const [],
+      ProfileSection.pendingTasks => const [],
       ProfileSection.data => const [
-          _InfoRow('本地缓存', '错题摘要、错题详情和头像配置'),
+          _InfoRow('本地缓存', '错题摘要、错题详情、统计摘要和头像配置'),
           _InfoRow('服务端数据', '清理本地缓存不会删除服务端数据'),
         ],
       ProfileSection.about => [

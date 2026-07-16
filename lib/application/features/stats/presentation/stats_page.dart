@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_metric.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_overview.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_period.dart';
@@ -61,12 +62,19 @@ class _StatsPageState extends ConsumerState<StatsPage> {
       body: stats.when(
         loading: () => const AppLoadingView(message: '正在读取学习统计'),
         error: (error, stackTrace) => AppErrorView(
-          message: error.toString(),
+          message: appFailureUserMessage(error),
           onRetry: () => ref.invalidate(statsOverviewProvider(_period)),
         ),
         data: (data) => ListView(
           padding: const EdgeInsets.all(AppSpacing.page),
           children: [
+            if (data.isFromCache) ...[
+              const Chip(
+                avatar: Icon(Icons.offline_bolt_outlined, size: 18),
+                label: Text('正在显示离线缓存'),
+              ),
+              const SizedBox(height: AppSpacing.medium),
+            ],
             _MetricSummary(
               metric: widget.metric,
               period: _period,

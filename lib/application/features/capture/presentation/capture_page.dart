@@ -4,7 +4,6 @@ import 'package:bandu_wrong_notebook/application/features/capture/presentation/w
 import 'package:bandu_wrong_notebook/application/features/capture/presentation/widgets/capture_image_selector.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_async_primary_button.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_default_button.dart';
-import 'package:bandu_wrong_notebook/components/actions/app_primary_button.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,10 +37,19 @@ class CapturePage extends ConsumerWidget {
           AppAsyncPrimaryButton(
             label: 'AI 分析',
             expanded: true,
-            isLoading: isBusy,
+            isLoading: state.phase == CapturePhase.analyzing,
             onPressed: state.canAnalyze ? controller.analyze : null,
             icon: const Icon(Icons.auto_awesome),
           ),
+          if (isBusy) ...[
+            const SizedBox(height: AppSpacing.small),
+            AppDefaultButton(
+              label: '取消当前任务',
+              expanded: true,
+              onPressed: controller.cancelOngoingRequest,
+              icon: const Icon(Icons.close),
+            ),
+          ],
           if (state.errorMessage != null) ...[
             const SizedBox(height: AppSpacing.medium),
             Row(
@@ -60,22 +68,43 @@ class CapturePage extends ConsumerWidget {
               ],
             ),
           ],
+          if (state.noticeMessage != null) ...[
+            const SizedBox(height: AppSpacing.medium),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline, color: colorScheme.primary),
+                const SizedBox(width: AppSpacing.small),
+                Expanded(child: Text(state.noticeMessage!)),
+              ],
+            ),
+          ],
           if (state.result != null) ...[
             const SizedBox(height: AppSpacing.xLarge),
             AnalyzeResultCard(result: state.result!),
             const SizedBox(height: AppSpacing.medium),
-            AppPrimaryButton(
-              label: state.savedErrorItemId == null ? '保存到错题本' : '已保存',
+            AppAsyncPrimaryButton(
+              label: state.savedErrorItemId != null
+                  ? '已保存'
+                  : state.queuedTaskId != null
+                      ? '等待上传'
+                      : state.phase == CapturePhase.uploading
+                          ? '正在保存'
+                          : '保存到错题本',
               expanded: true,
+              isLoading: state.phase == CapturePhase.uploading,
               onPressed:
                   state.canSave && !isBusy ? controller.saveToLibrary : null,
               icon: Icon(
                 state.savedErrorItemId == null
-                    ? Icons.save_outlined
+                    ? state.queuedTaskId == null
+                        ? Icons.save_outlined
+                        : Icons.cloud_upload_outlined
                     : Icons.check,
               ),
             ),
-            if (state.savedErrorItemId != null) ...[
+            if (state.savedErrorItemId != null ||
+                state.queuedTaskId != null) ...[
               const SizedBox(height: AppSpacing.small),
               AppDefaultButton(
                 label: '继续拍题',

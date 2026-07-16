@@ -5,6 +5,7 @@ import 'package:bandu_wrong_notebook/application/features/question_bank/domain/q
 import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/question_bank_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_models.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/presentation/tutor_controller.dart';
+import 'package:bandu_wrong_notebook/components/design_system/tokens/app_sizes.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
 import 'package:bandu_wrong_notebook/components/feedback/app_empty_view.dart';
 import 'package:bandu_wrong_notebook/components/media/local_file_image.dart';
@@ -354,7 +355,7 @@ class _TutorComposer extends StatelessWidget {
           AppSpacing.medium,
           AppSpacing.small,
           AppSpacing.medium,
-          AppSpacing.medium,
+          AppSizes.primaryNavigationBodyOverlap + AppSpacing.small,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,

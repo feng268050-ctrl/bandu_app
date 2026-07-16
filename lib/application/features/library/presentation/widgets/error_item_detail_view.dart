@@ -21,6 +21,11 @@ class ErrorItemDetailView extends StatelessWidget {
             children: [
               Chip(label: Text(item.subjectName)),
               Chip(label: Text(masteryLabel(item.masteryLevel))),
+              if (item.isFromCache)
+                const Chip(
+                  avatar: Icon(Icons.offline_bolt_outlined, size: 18),
+                  label: Text('离线缓存'),
+                ),
             ],
           ),
           if (item.questionText?.trim().isNotEmpty == true)

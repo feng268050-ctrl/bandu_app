@@ -41,24 +41,41 @@ class CaptureImageSelector extends StatelessWidget {
           ),
         ),
         const SizedBox(height: AppSpacing.large),
-        Row(
-          children: [
-            Expanded(
-              child: AppPrimaryButton(
-                label: '导入 PDF 题集',
-                icon: const Icon(Icons.picture_as_pdf_outlined),
-                onPressed: isBusy ? null : onImportPdf,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.medium),
-            Expanded(
-              child: AppDefaultButton(
-                label: '相册',
-                icon: const Icon(Icons.photo_library_outlined),
-                onPressed: isBusy ? null : onPickFromGallery,
-              ),
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 360;
+            final padding = compact
+                ? const EdgeInsets.symmetric(horizontal: AppSpacing.medium)
+                : null;
+
+            return Row(
+              children: [
+                Expanded(
+                  flex: compact ? 3 : 1,
+                  child: AppPrimaryButton(
+                    label: '导入 PDF 题集',
+                    icon: const Icon(Icons.picture_as_pdf_outlined),
+                    expanded: true,
+                    padding: padding,
+                    labelMaxLines: 1,
+                    onPressed: isBusy ? null : onImportPdf,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.medium),
+                Expanded(
+                  flex: compact ? 2 : 1,
+                  child: AppDefaultButton(
+                    label: '相册',
+                    icon: const Icon(Icons.photo_library_outlined),
+                    expanded: true,
+                    padding: padding,
+                    labelMaxLines: 1,
+                    onPressed: isBusy ? null : onPickFromGallery,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );

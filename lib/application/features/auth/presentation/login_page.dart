@@ -1,4 +1,7 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/presentation/auth_controller.dart';
+import 'package:bandu_wrong_notebook/application/features/network_diagnostics/network_diagnostics_providers.dart';
+import 'package:bandu_wrong_notebook/components/actions/app_default_button.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_async_primary_button.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
 import 'package:bandu_wrong_notebook/components/forms/app_password_field.dart';
@@ -18,6 +21,8 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
   bool _isRegisterMode = false;
+  bool _isCheckingService = false;
+  String? _serviceMessage;
 
   @override
   void dispose() {
@@ -164,6 +169,43 @@ class _LoginPageState extends ConsumerState<LoginPage> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: AppSpacing.medium),
+                    Wrap(
+                      spacing: AppSpacing.small,
+                      runSpacing: AppSpacing.small,
+                      children: [
+                        AppDefaultButton(
+                          label: '重试',
+                          onPressed: authState.isBusy ? null : _submit,
+                          icon: const Icon(Icons.refresh),
+                        ),
+                        AppDefaultButton(
+                          label: _isCheckingService ? '正在检查' : '检查服务',
+                          onPressed: authState.isBusy || _isCheckingService
+                              ? null
+                              : _checkService,
+                          icon: _isCheckingService
+                              ? const SizedBox.square(
+                                  dimension: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.network_check_outlined),
+                        ),
+                      ],
+                    ),
+                    if (_serviceMessage != null) ...[
+                      const SizedBox(height: AppSpacing.medium),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.info_outline),
+                          const SizedBox(width: AppSpacing.small),
+                          Expanded(child: Text(_serviceMessage!)),
+                        ],
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -192,6 +234,27 @@ class _LoginPageState extends ConsumerState<LoginPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
+    }
+  }
+
+  Future<void> _checkService() async {
+    setState(() {
+      _isCheckingService = true;
+      _serviceMessage = null;
+    });
+    try {
+      final result = await ref.read(checkHealthUseCaseProvider).call();
+      if (mounted) {
+        setState(() => _serviceMessage = result.message);
+      }
+    } catch (error) {
+      if (mounted) {
+        setState(() => _serviceMessage = appFailureUserMessage(error));
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingService = false);
+      }
     }
   }
 }

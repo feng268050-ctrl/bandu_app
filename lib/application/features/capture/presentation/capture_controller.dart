@@ -1,6 +1,8 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/capture/capture_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/capture/domain/capture_models.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
+import 'package:bandu_wrong_notebook/application/features/pending_tasks/pending_task_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/stats_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -34,10 +36,19 @@ class CaptureController extends Notifier<CaptureUiState> {
         result: result,
       );
     } catch (error) {
+      if (error is AppFailure && error.isCancellation) {
+        if (state.phase == CapturePhase.analyzing) {
+          state = CaptureUiState(
+            phase: CapturePhase.preview,
+            localImagePath: path,
+          );
+        }
+        return;
+      }
       state = CaptureUiState(
         phase: CapturePhase.failed,
         localImagePath: path,
-        errorMessage: error.toString(),
+        errorMessage: appFailureUserMessage(error),
       );
     }
   }
@@ -55,29 +66,85 @@ class CaptureController extends Notifier<CaptureUiState> {
       result: result,
     );
     try {
-      final saved = await ref
-          .read(saveAnalyzedCaptureUseCaseProvider)
-          .call(localImagePath: path, result: result);
-      ref.invalidate(libraryControllerProvider);
-      ref.invalidate(statsOverviewProvider);
+      final task = await ref.read(queueAnalyzedCaptureUseCaseProvider).call(
+            localImagePath: path,
+            result: result,
+          );
       state = CaptureUiState(
-        phase: CapturePhase.success,
+        phase: CapturePhase.uploading,
         localImagePath: path,
         result: result,
-        savedErrorItemId: saved.id,
+        queuedTaskId: task.id,
       );
+      final upload =
+          await ref.read(retryPendingTaskUseCaseProvider).call(task.id);
+      if (upload.isSuccess) {
+        ref.invalidate(libraryControllerProvider);
+        ref.invalidate(statsOverviewProvider);
+        state = CaptureUiState(
+          phase: CapturePhase.success,
+          result: result,
+          savedErrorItemId: upload.savedErrorItemId,
+          noticeMessage: upload.message,
+        );
+      } else {
+        state = CaptureUiState(
+          phase: CapturePhase.success,
+          localImagePath: path,
+          result: result,
+          queuedTaskId: task.id,
+          noticeMessage: '${upload.message} 任务已保存在本机。',
+        );
+      }
     } catch (error) {
+      if (error is AppFailure && error.isCancellation) {
+        if (state.phase == CapturePhase.uploading) {
+          state = CaptureUiState(
+            phase: CapturePhase.success,
+            localImagePath: path,
+            result: result,
+            queuedTaskId: state.queuedTaskId,
+          );
+        }
+        return;
+      }
       state = CaptureUiState(
         phase: CapturePhase.failed,
         localImagePath: path,
         result: result,
-        errorMessage: error.toString(),
+        queuedTaskId: state.queuedTaskId,
+        errorMessage: appFailureUserMessage(error),
       );
     }
   }
 
   void reset() {
+    ref.read(cancelCaptureRequestUseCaseProvider).call();
     state = CaptureUiState.initial();
+  }
+
+  void cancelOngoingRequest() {
+    final current = state;
+    final queuedTaskId = current.queuedTaskId;
+    if (current.phase == CapturePhase.uploading && queuedTaskId != null) {
+      ref.read(cancelPendingTaskUseCaseProvider).call(queuedTaskId);
+    } else {
+      ref.read(cancelCaptureRequestUseCaseProvider).call();
+    }
+    if (current.phase == CapturePhase.analyzing) {
+      state = CaptureUiState(
+        phase: CapturePhase.preview,
+        localImagePath: current.localImagePath,
+      );
+    } else if (current.phase == CapturePhase.uploading) {
+      state = CaptureUiState(
+        phase: CapturePhase.success,
+        localImagePath: current.localImagePath,
+        result: current.result,
+        queuedTaskId: queuedTaskId,
+        noticeMessage: queuedTaskId == null ? null : '上传已取消，任务仍保留在本机。',
+      );
+    }
   }
 
   Future<bool> _pickImage(Future<String?> Function() picker) async {
@@ -93,7 +160,7 @@ class CaptureController extends Notifier<CaptureUiState> {
     } catch (error) {
       state = CaptureUiState(
         phase: CapturePhase.failed,
-        errorMessage: error.toString(),
+        errorMessage: appFailureUserMessage(error),
       );
       return false;
     }

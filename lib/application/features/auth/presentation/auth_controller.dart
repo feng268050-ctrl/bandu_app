@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/auth_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/domain/auth_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -68,7 +69,7 @@ class AuthController extends Notifier<AuthState> {
       state = AuthState(
         status: AuthStatus.signedOut,
         isBusy: false,
-        errorMessage: error.toString(),
+        errorMessage: appFailureUserMessage(error),
       );
     }
   }
@@ -92,7 +93,7 @@ class AuthController extends Notifier<AuthState> {
       state = AuthState(
         status: AuthStatus.signedOut,
         isBusy: false,
-        errorMessage: error.toString(),
+        errorMessage: appFailureUserMessage(error),
       );
     }
   }
@@ -124,7 +125,10 @@ class AuthController extends Notifier<AuthState> {
       state = AuthState(status: AuthStatus.signedIn, user: user);
       return true;
     } catch (error) {
-      state = state.copyWith(isBusy: false, errorMessage: error.toString());
+      state = state.copyWith(
+        isBusy: false,
+        errorMessage: appFailureUserMessage(error),
+      );
       return false;
     }
   }

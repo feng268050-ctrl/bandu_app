@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/library/domain/error_item.dart';
 import 'package:bandu_wrong_notebook/application/features/library/library_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
@@ -50,7 +51,7 @@ class ErrorItemDetailPage extends ConsumerWidget {
       body: detail.when(
         loading: () => const AppLoadingView(message: '正在加载错题详情'),
         error: (error, stackTrace) => AppErrorView(
-          message: error.toString(),
+          message: appFailureUserMessage(error),
           onRetry: () => ref.invalidate(errorItemDetailProvider(errorItemId)),
         ),
         data: (item) => ErrorItemDetailView(item: item),

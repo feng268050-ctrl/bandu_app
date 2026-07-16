@@ -33,4 +33,22 @@ void main() {
     expect(summary.headline, '小学');
     expect(summary.gradeLabel, isNull);
   });
+
+  test('profile overview hides diagnostics and manual upload tasks', () {
+    final overview = ProfileOverviewState.fromUser(null);
+
+    expect(overview.sections, isNot(contains(ProfileSection.network)));
+    expect(overview.sections, isNot(contains(ProfileSection.pendingTasks)));
+    expect(
+      overview.sections,
+      containsAll([
+        ProfileSection.student,
+        ProfileSection.ai,
+        ProfileSection.device,
+        ProfileSection.settings,
+        ProfileSection.data,
+        ProfileSection.about,
+      ]),
+    );
+  });
 }

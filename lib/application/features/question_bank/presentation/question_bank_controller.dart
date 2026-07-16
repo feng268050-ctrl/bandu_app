@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/question_bank/domain/question_bank_models.dart';
 import 'package:bandu_wrong_notebook/application/features/question_bank/question_bank_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -99,7 +100,7 @@ class QuestionBankController extends Notifier<QuestionBankUiState> {
     } catch (error) {
       state = state.copyWith(
         phase: QuestionBankPhase.failed,
-        errorMessage: error.toString(),
+        errorMessage: appFailureUserMessage(error),
       );
     }
   }
@@ -132,7 +133,7 @@ class QuestionBankController extends Notifier<QuestionBankUiState> {
     } catch (error) {
       state = state.copyWith(
         phase: QuestionBankPhase.failed,
-        errorMessage: error.toString(),
+        errorMessage: appFailureUserMessage(error),
       );
     }
   }

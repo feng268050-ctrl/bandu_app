@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/domain/avatar_settings.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_async_primary_button.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_default_button.dart';
@@ -169,7 +170,7 @@ class _AvatarEditorDialogState extends State<_AvatarEditorDialog> {
       if (mounted) {
         setState(() {
           _saving = false;
-          _errorMessage = error.toString();
+          _errorMessage = appFailureUserMessage(error);
         });
       }
     }
