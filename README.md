@@ -11,7 +11,8 @@ separate `bandu_web` repository.
 - Login, registration, logout, token restore, and refresh handling.
 - Capture, AI analysis, confirm, save, list, detail, edit, delete, and retry flows.
 - Practice generation and practice record submission.
-- Profile page, local avatar settings, local cache, and Android device name bridge.
+- Offline-marked error/statistics cache, persistent pending uploads, retry, and cleanup.
+- Profile page, network diagnostics, local avatar settings, and Android device name bridge.
 - Android-first build and install workflow.
 
 ## Architecture
@@ -39,13 +40,20 @@ selectors, and summaries remain under each feature's `presentation/widgets`.
 
 ## Backend
 
-The app talks to:
+Production uses one public domain and does not depend on Tailscale, a LAN, or a
+developer machine:
 
 ```text
-http://<server-ip>:3000/api/mobile/v1
+https://aibandu.dpdns.org/api/mobile/v1
 ```
 
-For Android Emulator on the same host, use:
+Health checks use:
+
+```text
+https://aibandu.dpdns.org/api/health
+```
+
+For local Android Emulator development only, use:
 
 ```text
 http://10.0.2.2:3000/api/mobile/v1
@@ -72,8 +80,12 @@ See [docs/development.md](docs/development.md) for emulator setup, device target
 ## Build And Install
 
 ```bash
-make apk
+make verify-prod-config
+make apk-prod
 ADB_SERIAL=emulator-5556 make install
 ```
+
+Release builds require the fixed team keystore configured through
+`android/key.properties`; see [docs/development.md](docs/development.md).
 
 `ADB_SERIAL` defaults to `emulator-5556` for local validation.

@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_ID="${APP_ID:-com.bandu.tiji}"
 APP_ACTIVITY="${APP_ACTIVITY:-${APP_ID}/.MainActivity}"
 DEBUG_APK="${DEBUG_APK:-${ROOT_DIR}/build/app/outputs/flutter-apk/app-debug.apk}"
-API_BASE_URL="${API_BASE_URL:-http://10.0.2.2:3000/api/mobile/v1}"
+API_BASE_URL_OVERRIDE="${API_BASE_URL:-}"
 APP_VERSION="${APP_VERSION:-v0.1.1}"
 BYPASS_AUTH="${BYPASS_AUTH:-false}"
 SYNC_SKIP_BUILD="${SYNC_SKIP_BUILD:-0}"
@@ -21,6 +21,10 @@ if [[ -f "${ROOT_DIR}/.env" ]]; then
   # shellcheck disable=SC1091
   source "${ROOT_DIR}/.env"
   set +a
+fi
+
+if [[ -n "${API_BASE_URL_OVERRIDE}" ]]; then
+  API_BASE_URL="${API_BASE_URL_OVERRIDE}"
 fi
 
 if [[ -f "${ROOT_DIR}/VERSION" ]]; then
@@ -92,6 +96,11 @@ adb_cmd() {
   "${ADB_BIN}" -s "${SERIAL}" "$@"
 }
 
+is_emulator_target() {
+  [[ "${SERIAL}" == emulator-* ]] && return 0
+  [[ "$(adb_cmd shell getprop ro.kernel.qemu 2>/dev/null | tr -d '\r' || true)" == "1" ]]
+}
+
 build_debug_apk() {
   echo "== flutter build apk --debug" >&2
   (
@@ -127,7 +136,23 @@ SERIAL="$(resolve_serial)"
 export ADB_SERIAL="${SERIAL}"
 export ANDROID_SERIAL="${SERIAL}"
 
-echo "INFO: sync target ${SERIAL}" >&2
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/scripts/api-base-url.sh"
+
+TARGET_KIND="device"
+if is_emulator_target; then
+  TARGET_KIND="emulator"
+fi
+API_BASE_URL="$(resolve_api_base_url "${TARGET_KIND}")" \
+  || die "unable to resolve API_BASE_URL for ${TARGET_KIND}"
+export API_BASE_URL
+
+echo "INFO: sync target ${SERIAL} (${TARGET_KIND})" >&2
+echo "INFO: API_BASE_URL=${API_BASE_URL}" >&2
+
+if [[ "${TARGET_KIND}" == "device" && "${SYNC_SKIP_BUILD}" == "1" && "${SYNC_ALLOW_STALE_APK:-0}" != "1" ]]; then
+  die "SYNC_SKIP_BUILD=1 cannot verify the API URL embedded in a physical-device APK; rebuild or set SYNC_ALLOW_STALE_APK=1"
+fi
 
 if [[ "${SYNC_SKIP_BUILD}" != "1" ]]; then
   build_debug_apk

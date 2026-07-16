@@ -4,6 +4,7 @@
 .flutter-plugins-dependencies
 .packages
 /build/
+/apk/
 coverage/
 
 # IDE
@@ -21,4 +22,7 @@ coverage/
 android/.gradle/
 android/build/
 android/local.properties
+android/key.properties
+*.jks
+*.keystore
 android/app/src/main/java/io/flutter/plugins/GeneratedPluginRegistrant.java

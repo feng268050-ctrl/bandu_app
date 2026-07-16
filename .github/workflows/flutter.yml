@@ -21,4 +21,5 @@ jobs:
       - run: flutter pub get
       - run: flutter analyze
       - run: flutter test
+      - run: make verify-prod-config
       - run: flutter build apk --debug
