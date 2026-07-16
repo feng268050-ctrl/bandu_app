@@ -10,5 +10,8 @@ abstract interface class CaptureRepository {
   Future<SavedErrorItem> saveAnalysis({
     required String localImagePath,
     required AnalyzeResult result,
+    required String requestId,
   });
+
+  void cancelOngoingRequest();
 }

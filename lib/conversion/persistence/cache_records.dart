@@ -84,3 +84,51 @@ class CachedErrorItemDetail {
     };
   }
 }
+
+class CachedStatsOverview {
+  const CachedStatsOverview({
+    required this.period,
+    required this.totalErrors,
+    required this.masteredCount,
+    required this.masteryRate,
+    required this.practiceTotal,
+    required this.practiceCorrect,
+    required this.practiceAccuracy,
+    required this.cachedAt,
+  });
+
+  factory CachedStatsOverview.fromJson(JsonObject json) {
+    return CachedStatsOverview(
+      period: json['period']?.toString() ?? '',
+      totalErrors: intValue(json['totalErrors']),
+      masteredCount: intValue(json['masteredCount']),
+      masteryRate: doubleValue(json['masteryRate']),
+      practiceTotal: intValue(json['practiceTotal']),
+      practiceCorrect: intValue(json['practiceCorrect']),
+      practiceAccuracy: doubleValue(json['practiceAccuracy']),
+      cachedAt: dateTimeValue(json['cachedAt']),
+    );
+  }
+
+  final String period;
+  final int totalErrors;
+  final int masteredCount;
+  final double masteryRate;
+  final int practiceTotal;
+  final int practiceCorrect;
+  final double practiceAccuracy;
+  final DateTime cachedAt;
+
+  JsonObject toJson() {
+    return {
+      'period': period,
+      'totalErrors': totalErrors,
+      'masteredCount': masteredCount,
+      'masteryRate': masteryRate,
+      'practiceTotal': practiceTotal,
+      'practiceCorrect': practiceCorrect,
+      'practiceAccuracy': practiceAccuracy,
+      'cachedAt': cachedAt.toIso8601String(),
+    };
+  }
+}

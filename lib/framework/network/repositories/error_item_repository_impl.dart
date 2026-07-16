@@ -1,3 +1,4 @@
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/framework/persistence/cache/app_cache_database.dart';
 import 'package:bandu_wrong_notebook/framework/network/services/error_item_api_service.dart';
 import 'package:bandu_wrong_notebook/conversion/api/error_items/error_item_dto_mapper.dart';
@@ -38,8 +39,14 @@ class RemoteErrorItemRepository implements ErrorItemRepository {
         items.map(cacheMapper.summaryToCache).toList(),
       );
       return items;
-    } catch (_) {
+    } catch (error) {
+      if (error is! AppFailure || !error.allowsOfflineFallback) {
+        rethrow;
+      }
       final cached = await cacheDatabase.readErrorItems();
+      if (cached.isEmpty) {
+        rethrow;
+      }
       return cached.map(cacheMapper.summaryFromCache).toList();
     }
   }
@@ -51,7 +58,10 @@ class RemoteErrorItemRepository implements ErrorItemRepository {
       await cacheDatabase
           .upsertErrorItemDetail(cacheMapper.detailToCache(item));
       return item;
-    } catch (_) {
+    } catch (error) {
+      if (error is! AppFailure || !error.allowsOfflineFallback) {
+        rethrow;
+      }
       final cached = await cacheDatabase.readErrorItemDetail(id);
       if (cached != null) {
         return cacheMapper.detailFromCache(cached);

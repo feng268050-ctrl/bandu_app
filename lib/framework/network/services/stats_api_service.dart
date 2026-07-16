@@ -15,7 +15,7 @@ class StatsApiService {
 
   Future<StatsOverviewDto> fetchOverview(StatsPeriod period) async {
     final payload = await _apiClient.get<Object?>(
-      '/stats/overview',
+      'stats/overview',
       queryParameters: {'period': period.apiValue},
     );
     return StatsOverviewDto.fromJson(

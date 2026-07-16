@@ -21,6 +21,7 @@ class ErrorItemCacheMapper {
       title: item.title,
       subjectName: item.subjectName,
       updatedAt: item.updatedAt,
+      isFromCache: true,
       mastered: item.mastered,
     );
   }
@@ -48,6 +49,7 @@ class ErrorItemCacheMapper {
       analysis: item.analysis,
       masteryLevel: item.masteryLevel,
       updatedAt: item.updatedAt,
+      isFromCache: true,
     );
   }
 

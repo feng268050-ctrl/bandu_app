@@ -16,8 +16,9 @@ class PracticeApiService {
     GeneratePracticeRequestDto request,
   ) async {
     final payload = await _apiClient.post<Object?>(
-      '/practice/generate',
+      'practice/generate',
       data: request.toJson(),
+      timeouts: aiRequestTimeouts,
     );
     return PracticeQuestionDto.fromJson(
       requireJsonObject(payload, context: 'practice generation response'),
@@ -26,14 +27,14 @@ class PracticeApiService {
 
   Future<void> record(RecordPracticeRequestDto request) async {
     await _apiClient.post<Object?>(
-      '/practice/submit',
+      'practice/submit',
       data: request.toJson(),
     );
   }
 
   Future<List<PracticeRecordDto>> history({int limit = 10}) async {
     final payload = await _apiClient.get<Object?>(
-      '/practice/history',
+      'practice/history',
       queryParameters: {'limit': limit},
     );
     return requireJsonArray(payload, context: 'practice history response')

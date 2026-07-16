@@ -1,17 +1,21 @@
 import 'dart:async';
 
-import 'package:bandu_wrong_notebook/application/features/auth/domain/token_store.dart';
-import 'package:bandu_wrong_notebook/framework/network/services/auth_api_service.dart';
-import 'package:bandu_wrong_notebook/framework/persistence/secure_storage/token_storage.dart';
-import 'package:bandu_wrong_notebook/conversion/api/auth/auth_dto_mapper.dart';
+import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/domain/auth_models.dart';
+import 'package:bandu_wrong_notebook/application/features/auth/domain/auth_profile_store.dart';
 import 'package:bandu_wrong_notebook/application/features/auth/domain/auth_repository.dart';
+import 'package:bandu_wrong_notebook/application/features/auth/domain/token_store.dart';
+import 'package:bandu_wrong_notebook/conversion/api/auth/auth_dto_mapper.dart';
+import 'package:bandu_wrong_notebook/framework/network/services/auth_api_service.dart';
+import 'package:bandu_wrong_notebook/framework/persistence/secure_storage/auth_profile_storage.dart';
+import 'package:bandu_wrong_notebook/framework/persistence/secure_storage/token_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final remoteAuthRepositoryProvider = Provider<AuthRepository>((ref) {
   return RemoteAuthRepository(
     apiService: ref.watch(authApiServiceProvider),
     tokenStore: ref.watch(secureTokenStoreProvider),
+    profileStore: ref.watch(secureAuthProfileStoreProvider),
     mapper: const AuthDtoMapper(),
   );
 });
@@ -20,11 +24,13 @@ class RemoteAuthRepository implements AuthRepository {
   const RemoteAuthRepository({
     required this.apiService,
     required this.tokenStore,
+    required this.profileStore,
     required this.mapper,
   });
 
   final AuthApiService apiService;
   final TokenStore tokenStore;
+  final AuthProfileStore profileStore;
   final AuthDtoMapper mapper;
 
   @override
@@ -42,6 +48,7 @@ class RemoteAuthRepository implements AuthRepository {
         refreshToken: session.refreshToken,
       ),
     );
+    await profileStore.save(session.user);
     return session;
   }
 
@@ -65,6 +72,7 @@ class RemoteAuthRepository implements AuthRepository {
         refreshToken: session.refreshToken,
       ),
     );
+    await profileStore.save(session.user);
     return session;
   }
 
@@ -75,20 +83,37 @@ class RemoteAuthRepository implements AuthRepository {
       return null;
     }
 
-    await apiService.refreshSession();
-    final user = mapper.userFromDto(await apiService.currentUser());
-    final accessToken = await tokenStore.readAccessToken();
-    final nextRefreshToken = await tokenStore.readRefreshToken();
+    final cachedUser = await profileStore.read();
+    try {
+      await apiService.refreshSession();
+      final user = mapper.userFromDto(await apiService.currentUser());
+      final accessToken = await tokenStore.readAccessToken();
+      final nextRefreshToken = await tokenStore.readRefreshToken();
 
-    if (accessToken == null || nextRefreshToken == null) {
-      return null;
+      if (accessToken == null || nextRefreshToken == null) {
+        return null;
+      }
+      await profileStore.save(user);
+      return AuthSession(
+        user: user,
+        accessToken: accessToken,
+        refreshToken: nextRefreshToken,
+      );
+    } catch (error) {
+      if (error is AppFailure && error.allowsOfflineFallback) {
+        if (cachedUser != null) {
+          return AuthSession(
+            user: cachedUser,
+            accessToken: await tokenStore.readAccessToken() ?? '',
+            refreshToken: refreshToken,
+          );
+        }
+        rethrow;
+      }
+      await tokenStore.clear();
+      await profileStore.clear();
+      rethrow;
     }
-
-    return AuthSession(
-      user: user,
-      accessToken: accessToken,
-      refreshToken: nextRefreshToken,
-    );
   }
 
   @override
@@ -104,7 +129,9 @@ class RemoteAuthRepository implements AuthRepository {
         enrollmentYear: enrollmentYear,
       ),
     );
-    return mapper.userFromDto(dto);
+    final user = mapper.userFromDto(dto);
+    await profileStore.save(user);
+    return user;
   }
 
   @override
@@ -120,6 +147,7 @@ class RemoteAuthRepository implements AuthRepository {
       // Local logout must not be blocked by an expired token or unavailable API.
     } finally {
       await tokenStore.clear();
+      await profileStore.clear();
     }
   }
 }

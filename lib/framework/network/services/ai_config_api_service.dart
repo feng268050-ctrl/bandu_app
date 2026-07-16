@@ -13,7 +13,7 @@ class AiConfigApiService {
   final ApiClient _apiClient;
 
   Future<List<AiServiceConfigDto>> fetchConfigs() async {
-    final payload = await _apiClient.get<Object?>('/ai-configs');
+    final payload = await _apiClient.get<Object?>('ai-configs');
     return requireJsonArray(payload, context: 'AI configs response')
         .map((item) => requireJsonObject(item, context: 'AI config'))
         .map(AiServiceConfigDto.fromJson)
@@ -24,7 +24,7 @@ class AiConfigApiService {
     CreateAiConfigRequestDto request,
   ) async {
     final payload = await _apiClient.post<Object?>(
-      '/ai-configs',
+      'ai-configs',
       data: request.toJson(),
     );
     return AiServiceConfigDto.fromJson(
@@ -37,7 +37,7 @@ class AiConfigApiService {
     UpdateAiConfigRequestDto request,
   ) async {
     final payload = await _apiClient.patch<Object?>(
-      '/ai-configs/$id',
+      'ai-configs/$id',
       data: request.toJson(),
     );
     return AiServiceConfigDto.fromJson(
@@ -46,6 +46,6 @@ class AiConfigApiService {
   }
 
   Future<void> deleteConfig(String id) async {
-    await _apiClient.delete<Object?>('/ai-configs/$id');
+    await _apiClient.delete<Object?>('ai-configs/$id');
   }
 }

@@ -31,4 +31,45 @@ class CaptureFileStore {
 
     return CapturedFile(id: captureId, path: target.path);
   }
+
+  Future<bool> captureExists(String filePath) async {
+    final root = await _captureRoot();
+    final absoluteRoot = p.normalize(root.absolute.path);
+    final absoluteFile = p.normalize(File(filePath).absolute.path);
+    if (!p.isWithin(absoluteRoot, absoluteFile)) {
+      return false;
+    }
+    return File(absoluteFile).exists();
+  }
+
+  Future<void> deleteCapture(String filePath) async {
+    final root = await _captureRoot();
+    final absoluteRoot = p.normalize(root.absolute.path);
+    final absoluteFile = p.normalize(File(filePath).absolute.path);
+    if (!p.isWithin(absoluteRoot, absoluteFile)) {
+      return;
+    }
+
+    final relative = p.relative(absoluteFile, from: absoluteRoot);
+    final segments = p.split(relative);
+    if (segments.isEmpty || segments.first == '..') {
+      return;
+    }
+    final captureDirectory = Directory(p.join(absoluteRoot, segments.first));
+    if (await captureDirectory.exists()) {
+      await captureDirectory.delete(recursive: true);
+    }
+  }
+
+  Future<void> clearAllCaptures() async {
+    final root = await _captureRoot();
+    if (await root.exists()) {
+      await root.delete(recursive: true);
+    }
+  }
+
+  Future<Directory> _captureRoot() async {
+    final root = await getApplicationDocumentsDirectory();
+    return Directory(p.join(root.path, 'bandu', 'capture'));
+  }
 }

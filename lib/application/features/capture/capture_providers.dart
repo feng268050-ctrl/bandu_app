@@ -26,3 +26,10 @@ final saveAnalyzedCaptureUseCaseProvider = Provider<SaveAnalyzedCaptureUseCase>(
     return SaveAnalyzedCaptureUseCase(ref.watch(captureRepositoryProvider));
   },
 );
+
+final cancelCaptureRequestUseCaseProvider =
+    Provider<CancelCaptureRequestUseCase>(
+  (ref) {
+    return CancelCaptureRequestUseCase(ref.watch(captureRepositoryProvider));
+  },
+);

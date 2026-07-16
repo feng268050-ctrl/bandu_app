@@ -13,7 +13,7 @@ class ErrorItemApiService {
   final ApiClient _apiClient;
 
   Future<List<ErrorItemSummaryDto>> fetchErrorItems() async {
-    final payload = await _apiClient.get<Object?>('/error-items');
+    final payload = await _apiClient.get<Object?>('error-items');
     return requireJsonArray(payload, context: 'error item list response')
         .map(
           (item) => ErrorItemSummaryDto.fromJson(
@@ -24,7 +24,7 @@ class ErrorItemApiService {
   }
 
   Future<ErrorItemDetailDto> fetchErrorItem(String id) async {
-    final payload = await _apiClient.get<Object?>('/error-items/$id');
+    final payload = await _apiClient.get<Object?>('error-items/$id');
     return ErrorItemDetailDto.fromJson(
       requireJsonObject(payload, context: 'error item detail response'),
     );
@@ -35,7 +35,7 @@ class ErrorItemApiService {
     ErrorItemUpdateRequestDto request,
   ) async {
     final payload = await _apiClient.patch<Object?>(
-      '/error-items/$id',
+      'error-items/$id',
       data: request.toJson(),
     );
     return ErrorItemDetailDto.fromJson(
@@ -44,6 +44,6 @@ class ErrorItemApiService {
   }
 
   Future<void> deleteErrorItem(String id) async {
-    await _apiClient.delete<Object?>('/error-items/$id');
+    await _apiClient.delete<Object?>('error-items/$id');
   }
 }

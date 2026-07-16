@@ -39,10 +39,22 @@ class SaveAnalyzedCaptureUseCase {
   Future<SavedErrorItem> call({
     required String localImagePath,
     required AnalyzeResult result,
+    required String requestId,
   }) {
     return _repository.saveAnalysis(
       localImagePath: localImagePath,
       result: result,
+      requestId: requestId,
     );
+  }
+}
+
+class CancelCaptureRequestUseCase {
+  const CancelCaptureRequestUseCase(this._repository);
+
+  final CaptureRepository _repository;
+
+  void call() {
+    _repository.cancelOngoingRequest();
   }
 }

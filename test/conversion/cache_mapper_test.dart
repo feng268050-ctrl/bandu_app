@@ -1,4 +1,6 @@
 import 'package:bandu_wrong_notebook/application/features/library/domain/error_item.dart';
+import 'package:bandu_wrong_notebook/application/features/auth/domain/auth_models.dart';
+import 'package:bandu_wrong_notebook/conversion/persistence/auth_profile_cache_mapper.dart';
 import 'package:bandu_wrong_notebook/application/features/question_bank/domain/question_bank_models.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_models.dart';
 import 'package:bandu_wrong_notebook/conversion/persistence/cache_records.dart';
@@ -29,6 +31,27 @@ void main() {
     expect(restored.answer, detail.answer);
     expect(restored.masteryLevel, 2);
     expect(restored.updatedAt, DateTime.utc(2026, 7, 13));
+    expect(restored.isFromCache, isTrue);
+  });
+
+  test('offline auth profile survives typed cache round trip', () {
+    const mapper = AuthProfileCacheMapper();
+    const profile = UserProfile(
+      id: 'user-1',
+      email: 'student@example.com',
+      name: '小伴',
+      educationStage: 'junior_high',
+      enrollmentYear: 2024,
+    );
+
+    final record = mapper.toCache(profile);
+    final restored = mapper.fromCache(
+      CachedAuthProfile.fromJson(record.toJson()),
+    );
+
+    expect(restored?.id, profile.id);
+    expect(restored?.educationStage, 'junior_high');
+    expect(restored?.enrollmentYear, 2024);
   });
 
   test('PDF question set survives typed cache round trip', () {

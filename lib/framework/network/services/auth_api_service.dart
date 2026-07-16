@@ -14,8 +14,9 @@ class AuthApiService {
 
   Future<AuthSessionDto> login(LoginRequestDto request) async {
     final payload = await _apiClient.post<Object?>(
-      '/auth/login',
+      'auth/login',
       data: request.toJson(),
+      timeouts: authRequestTimeouts,
     );
     return AuthSessionDto.fromJson(
       requireJsonObject(payload, context: 'login response'),
@@ -24,8 +25,9 @@ class AuthApiService {
 
   Future<AuthSessionDto> register(RegisterRequestDto request) async {
     final payload = await _apiClient.post<Object?>(
-      '/auth/register',
+      'auth/register',
       data: request.toJson(),
+      timeouts: authRequestTimeouts,
     );
     return AuthSessionDto.fromJson(
       requireJsonObject(payload, context: 'register response'),
@@ -35,7 +37,7 @@ class AuthApiService {
   Future<void> refreshSession() => _apiClient.refreshSession();
 
   Future<UserProfileDto> currentUser() async {
-    final payload = await _apiClient.get<Object?>('/users/me');
+    final payload = await _apiClient.get<Object?>('users/me');
     return UserProfileDto.fromJson(
       requireJsonObject(payload, context: 'current user response'),
     );
@@ -43,7 +45,7 @@ class AuthApiService {
 
   Future<UserProfileDto> updateProfile(UpdateProfileRequestDto request) async {
     final payload = await _apiClient.patch<Object?>(
-      '/users/me',
+      'users/me',
       data: request.toJson(),
     );
     return UserProfileDto.fromJson(
@@ -53,8 +55,9 @@ class AuthApiService {
 
   Future<void> logout(LogoutRequestDto? request) async {
     await _apiClient.post<Object?>(
-      '/auth/logout',
+      'auth/logout',
       data: request?.toJson(),
+      timeouts: authRequestTimeouts,
     );
   }
 }

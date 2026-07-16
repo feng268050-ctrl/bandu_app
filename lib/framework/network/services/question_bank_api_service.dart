@@ -27,9 +27,13 @@ class QuestionBankApiService {
       if (modelId != null) 'modelId': modelId,
     });
     final payload = await _apiClient.post<Object?>(
-      '/question-banks/import',
+      'question-banks/import',
       data: formData,
-      receiveTimeout: const Duration(minutes: 5),
+      timeouts: const ApiRequestTimeouts(
+        connect: Duration(seconds: 15),
+        send: Duration(minutes: 2),
+        receive: Duration(minutes: 5),
+      ),
     );
     return PdfImportPreviewDto.fromJson(
       requireJsonObject(payload, context: 'PDF question bank response'),

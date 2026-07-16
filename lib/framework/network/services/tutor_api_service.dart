@@ -17,7 +17,7 @@ class TutorApiService {
   final ApiClient _apiClient;
 
   Future<List<TutorModelDto>> fetchModels() async {
-    final payload = await _apiClient.get<Object?>('/tutor/models');
+    final payload = await _apiClient.get<Object?>('tutor/models');
     return requireJsonArray(payload, context: 'tutor models response')
         .map((item) => requireJsonObject(item, context: 'tutor model'))
         .map(TutorModelDto.fromJson)
@@ -43,9 +43,9 @@ class TutorApiService {
         ),
     });
     final payload = await _apiClient.post<Object?>(
-      '/tutor/messages',
+      'tutor/messages',
       data: formData,
-      receiveTimeout: const Duration(minutes: 3),
+      timeouts: aiRequestTimeouts,
     );
     return TutorReplyDto.fromJson(
       requireJsonObject(payload, context: 'tutor message response'),

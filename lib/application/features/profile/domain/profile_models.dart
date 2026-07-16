@@ -1,6 +1,24 @@
 import 'package:bandu_wrong_notebook/application/features/auth/domain/auth_models.dart';
 
-enum ProfileSection { student, ai, device, data, about }
+enum ProfileSection {
+  student,
+  ai,
+  device,
+  settings,
+  pendingTasks,
+  network,
+  data,
+  about,
+}
+
+const visibleProfileSections = [
+  ProfileSection.student,
+  ProfileSection.ai,
+  ProfileSection.device,
+  ProfileSection.settings,
+  ProfileSection.data,
+  ProfileSection.about,
+];
 
 class StudentProfileSummary {
   const StudentProfileSummary({
@@ -64,7 +82,7 @@ class ProfileOverviewState {
       summary: StudentProfileSummary.fromUser(user),
       modelConfigLabel: modelConfigLabel,
       deviceNameLabel: deviceNameLabel,
-      sections: ProfileSection.values,
+      sections: visibleProfileSections,
     );
   }
 

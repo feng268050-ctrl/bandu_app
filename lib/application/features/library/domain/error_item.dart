@@ -5,6 +5,7 @@ class ErrorItemSummary {
     required this.subjectName,
     required this.updatedAt,
     this.mastered = false,
+    this.isFromCache = false,
   });
 
   final String id;
@@ -12,6 +13,7 @@ class ErrorItemSummary {
   final String subjectName;
   final DateTime updatedAt;
   final bool mastered;
+  final bool isFromCache;
 }
 
 class ErrorItemDetail {
@@ -24,6 +26,7 @@ class ErrorItemDetail {
     this.analysis,
     this.masteryLevel = 0,
     this.updatedAt,
+    this.isFromCache = false,
   });
 
   final String id;
@@ -34,6 +37,7 @@ class ErrorItemDetail {
   final String? analysis;
   final int masteryLevel;
   final DateTime? updatedAt;
+  final bool isFromCache;
 }
 
 class ErrorItemUpdate {

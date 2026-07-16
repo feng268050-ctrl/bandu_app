@@ -13,9 +13,10 @@ final captureApiServiceProvider = Provider<CaptureApiService>((ref) {
 });
 
 class CaptureApiService {
-  const CaptureApiService(this._apiClient);
+  CaptureApiService(this._apiClient);
 
   final ApiClient _apiClient;
+  CancelToken? _activeRequest;
 
   Future<AnalyzeResultDto> analyzeImage(String localImagePath) async {
     final formData = FormData.fromMap({
@@ -24,13 +25,23 @@ class CaptureApiService {
         filename: p.basename(localImagePath),
       ),
     });
-    final payload = await _apiClient.post<Object?>(
-      '/analyze',
-      data: formData,
-    );
-    return AnalyzeResultDto.fromJson(
-      requireJsonObject(payload, context: 'analyze response'),
-    );
+    final cancelToken = CancelToken();
+    _activeRequest = cancelToken;
+    try {
+      final payload = await _apiClient.post<Object?>(
+        'analyze',
+        data: formData,
+        timeouts: aiRequestTimeouts,
+        cancelToken: cancelToken,
+      );
+      return AnalyzeResultDto.fromJson(
+        requireJsonObject(payload, context: 'analyze response'),
+      );
+    } finally {
+      if (identical(_activeRequest, cancelToken)) {
+        _activeRequest = null;
+      }
+    }
   }
 
   Future<String> encodeImageDataUrl(String localImagePath) async {
@@ -47,14 +58,33 @@ class CaptureApiService {
   }
 
   Future<SavedErrorItemDto> saveAnalysis(
-    SaveAnalyzedCaptureRequestDto request,
-  ) async {
-    final payload = await _apiClient.post<Object?>(
-      '/error-items',
-      data: request.toJson(),
-    );
-    return SavedErrorItemDto.fromJson(
-      requireJsonObject(payload, context: 'save analysis response'),
-    );
+    SaveAnalyzedCaptureRequestDto request, {
+    required String requestId,
+  }) async {
+    final cancelToken = CancelToken();
+    _activeRequest = cancelToken;
+    try {
+      final payload = await _apiClient.post<Object?>(
+        'error-items',
+        data: request.toJson(),
+        headers: {'Idempotency-Key': requestId},
+        timeouts: uploadRequestTimeouts,
+        cancelToken: cancelToken,
+      );
+      return SavedErrorItemDto.fromJson(
+        requireJsonObject(payload, context: 'save analysis response'),
+      );
+    } finally {
+      if (identical(_activeRequest, cancelToken)) {
+        _activeRequest = null;
+      }
+    }
+  }
+
+  void cancelActiveRequest() {
+    final request = _activeRequest;
+    if (request != null && !request.isCancelled) {
+      request.cancel('Cancelled by user');
+    }
   }
 }

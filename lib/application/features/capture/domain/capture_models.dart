@@ -14,7 +14,9 @@ class CaptureUiState {
     this.localImagePath,
     this.result,
     this.savedErrorItemId,
+    this.queuedTaskId,
     this.errorMessage,
+    this.noticeMessage,
   });
 
   factory CaptureUiState.initial() {
@@ -25,7 +27,9 @@ class CaptureUiState {
   final String? localImagePath;
   final AnalyzeResult? result;
   final String? savedErrorItemId;
+  final String? queuedTaskId;
   final String? errorMessage;
+  final String? noticeMessage;
 
   bool get canAnalyze =>
       localImagePath != null &&
@@ -36,6 +40,7 @@ class CaptureUiState {
       localImagePath != null &&
       result != null &&
       savedErrorItemId == null &&
+      queuedTaskId == null &&
       (phase == CapturePhase.success || phase == CapturePhase.failed);
 
   CaptureUiState copyWith({
@@ -43,14 +48,18 @@ class CaptureUiState {
     String? localImagePath,
     AnalyzeResult? result,
     String? savedErrorItemId,
+    String? queuedTaskId,
     String? errorMessage,
+    String? noticeMessage,
   }) {
     return CaptureUiState(
       phase: phase ?? this.phase,
       localImagePath: localImagePath ?? this.localImagePath,
       result: result ?? this.result,
       savedErrorItemId: savedErrorItemId ?? this.savedErrorItemId,
+      queuedTaskId: queuedTaskId ?? this.queuedTaskId,
       errorMessage: errorMessage,
+      noticeMessage: noticeMessage,
     );
   }
 }
