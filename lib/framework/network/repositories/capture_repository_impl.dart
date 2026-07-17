@@ -9,6 +9,9 @@ import 'package:bandu_wrong_notebook/conversion/api/capture/capture_dto_mapper.d
 import 'package:bandu_wrong_notebook/conversion/persistence/error_item_cache_mapper.dart';
 import 'package:bandu_wrong_notebook/application/features/capture/domain/capture_models.dart';
 import 'package:bandu_wrong_notebook/application/features/capture/domain/capture_repository.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/application/ai_request_model_selection.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/ai_config_providers.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -20,6 +23,9 @@ final remoteCaptureRepositoryProvider = Provider<CaptureRepository>((ref) {
     cacheDatabase: ref.watch(appCacheDatabaseProvider),
     mapper: const CaptureDtoMapper(),
     cacheMapper: const ErrorItemCacheMapper(),
+    modelSelection: AiRequestModelSelection(
+      ref.watch(aiPreferenceRepositoryProvider),
+    ),
   );
 });
 
@@ -31,6 +37,9 @@ final backgroundCaptureRepositoryProvider = Provider<CaptureRepository>((ref) {
     cacheDatabase: ref.watch(appCacheDatabaseProvider),
     mapper: const CaptureDtoMapper(),
     cacheMapper: const ErrorItemCacheMapper(),
+    modelSelection: AiRequestModelSelection(
+      ref.watch(aiPreferenceRepositoryProvider),
+    ),
   );
 });
 
@@ -42,6 +51,7 @@ class RemoteCaptureRepository implements CaptureRepository {
     required this.cacheDatabase,
     required this.mapper,
     required this.cacheMapper,
+    required this.modelSelection,
   });
 
   final CaptureApiService apiService;
@@ -50,6 +60,7 @@ class RemoteCaptureRepository implements CaptureRepository {
   final AppCacheDatabase cacheDatabase;
   final CaptureDtoMapper mapper;
   final ErrorItemCacheMapper cacheMapper;
+  final AiRequestModelSelection modelSelection;
 
   @override
   Future<String?> takePhoto() async {
@@ -63,7 +74,10 @@ class RemoteCaptureRepository implements CaptureRepository {
 
   @override
   Future<AnalyzeResult> analyzeImage(String localImagePath) async {
-    final dto = await apiService.analyzeImage(localImagePath);
+    final dto = await apiService.analyzeImage(
+      localImagePath,
+      preference: await modelSelection.forPurpose(AiPurpose.visionAnalyze),
+    );
     return mapper.analyzeResultFromDto(dto);
   }
 

@@ -104,7 +104,7 @@ class AppSettingsPage extends ConsumerWidget {
           ListTile(
             contentPadding: EdgeInsets.zero,
             leading: const Icon(Icons.auto_awesome_outlined),
-            title: const Text('AI 配置'),
+            title: const Text('AI 模型'),
             subtitle: Text(modelConfigLabel),
             trailing: const Icon(Icons.chevron_right),
             onTap: onOpenAiConfig,

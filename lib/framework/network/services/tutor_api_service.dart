@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/conversion/api/tutor/tutor_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/framework/network/client/api_client.dart';
@@ -28,13 +29,23 @@ class TutorApiService {
     required String message,
     required List<TutorHistoryMessageDto> history,
     String? modelId,
+    AiPurposePreference? preference,
     String? questionContext,
     String? imagePath,
   }) async {
+    final selection = preference ??
+        (modelId == null
+            ? const AiPurposePreference(purpose: AiPurpose.tutor)
+            : AiPurposePreference(
+                purpose: AiPurpose.tutor,
+                mode: AiSelectionMode.manual,
+                selectedModelId: modelId,
+              ));
     final formData = FormData.fromMap({
       'message': message,
       'history': jsonEncode(history.map((item) => item.toJson()).toList()),
-      if (modelId != null) 'modelId': modelId,
+      'purpose': 'TUTOR',
+      'modelSelection': jsonEncode(selection.toRequestSelection()),
       if (questionContext != null) 'questionContext': questionContext,
       if (imagePath != null)
         'image': await MultipartFile.fromFile(

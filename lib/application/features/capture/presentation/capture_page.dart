@@ -81,6 +81,20 @@ class CapturePage extends ConsumerWidget {
           ],
           if (state.result != null) ...[
             const SizedBox(height: AppSpacing.xLarge),
+            if (state.result!.resolvedModel != null)
+              Card.outlined(
+                child: ListTile(
+                  leading: const Icon(Icons.auto_awesome_outlined),
+                  title: Text(
+                    state.result!.resolvedModel!.fallbackOccurred
+                        ? '主模型不可用，已切换到备用模型'
+                        : '由 Auto 选择：${state.result!.resolvedModel!.displayName}',
+                  ),
+                  subtitle: state.result!.resolvedModel!.fallbackOccurred
+                      ? Text(state.result!.resolvedModel!.displayName)
+                      : null,
+                ),
+              ),
             AnalyzeResultCard(result: state.result!),
             const SizedBox(height: AppSpacing.medium),
             AppAsyncPrimaryButton(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/conversion/api/capture/capture_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/framework/network/client/api_client.dart';
@@ -18,12 +19,19 @@ class CaptureApiService {
   final ApiClient _apiClient;
   CancelToken? _activeRequest;
 
-  Future<AnalyzeResultDto> analyzeImage(String localImagePath) async {
+  Future<AnalyzeResultDto> analyzeImage(
+    String localImagePath, {
+    AiPurposePreference? preference,
+  }) async {
+    final selection =
+        preference ?? const AiPurposePreference(purpose: AiPurpose.visionAnalyze);
     final formData = FormData.fromMap({
       'image': await MultipartFile.fromFile(
         localImagePath,
         filename: p.basename(localImagePath),
       ),
+      'purpose': 'VISION_ANALYZE',
+      'modelSelection': jsonEncode(selection.toRequestSelection()),
     });
     final cancelToken = CancelToken();
     _activeRequest = cancelToken;

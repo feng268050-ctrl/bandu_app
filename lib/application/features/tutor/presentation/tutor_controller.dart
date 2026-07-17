@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:bandu_wrong_notebook/application/app/app_failure.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_models.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/tutor_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -17,6 +18,7 @@ class TutorUiState {
     this.selectedModelId,
     this.questionContext,
     this.imagePath,
+    this.resolvedModel,
     this.errorMessage,
   });
 
@@ -30,6 +32,7 @@ class TutorUiState {
   final String? selectedModelId;
   final TutorQuestionContext? questionContext;
   final String? imagePath;
+  final AiResolvedModel? resolvedModel;
   final String? errorMessage;
 
   TutorSession? get activeSession {
@@ -61,6 +64,8 @@ class TutorUiState {
     bool clearQuestionContext = false,
     String? imagePath,
     bool clearImage = false,
+    AiResolvedModel? resolvedModel,
+    bool clearResolvedModel = false,
     String? errorMessage,
     bool clearError = false,
   }) {
@@ -78,6 +83,8 @@ class TutorUiState {
       questionContext:
           clearQuestionContext ? null : questionContext ?? this.questionContext,
       imagePath: clearImage ? null : imagePath ?? this.imagePath,
+      resolvedModel:
+          clearResolvedModel ? null : resolvedModel ?? this.resolvedModel,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
     );
   }
@@ -193,7 +200,7 @@ class TutorController extends Notifier<TutorUiState> {
                 : '';
     if (message.isEmpty) return;
     if (state.models.isEmpty) {
-      state = state.copyWith(errorMessage: '未读取到可用模型，请先在“我的 > AI 配置”中新增模型。');
+      state = state.copyWith(errorMessage: '未读取到可用模型，请先在“设置 > AI 模型”中添加模型。');
       return;
     }
 
@@ -255,6 +262,7 @@ class TutorController extends Notifier<TutorUiState> {
       state = state.copyWith(
         isSending: false,
         selectedModelId: reply.modelId,
+        resolvedModel: reply.resolvedModel,
       );
       await ref.read(saveTutorSessionUseCaseProvider).call(completed);
     } catch (error) {

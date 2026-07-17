@@ -1,4 +1,5 @@
 import 'package:bandu_wrong_notebook/application/features/question_bank/domain/question_bank_models.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/question_bank_controller.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_async_primary_button.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_default_button.dart';
@@ -116,12 +117,17 @@ class _PreviewSummary extends StatelessWidget {
         title: Text(preview.fileName),
         subtitle: Text(
           '${preview.totalPages} 页 · ${preview.questions.length} 道题 · '
-          '${preview.needsReviewCount} 道需复核',
+          '${preview.needsReviewCount} 道需复核'
+          '${preview.resolvedModel == null ? '' : '\n${_modelLabel(preview.resolvedModel!)}'}',
         ),
         trailing: Text('${state.includedQuestions.length} 已选'),
       ),
     );
   }
+
+  String _modelLabel(AiResolvedModel model) => model.fallbackOccurred
+      ? '主模型不可用，已切换到备用模型：${model.displayName}'
+      : '由 Auto 选择：${model.displayName}';
 }
 
 class _QuestionReviewCard extends StatelessWidget {

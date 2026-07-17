@@ -1,20 +1,28 @@
 import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/components/actions/app_async_primary_button.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
-import 'package:bandu_wrong_notebook/components/forms/app_form_section.dart';
 import 'package:flutter/material.dart';
 
 class AiConfigEditorPage extends StatefulWidget {
   const AiConfigEditorPage({
     required this.onBack,
     required this.onSave,
-    this.config,
+    this.model = const AiModelSummary(
+      id: '',
+      displayName: '',
+      provider: '',
+      modelName: '',
+      kind: AiModelKind.user,
+      enabled: true,
+      participatesInAuto: true,
+      capabilities: AiModelCapabilities(),
+    ),
     super.key,
   });
 
-  final AiServiceConfig? config;
+  final AiModelSummary model;
   final VoidCallback onBack;
-  final Future<void> Function(AiServiceConfigDraft draft) onSave;
+  final Future<void> Function(AiModelDraft draft) onSave;
 
   @override
   State<AiConfigEditorPage> createState() => _AiConfigEditorPageState();
@@ -22,162 +30,155 @@ class AiConfigEditorPage extends StatefulWidget {
 
 class _AiConfigEditorPageState extends State<AiConfigEditorPage> {
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameController;
-  late final TextEditingController _baseUrlController;
-  late final TextEditingController _apiKeyController;
-  late final TextEditingController _modelController;
-  late bool _isDefault;
-  bool _isSaving = false;
-
-  bool get _isEditing => widget.config != null;
+  late final TextEditingController _name;
+  late final TextEditingController _provider;
+  late final TextEditingController _model;
+  late final TextEditingController _baseUrl;
+  final _apiKey = TextEditingController();
+  late bool _enabled;
+  late bool _auto;
+  late bool _vision;
+  late bool _text;
+  late bool _json;
+  bool _saving = false;
+  bool get _editing => widget.model.id.isNotEmpty;
 
   @override
   void initState() {
     super.initState();
-    final config = widget.config;
-    _nameController = TextEditingController(text: config?.name ?? '');
-    _baseUrlController = TextEditingController(
-      text: config?.baseUrl ?? 'https://api.openai.com/v1',
-    );
-    _apiKeyController = TextEditingController();
-    _modelController = TextEditingController(text: config?.model ?? '');
-    _isDefault = config?.isDefault ?? false;
+    final model = widget.model;
+    _name = TextEditingController(text: model.displayName);
+    _provider = TextEditingController(text: model.provider);
+    _model = TextEditingController(text: model.modelName);
+    _baseUrl = TextEditingController(text: model.baseUrl ?? '');
+    _enabled = model.enabled;
+    _auto = model.participatesInAuto;
+    _vision = model.capabilities.supportsVision;
+    _text = model.capabilities.supportsText;
+    _json = model.capabilities.supportsJson;
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
-    _baseUrlController.dispose();
-    _apiKeyController.dispose();
-    _modelController.dispose();
+    _name.dispose();
+    _provider.dispose();
+    _model.dispose();
+    _baseUrl.dispose();
+    _apiKey.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing ? '编辑 AI 配置' : '新增 AI 配置'),
-        leading: BackButton(onPressed: widget.onBack),
-      ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(AppSpacing.page),
-          children: [
-            AppFormSection(
-              title: '服务信息',
-              children: [
-                TextFormField(
-                  controller: _nameController,
-                  textInputAction: TextInputAction.next,
-                  maxLength: 60,
-                  decoration: const InputDecoration(
-                    labelText: '配置名称',
-                    prefixIcon: Icon(Icons.label_outline),
-                  ),
-                  validator: _requiredValidator,
-                ),
-                TextFormField(
-                  controller: _baseUrlController,
-                  keyboardType: TextInputType.url,
-                  textInputAction: TextInputAction.next,
-                  autocorrect: false,
-                  decoration: const InputDecoration(
-                    labelText: 'API 地址',
-                    prefixIcon: Icon(Icons.link),
-                  ),
-                  validator: _urlValidator,
-                ),
-                TextFormField(
-                  controller: _apiKeyController,
-                  obscureText: true,
-                  enableInteractiveSelection: false,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  keyboardType: TextInputType.visiblePassword,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(
-                    labelText: _isEditing ? 'API Key（留空保留）' : 'API Key',
-                    prefixIcon: const Icon(Icons.key_outlined),
-                  ),
-                  validator: (value) {
-                    if (_isEditing && (value == null || value.trim().isEmpty)) {
-                      return null;
-                    }
-                    return _requiredValidator(value);
-                  },
-                ),
-                TextFormField(
-                  controller: _modelController,
-                  textInputAction: TextInputAction.done,
-                  maxLength: 200,
-                  decoration: const InputDecoration(
-                    labelText: '模型名称',
-                    prefixIcon: Icon(Icons.smart_toy_outlined),
-                  ),
-                  validator: _requiredValidator,
-                  onFieldSubmitted: (_) => _save(),
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('设为默认模型'),
-                  secondary: const Icon(Icons.check_circle_outline),
-                  value: _isDefault,
-                  onChanged: _isSaving
-                      ? null
-                      : (value) => setState(() => _isDefault = value),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xLarge),
-            AppAsyncPrimaryButton(
-              label: '保存配置',
-              expanded: true,
-              isLoading: _isSaving,
-              icon: const Icon(Icons.save_outlined),
-              onPressed: _save,
-            ),
-          ],
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(
+          title: Text(_editing ? '编辑模型' : '添加模型'),
+          leading: BackButton(onPressed: widget.onBack),
         ),
-      ),
-    );
-  }
-
-  Future<void> _save() async {
-    if (_isSaving || !_formKey.currentState!.validate()) {
-      return;
-    }
-    setState(() => _isSaving = true);
-    try {
-      await widget.onSave(
-        AiServiceConfigDraft(
-          name: _nameController.text.trim(),
-          baseUrl: _baseUrlController.text.trim(),
-          apiKey: _apiKeyController.text.trim(),
-          model: _modelController.text.trim(),
-          isDefault: _isDefault,
+        body: Form(
+          key: _formKey,
+          child: ListView(
+            padding: const EdgeInsets.all(AppSpacing.page),
+            children: [
+              _field(_name, '配置名称'),
+              _field(_provider, 'Provider'),
+              _field(_model, 'Model Name'),
+              _field(_baseUrl, 'Base URL', required: false, url: true),
+              TextFormField(
+                controller: _apiKey,
+                obscureText: true,
+                autocorrect: false,
+                enableSuggestions: false,
+                enableInteractiveSelection: false,
+                decoration: InputDecoration(
+                  labelText: _editing ? 'API Key（留空不修改）' : 'API Key',
+                  helperText: _editing && widget.model.maskedApiKey != null
+                      ? '已保存：${widget.model.maskedApiKey}'
+                      : null,
+                ),
+                validator: (value) => !_editing && (value?.trim().isEmpty ?? true)
+                    ? '新增模型必须填写 API Key'
+                    : null,
+              ),
+              const SizedBox(height: AppSpacing.medium),
+              Text('能力', style: Theme.of(context).textTheme.titleMedium),
+              SwitchListTile(
+                title: const Text('支持图片'),
+                value: _vision,
+                onChanged: _saving ? null : (value) => setState(() => _vision = value),
+              ),
+              SwitchListTile(
+                title: const Text('支持文本'),
+                value: _text,
+                onChanged: _saving ? null : (value) => setState(() => _text = value),
+              ),
+              SwitchListTile(
+                title: const Text('支持 JSON'),
+                value: _json,
+                onChanged: _saving ? null : (value) => setState(() => _json = value),
+              ),
+              SwitchListTile(
+                title: const Text('启用模型'),
+                value: _enabled,
+                onChanged: _saving ? null : (value) => setState(() => _enabled = value),
+              ),
+              SwitchListTile(
+                title: const Text('参与 Auto'),
+                value: _auto,
+                onChanged: _saving ? null : (value) => setState(() => _auto = value),
+              ),
+              const SizedBox(height: AppSpacing.large),
+              AppAsyncPrimaryButton(
+                label: '保存模型',
+                expanded: true,
+                isLoading: _saving,
+                onPressed: _save,
+              ),
+            ],
+          ),
         ),
       );
+
+  Widget _field(
+    TextEditingController controller,
+    String label, {
+    bool required = true,
+    bool url = false,
+  }) =>
+      TextFormField(
+        controller: controller,
+        keyboardType: url ? TextInputType.url : null,
+        decoration: InputDecoration(labelText: label),
+        validator: (value) {
+          final text = value?.trim() ?? '';
+          if (required && text.isEmpty) return '此项不能为空';
+          if (url && text.isNotEmpty) {
+            final uri = Uri.tryParse(text);
+            if (uri == null || !uri.hasAuthority) return '请输入有效地址';
+          }
+          return null;
+        },
+      );
+
+  Future<void> _save() async {
+    if (_saving || !_formKey.currentState!.validate()) return;
+    setState(() => _saving = true);
+    try {
+      await widget.onSave(AiModelDraft(
+        displayName: _name.text,
+        provider: _provider.text,
+        modelName: _model.text,
+        baseUrl: _baseUrl.text.trim().isEmpty ? null : _baseUrl.text,
+        apiKey: _apiKey.text,
+        enabled: _enabled,
+        participatesInAuto: _auto,
+        capabilities: AiModelCapabilities(
+          supportsVision: _vision,
+          supportsText: _text,
+          supportsJson: _json,
+        ),
+      ));
     } finally {
-      if (mounted) {
-        setState(() => _isSaving = false);
-      }
+      if (mounted) setState(() => _saving = false);
     }
-  }
-
-  String? _requiredValidator(String? value) {
-    return value == null || value.trim().isEmpty ? '此项不能为空' : null;
-  }
-
-  String? _urlValidator(String? value) {
-    final text = value?.trim() ?? '';
-    final uri = Uri.tryParse(text);
-    if (uri == null ||
-        !uri.hasAuthority ||
-        (uri.scheme != 'http' && uri.scheme != 'https')) {
-      return '请输入有效的 HTTP 或 HTTPS 地址';
-    }
-    return null;
   }
 }

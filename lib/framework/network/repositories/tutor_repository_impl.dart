@@ -1,5 +1,8 @@
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_models.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_repositories.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/application/ai_request_model_selection.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/ai_config_providers.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/conversion/api/tutor/tutor_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/framework/network/services/tutor_api_service.dart';
 import 'package:bandu_wrong_notebook/framework/persistence/tutor/local_tutor_session_store.dart';
@@ -16,6 +19,9 @@ final frameworkTutorRepositoryProvider = Provider<TutorRepository>((ref) {
     store: ref.watch(localTutorSessionStoreProvider),
     imagePicker: ImagePicker(),
     mapper: const TutorDtoMapper(),
+    modelSelection: AiRequestModelSelection(
+      ref.watch(aiPreferenceRepositoryProvider),
+    ),
   );
 });
 
@@ -25,12 +31,14 @@ class FrameworkTutorRepository implements TutorRepository {
     required this.store,
     required this.imagePicker,
     required this.mapper,
+    required this.modelSelection,
   });
 
   final TutorApiService apiService;
   final LocalTutorSessionStore store;
   final ImagePicker imagePicker;
   final TutorDtoMapper mapper;
+  final AiRequestModelSelection modelSelection;
 
   @override
   Future<List<TutorModel>> fetchModels() async {
@@ -70,6 +78,7 @@ class FrameworkTutorRepository implements TutorRepository {
       message: message,
       history: history.map(mapper.historyToDto).toList(),
       modelId: modelId,
+      preference: await modelSelection.forPurpose(AiPurpose.tutor),
       questionContext: questionContext?.content,
       imagePath: imagePath,
     );

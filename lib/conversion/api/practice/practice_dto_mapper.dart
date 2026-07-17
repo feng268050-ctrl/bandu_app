@@ -1,4 +1,5 @@
 import 'package:bandu_wrong_notebook/application/features/practice/domain/practice_models.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/conversion/common/value_converter.dart';
 
@@ -7,16 +8,20 @@ class GeneratePracticeRequestDto {
     required this.errorItemId,
     required this.difficulty,
     this.language = 'zh',
+    required this.modelSelection,
   });
 
   final String errorItemId;
   final String difficulty;
   final String language;
+  final JsonObject modelSelection;
 
   JsonObject toJson() => {
         'errorItemId': errorItemId,
         'difficulty': difficulty,
         'language': language,
+        'purpose': 'QUESTION_GENERATE',
+        'modelSelection': modelSelection,
       };
 }
 
@@ -46,6 +51,7 @@ class PracticeQuestionDto {
     required this.analysis,
     required this.subjectName,
     this.tags = const [],
+    this.resolvedModel,
   });
 
   factory PracticeQuestionDto.fromJson(JsonObject json) {
@@ -56,6 +62,7 @@ class PracticeQuestionDto {
       analysis: json['analysis']?.toString() ?? '',
       subjectName: json['subjectName']?.toString() ?? '其他',
       tags: stringListValue(json['tags']),
+      resolvedModel: _resolvedModel(json),
     );
   }
 
@@ -65,6 +72,7 @@ class PracticeQuestionDto {
   final String analysis;
   final String subjectName;
   final List<String> tags;
+  final AiResolvedModel? resolvedModel;
 }
 
 class PracticeRecordDto {
@@ -99,10 +107,13 @@ class PracticeDtoMapper {
   GeneratePracticeRequestDto generateRequest({
     required String errorItemId,
     required String difficulty,
+    AiPurposePreference preference =
+        const AiPurposePreference(purpose: AiPurpose.questionGenerate),
   }) {
     return GeneratePracticeRequestDto(
       errorItemId: errorItemId,
       difficulty: difficulty,
+      modelSelection: preference.toRequestSelection(),
     );
   }
 
@@ -126,6 +137,7 @@ class PracticeDtoMapper {
       analysis: dto.analysis,
       subjectName: dto.subjectName,
       tags: dto.tags,
+      resolvedModel: dto.resolvedModel,
     );
   }
 
@@ -140,4 +152,19 @@ class PracticeDtoMapper {
       );
     }).toList();
   }
+}
+
+AiResolvedModel? _resolvedModel(JsonObject json) {
+  final raw = json['resolvedModel'];
+  if (raw is! JsonObject) return null;
+  final id = raw['id']?.toString();
+  final name = (raw['displayName'] ?? raw['name'] ?? raw['model'])?.toString();
+  if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
+  return AiResolvedModel(
+    id: id,
+    displayName: name,
+    fallbackOccurred: boolValue(
+      json['fallbackOccurred'] ?? json['fallback'] ?? raw['fallbackOccurred'],
+    ),
+  );
 }

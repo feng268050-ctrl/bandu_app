@@ -15,6 +15,7 @@ import 'package:bandu_wrong_notebook/framework/config/app_config.dart';
 import 'package:bandu_wrong_notebook/framework/device/device_info_service.dart';
 import 'package:bandu_wrong_notebook/framework/network/repositories/auth_repository_impl.dart';
 import 'package:bandu_wrong_notebook/framework/network/repositories/ai_config_repository_impl.dart';
+import 'package:bandu_wrong_notebook/framework/network/repositories/ai_model_repository_impl.dart';
 import 'package:bandu_wrong_notebook/framework/network/repositories/capture_repository_impl.dart';
 import 'package:bandu_wrong_notebook/framework/network/repositories/error_item_repository_impl.dart';
 import 'package:bandu_wrong_notebook/framework/network/repositories/network_diagnostics_repository_impl.dart';
@@ -39,6 +40,12 @@ List<Override> buildFrameworkOverrides() {
     ),
     aiConfigRepositoryProvider.overrideWith(
       (ref) => ref.watch(remoteAiConfigRepositoryProvider),
+    ),
+    aiModelRepositoryProvider.overrideWith(
+      (ref) => ref.watch(remoteAiModelRepositoryProvider),
+    ),
+    aiPreferenceRepositoryProvider.overrideWith(
+      (ref) => ref.watch(remoteAiPreferenceRepositoryProvider),
     ),
     captureRepositoryProvider.overrideWith(
       (ref) => ref.watch(remoteCaptureRepositoryProvider),

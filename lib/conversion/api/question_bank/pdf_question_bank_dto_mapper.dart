@@ -1,4 +1,5 @@
 import 'package:bandu_wrong_notebook/application/features/question_bank/domain/question_bank_models.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/conversion/common/value_converter.dart';
 
@@ -46,6 +47,7 @@ class PdfImportPreviewDto {
     required this.totalPages,
     required this.parser,
     required this.questions,
+    this.resolvedModel,
   });
 
   factory PdfImportPreviewDto.fromJson(JsonObject json) {
@@ -60,6 +62,7 @@ class PdfImportPreviewDto {
               .map(PdfQuestionDto.fromJson)
               .toList()
           : const [],
+      resolvedModel: _resolvedModel(json),
     );
   }
 
@@ -67,6 +70,7 @@ class PdfImportPreviewDto {
   final int totalPages;
   final String parser;
   final List<PdfQuestionDto> questions;
+  final AiResolvedModel? resolvedModel;
 }
 
 class PdfQuestionBankDtoMapper {
@@ -85,6 +89,7 @@ class PdfQuestionBankDtoMapper {
         for (var index = 0; index < dto.questions.length; index++)
           _questionFromDto(dto.questions[index], index),
       ],
+      resolvedModel: dto.resolvedModel,
     );
   }
 
@@ -114,4 +119,19 @@ class PdfQuestionBankDtoMapper {
       needsReview: dto.needsReview,
     );
   }
+}
+
+AiResolvedModel? _resolvedModel(JsonObject json) {
+  final raw = json['resolvedModel'];
+  if (raw is! JsonObject) return null;
+  final id = raw['id']?.toString();
+  final name = (raw['displayName'] ?? raw['name'] ?? raw['model'])?.toString();
+  if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
+  return AiResolvedModel(
+    id: id,
+    displayName: name,
+    fallbackOccurred: boolValue(
+      json['fallbackOccurred'] ?? json['fallback'] ?? raw['fallbackOccurred'],
+    ),
+  );
 }

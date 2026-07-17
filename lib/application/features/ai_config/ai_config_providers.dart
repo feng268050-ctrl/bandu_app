@@ -1,6 +1,7 @@
 import 'package:bandu_wrong_notebook/application/app/missing_dependency.dart';
 import 'package:bandu_wrong_notebook/application/features/ai_config/application/ai_config_use_cases.dart';
 import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_repository.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_model_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 final aiConfigRepositoryProvider = Provider<AiConfigRepository>(
@@ -23,3 +24,11 @@ final setDefaultAiConfigUseCaseProvider =
 final deleteAiConfigUseCaseProvider = Provider<DeleteAiConfigUseCase>((ref) {
   return DeleteAiConfigUseCase(ref.watch(aiConfigRepositoryProvider));
 });
+
+final aiModelRepositoryProvider = Provider<AiModelRepository>(
+  (ref) => missingDependency('AiModelRepository'),
+);
+
+final aiPreferenceRepositoryProvider = Provider<AiPreferenceRepository>(
+  (ref) => missingDependency('AiPreferenceRepository'),
+);

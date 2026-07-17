@@ -1,4 +1,5 @@
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_models.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/conversion/common/value_converter.dart';
 
@@ -34,6 +35,7 @@ class TutorReplyDto {
     required this.content,
     required this.modelId,
     required this.createdAt,
+    this.resolvedModel,
   });
 
   factory TutorReplyDto.fromJson(JsonObject json) {
@@ -42,6 +44,7 @@ class TutorReplyDto {
       content: json['content']?.toString() ?? '',
       modelId: json['modelId']?.toString() ?? '',
       createdAt: dateTimeValue(json['createdAt']),
+      resolvedModel: _resolvedModel(json),
     );
   }
 
@@ -49,6 +52,7 @@ class TutorReplyDto {
   final String content;
   final String modelId;
   final DateTime createdAt;
+  final AiResolvedModel? resolvedModel;
 }
 
 class TutorHistoryMessageDto {
@@ -79,6 +83,7 @@ class TutorDtoMapper {
       content: dto.content,
       modelId: dto.modelId,
       createdAt: dto.createdAt,
+      resolvedModel: dto.resolvedModel,
     );
   }
 
@@ -88,4 +93,19 @@ class TutorDtoMapper {
       content: message.content,
     );
   }
+}
+
+AiResolvedModel? _resolvedModel(JsonObject json) {
+  final raw = json['resolvedModel'];
+  if (raw is! JsonObject) return null;
+  final id = raw['id']?.toString();
+  final name = (raw['displayName'] ?? raw['name'] ?? raw['model'])?.toString();
+  if (id == null || id.isEmpty || name == null || name.isEmpty) return null;
+  return AiResolvedModel(
+    id: id,
+    displayName: name,
+    fallbackOccurred: boolValue(
+      json['fallbackOccurred'] ?? json['fallback'] ?? raw['fallbackOccurred'],
+    ),
+  );
 }

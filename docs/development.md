@@ -76,6 +76,13 @@ make sync
 | `EMULATOR_NO_AUDIO` | `0` | 设为 `1` 关闭模拟器音频 |
 | `EMULATOR_HEADLESS` | `0` | 设为 `1` 无窗口模式（仅 CI/脚本） |
 
+## AI 模型设置
+
+“设置 > AI 模型”使用 `/ai/models` 和 `/ai/preferences` 管理模型目录与按用途偏好。
+API Key 仅在提交时发送给服务端；客户端不会存储或展示完整 Key。服务端接口尚未就绪时，
+可在测试或开发 Provider override 中使用 `FakeAiModelRepository` 和
+`FakeAiPreferenceRepository` 驱动目录与偏好 UI。
+
 示例：
 
 ```bash

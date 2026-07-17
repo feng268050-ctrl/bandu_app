@@ -1,3 +1,5 @@
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
+
 enum TutorMessageRole { user, assistant }
 
 class TutorModel {
@@ -36,6 +38,7 @@ class TutorMessage {
     required this.role,
     required this.content,
     required this.createdAt,
+    this.resolvedModel,
     this.imagePath,
     this.questionContext,
   });
@@ -44,6 +47,7 @@ class TutorMessage {
   final TutorMessageRole role;
   final String content;
   final DateTime createdAt;
+  final AiResolvedModel? resolvedModel;
   final String? imagePath;
   final TutorQuestionContext? questionContext;
 }
@@ -89,10 +93,12 @@ class TutorReply {
     required this.content,
     required this.modelId,
     required this.createdAt,
+    this.resolvedModel,
   });
 
   final String id;
   final String content;
   final String modelId;
   final DateTime createdAt;
+  final AiResolvedModel? resolvedModel;
 }

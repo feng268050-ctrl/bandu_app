@@ -62,6 +62,18 @@ class PracticePage extends ConsumerWidget {
             ),
           ] else ...[
             const SizedBox(height: AppSpacing.large),
+            if (question.resolvedModel != null)
+              Card.outlined(
+                child: ListTile(
+                  leading: const Icon(Icons.auto_awesome_outlined),
+                  title: Text(question.resolvedModel!.fallbackOccurred
+                      ? '主模型不可用，已切换到备用模型'
+                      : '由 Auto 选择：${question.resolvedModel!.displayName}'),
+                  subtitle: question.resolvedModel!.fallbackOccurred
+                      ? Text(question.resolvedModel!.displayName)
+                      : null,
+                ),
+              ),
             PracticeQuestionCard(
               question: question,
               showAnswer: state.showAnswer,

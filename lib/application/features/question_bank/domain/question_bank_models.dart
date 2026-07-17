@@ -1,3 +1,5 @@
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
+
 enum BankQuestionType {
   singleChoice,
   multipleChoice,
@@ -52,6 +54,7 @@ class PdfImportPreview {
     required this.totalPages,
     required this.parser,
     required this.questions,
+    this.resolvedModel,
   });
 
   final String fileName;
@@ -59,6 +62,7 @@ class PdfImportPreview {
   final int totalPages;
   final String parser;
   final List<BankQuestion> questions;
+  final AiResolvedModel? resolvedModel;
 
   int get needsReviewCount =>
       questions.where((question) => question.needsReview).length;
@@ -70,6 +74,7 @@ class PdfImportPreview {
       totalPages: totalPages,
       parser: parser,
       questions: questions ?? this.questions,
+      resolvedModel: resolvedModel,
     );
   }
 }

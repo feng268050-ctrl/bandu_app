@@ -78,6 +78,14 @@ class _TutorPageState extends ConsumerState<TutorPage> {
       ),
       body: Column(
         children: [
+          if (state.activeSession != null)
+            _TutorSessionModelBanner(
+              modelName: state.resolvedModel?.displayName ??
+                  state.selectedModel?.name ??
+                  state.activeSession!.modelId ??
+                  'Auto',
+              fallbackOccurred: state.resolvedModel?.fallbackOccurred ?? false,
+            ),
           Expanded(
             child: _ConversationView(
               controller: _scrollController,
@@ -166,6 +174,27 @@ class _TutorPageState extends ConsumerState<TutorPage> {
       curve: Curves.easeOut,
     );
   }
+}
+
+class _TutorSessionModelBanner extends StatelessWidget {
+  const _TutorSessionModelBanner({
+    required this.modelName,
+    required this.fallbackOccurred,
+  });
+
+  final String modelName;
+  final bool fallbackOccurred;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: Theme.of(context).colorScheme.secondaryContainer,
+        child: ListTile(
+          dense: true,
+          leading: const Icon(Icons.lock_outline),
+          title: Text('本会话固定使用：$modelName'),
+          subtitle: fallbackOccurred ? const Text('主模型不可用，已切换到备用模型') : null,
+        ),
+      );
 }
 
 class _ModelSelector extends StatelessWidget {

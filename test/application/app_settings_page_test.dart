@@ -38,7 +38,7 @@ void main() {
 
     expect(find.text('深色模式'), findsOneWidget);
     expect(find.text('字体大小'), findsOneWidget);
-    expect(find.text('AI 配置'), findsOneWidget);
+    expect(find.text('AI 模型'), findsOneWidget);
     expect(find.text('设备名称'), findsOneWidget);
     expect(find.text('数据管理'), findsOneWidget);
 
@@ -52,7 +52,7 @@ void main() {
     expect(repository.value.fontScale, AppFontScale.extraLarge);
     expect(find.text('特大'), findsWidgets);
 
-    await tester.tap(find.text('AI 配置'));
+    await tester.tap(find.text('AI 模型'));
     await tester.tap(find.text('设备名称'));
     await tester.tap(find.text('数据管理'));
     expect(openedAiConfig, isTrue);

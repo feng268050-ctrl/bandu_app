@@ -1,4 +1,5 @@
 import 'package:bandu_wrong_notebook/application/features/capture/domain/capture_models.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
 import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/conversion/common/value_converter.dart';
 
@@ -10,6 +11,7 @@ class AnalyzeResultDto {
     this.answer,
     this.analysis,
     this.tags = const [],
+    this.resolvedModel,
   });
 
   factory AnalyzeResultDto.fromJson(JsonObject json) {
@@ -20,6 +22,7 @@ class AnalyzeResultDto {
       answer: json['answer']?.toString(),
       analysis: json['analysis']?.toString(),
       tags: stringListValue(json['tags']),
+      resolvedModel: _resolvedModel(json),
     );
   }
 
@@ -29,6 +32,7 @@ class AnalyzeResultDto {
   final String? answer;
   final String? analysis;
   final List<String> tags;
+  final AiResolvedModel? resolvedModel;
 }
 
 class SavedErrorItemDto {
@@ -101,6 +105,7 @@ class CaptureDtoMapper {
       answer: dto.answer,
       analysis: dto.analysis,
       tags: dto.tags,
+      resolvedModel: dto.resolvedModel,
     );
   }
 
@@ -129,4 +134,22 @@ class CaptureDtoMapper {
       originalImageUrl: originalImageUrl,
     );
   }
+}
+
+AiResolvedModel? _resolvedModel(JsonObject json) {
+  final raw = json['resolvedModel'];
+  if (raw is! JsonObject) return null;
+  final id = raw['id']?.toString();
+  final displayName =
+      (raw['displayName'] ?? raw['name'] ?? raw['model'])?.toString();
+  if (id == null || id.isEmpty || displayName == null || displayName.isEmpty) {
+    return null;
+  }
+  return AiResolvedModel(
+    id: id,
+    displayName: displayName,
+    fallbackOccurred: boolValue(
+      json['fallbackOccurred'] ?? json['fallback'] ?? raw['fallbackOccurred'],
+    ),
+  );
 }

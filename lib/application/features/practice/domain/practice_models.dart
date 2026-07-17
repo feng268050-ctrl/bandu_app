@@ -1,3 +1,5 @@
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
+
 class PracticeQuestion {
   const PracticeQuestion({
     required this.title,
@@ -6,6 +8,7 @@ class PracticeQuestion {
     required this.analysis,
     required this.subjectName,
     this.tags = const [],
+    this.resolvedModel,
   });
 
   final String title;
@@ -14,6 +17,7 @@ class PracticeQuestion {
   final String analysis;
   final String subjectName;
   final List<String> tags;
+  final AiResolvedModel? resolvedModel;
 }
 
 class PracticeUiState {

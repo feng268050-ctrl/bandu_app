@@ -1,6 +1,8 @@
 import 'package:bandu_wrong_notebook/conversion/api/question_bank/pdf_question_bank_dto_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/common/json_value.dart';
 import 'package:bandu_wrong_notebook/framework/network/client/api_client.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -17,14 +19,24 @@ class QuestionBankApiService {
   Future<PdfImportPreviewDto> analyzePdf(
     String localPdfPath, {
     String? modelId,
+    AiPurposePreference? preference,
   }) async {
+    final selection = preference ??
+        (modelId == null
+            ? const AiPurposePreference(purpose: AiPurpose.pdfImport)
+            : AiPurposePreference(
+                purpose: AiPurpose.pdfImport,
+                mode: AiSelectionMode.manual,
+                selectedModelId: modelId,
+              ));
     final formData = FormData.fromMap({
       'pdf': await MultipartFile.fromFile(
         localPdfPath,
         filename: p.basename(localPdfPath),
         contentType: DioMediaType.parse('application/pdf'),
       ),
-      if (modelId != null) 'modelId': modelId,
+      'purpose': 'PDF_IMPORT',
+      'modelSelection': jsonEncode(selection.toRequestSelection()),
     });
     final payload = await _apiClient.post<Object?>(
       'question-banks/import',

@@ -1,3 +1,5 @@
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
+
 enum CapturePhase {
   idle,
   capturing,
@@ -72,6 +74,7 @@ class AnalyzeResult {
     this.answer,
     this.analysis,
     this.tags = const [],
+    this.resolvedModel,
   });
 
   final String title;
@@ -80,6 +83,7 @@ class AnalyzeResult {
   final String? answer;
   final String? analysis;
   final List<String> tags;
+  final AiResolvedModel? resolvedModel;
 }
 
 class SavedErrorItem {

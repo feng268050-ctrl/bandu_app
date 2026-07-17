@@ -14,8 +14,9 @@ void main() {
       ),
     );
 
-    final fields = tester.widgetList<EditableText>(find.byType(EditableText));
-    final apiKeyField = fields.elementAt(2);
+    final apiKeyField = tester.widget<EditableText>(
+      find.byType(EditableText).at(4),
+    );
 
     expect(apiKeyField.obscureText, isTrue);
     expect(apiKeyField.enableInteractiveSelection, isFalse);

@@ -151,6 +151,21 @@ class ApiClient {
     );
   }
 
+  Future<T> put<T>(
+    String path, {
+    Object? data,
+    ApiRequestTimeouts timeouts = defaultRequestTimeouts,
+  }) {
+    final relativePath = _requireRelativePath(path);
+    return _request<T>(
+      () => _dio.put<Object?>(
+        relativePath,
+        data: data,
+        options: _options(timeouts),
+      ),
+    );
+  }
+
   Future<T> delete<T>(
     String path, {
     ApiRequestTimeouts timeouts = defaultRequestTimeouts,
