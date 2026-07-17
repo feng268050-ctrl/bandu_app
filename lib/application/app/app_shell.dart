@@ -4,7 +4,7 @@ import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-class AppShell extends StatelessWidget {
+class AppShell extends StatefulWidget {
   const AppShell({
     required this.navigationShell,
     required this.showPrimaryNavigation,
@@ -14,26 +14,98 @@ class AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
   final bool showPrimaryNavigation;
 
+  @override
+  State<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends State<AppShell>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _fabVisibility;
+  late final CurvedAnimation _fabCurved;
+  late final Animation<double> _fabScale;
+  late final Animation<double> _fabRotation;
+
+  @override
+  void initState() {
+    super.initState();
+    _fabVisibility = AnimationController(
+      vsync: this,
+      duration: AppDuration.navigationFab,
+      value: widget.showPrimaryNavigation ? 1 : 0,
+    )..addListener(() {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    _fabCurved = CurvedAnimation(
+      parent: _fabVisibility,
+      curve: Curves.easeOutCubic,
+      reverseCurve: Curves.easeInCubic,
+    );
+    _fabScale = Tween<double>(begin: 0.72, end: 1).animate(_fabCurved);
+    // Match Material FAB turn interval (45°); reverse plays on exit.
+    _fabRotation = Tween<double>(
+      begin: -kFloatingActionButtonTurnInterval,
+      end: 0,
+    ).animate(_fabCurved);
+  }
+
+  @override
+  void didUpdateWidget(AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.showPrimaryNavigation == oldWidget.showPrimaryNavigation) {
+      return;
+    }
+    if (widget.showPrimaryNavigation) {
+      _fabVisibility.forward();
+    } else {
+      _fabVisibility.reverse();
+    }
+  }
+
+  @override
+  void dispose() {
+    _fabCurved.dispose();
+    _fabVisibility.dispose();
+    super.dispose();
+  }
+
   void _goToBranch(int index) {
-    navigationShell.goBranch(
+    widget.navigationShell.goBranch(
       index,
-      initialLocation: index == navigationShell.currentIndex,
+      initialLocation: index == widget.navigationShell.currentIndex,
+    );
+  }
+
+  Widget? _buildCaptureFab() {
+    if (_fabVisibility.status == AnimationStatus.dismissed) {
+      return null;
+    }
+
+    return FadeTransition(
+      opacity: _fabCurved,
+      child: ScaleTransition(
+        scale: _fabScale,
+        child: RotationTransition(
+          turns: _fabRotation,
+          child: AppCaptureNavigationButton(
+            onPressed: () => _goToBranch(_captureDestinationIndex),
+          ),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(child: navigationShell),
+      body: SafeArea(child: widget.navigationShell),
       floatingActionButtonLocation: appCaptureNavigationButtonLocation,
-      floatingActionButton: showPrimaryNavigation
-          ? AppCaptureNavigationButton(
-              onPressed: () => _goToBranch(_captureDestinationIndex),
-            )
-          : null,
-      bottomNavigationBar: showPrimaryNavigation
+      floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
+      floatingActionButton: _buildCaptureFab(),
+      bottomNavigationBar: widget.showPrimaryNavigation
           ? AppBottomNavigationBar(
-              selectedIndex: navigationShell.currentIndex,
+              selectedIndex: widget.navigationShell.currentIndex,
               onDestinationSelected: _goToBranch,
             )
           : null,
