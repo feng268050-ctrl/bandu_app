@@ -1294,46 +1294,46 @@ AI Tutor 接口
 
 ### 系统模型
 
-- [ ] （Server）至少一个视觉模型。
-- [ ] （Server）至少一个文本模型。
-- [ ] （Server）系统模型由服务端管理。
+- [x] （Server）至少一个视觉模型。
+- [x] （Server）至少一个文本模型。
+- [x] （Server）系统模型由服务端管理。
 - [x] （App）系统 API Key 不进入 App。
 
 ### 用户模型
 
 - [x] （App）用户可新增、编辑、删除。
-- [ ] （Server）API Key 加密保存。
+- [x] （Server）API Key 加密保存。
 - [x] （App）App 只显示掩码。
 - [x] （App）用户模型可以选择是否参与 Auto。
 
 ### Auto
 
 - [x] （App）Auto 作为虚拟模型入口展示与透传。
-- [ ] （Server）Auto 作为虚拟模型入口解析。
-- [ ] （Server）按用途筛选。
-- [ ] （Server）按能力过滤。
-- [ ] （Server）主模型不可用时降级。
-- [ ] （Server）记录实际使用模型。
+- [x] （Server）Auto 作为虚拟模型入口解析。
+- [x] （Server）按用途筛选。
+- [x] （Server）按能力过滤。
+- [x] （Server）主模型不可用时降级。
+- [x] （Server）记录实际使用模型。
 - [x] （App）展示实际使用模型与降级提示。
 - [x] （App）手动模式显式透传所选模型与降级许可。
-- [ ] （Server）手动模式默认不偷偷切换。
+- [x] （Server）手动模式默认不偷偷切换。
 
 ### 多轮会话
 
-- [ ] （Server）新会话确定模型。
-- [ ] （Server）同一会话固定模型。
+- [x] （Server）新会话确定模型。
+- [x] （Server）同一会话固定模型。
 - [x] （App）用户主动切换偏好后提示仅影响新会话。
-- [ ] （Server）用户主动切换后更新模型。
+- [x] （Server）用户主动切换后更新模型。
 - [x] （App）故障切换有明确提示。
 
 ### 安全
 
 - [x] （App）不返回、存储或展示完整 API Key。
-- [ ] （Server）不返回完整 API Key。
-- [ ] （Server）不记录敏感密钥。
-- [ ] （Server）用户只能访问自己的模型配置。
+- [x] （Server）不返回完整 API Key。
+- [x] （Server）不记录敏感密钥。
+- [x] （Server）用户只能访问自己的模型配置。
 - [x] （App）系统模型不可被普通用户删除。
-- [ ] （Server）系统模型不可被普通用户删除。
+- [x] （Server）系统模型不可被普通用户删除。
 
 ---
 
@@ -1350,11 +1350,11 @@ AI Tutor 接口
 
 ### Server（`~/workspace/bandu_web`，不在本对话实现）
 
-- [ ] 系统模型与路由策略存储
-- [ ] API Key 加密与 models/preferences API
-- [ ] `resolveAiModel` + Provider 调用统一入口
-- [ ] 失败降级、健康状态与路由日志
-- [ ] 辅导会话模型固定
+- [x] 系统模型与路由策略存储
+- [x] API Key 加密与 models/preferences API
+- [x] `resolveAiModel` + Provider 调用统一入口
+- [x] 失败降级、健康状态与路由日志
+- [x] 辅导会话模型固定
 
 ---
 
