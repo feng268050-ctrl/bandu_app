@@ -127,6 +127,15 @@ class AiModelDtoMapper {
         'supportsJson': draft.capabilities.supportsJson,
       };
 
+  JsonObject availabilityPatch({
+    required bool enabled,
+    bool? participatesInAuto,
+  }) =>
+      {
+        'enabled': enabled,
+        if (participatesInAuto != null) 'participatesInAuto': participatesInAuto,
+      };
+
   JsonObject preferenceRequest(AiPurposePreference preference) => {
         'purpose': preference.purpose.wireValue,
         'mode': preference.mode == AiSelectionMode.auto ? 'AUTO' : 'MANUAL',

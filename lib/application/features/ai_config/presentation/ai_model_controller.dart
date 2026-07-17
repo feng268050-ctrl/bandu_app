@@ -29,6 +29,14 @@ class AiModelCatalogController extends AsyncNotifier<AiModelCatalog> {
     await refresh();
   }
 
+  Future<void> setEnabled(AiModelSummary model, bool enabled) async {
+    await ref.read(aiModelRepositoryProvider).setAvailability(
+          model.id,
+          enabled: enabled,
+        );
+    await refresh();
+  }
+
   Future<void> delete(AiModelSummary model) async {
     if (model.isSystem) throw StateError('系统模型不可删除');
     await ref.read(aiModelRepositoryProvider).deleteModel(model.id);

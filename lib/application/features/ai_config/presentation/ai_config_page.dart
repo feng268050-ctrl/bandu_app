@@ -27,6 +27,22 @@ class AiConfigPage extends ConsumerStatefulWidget {
 class _AiConfigPageState extends ConsumerState<AiConfigPage> {
   AiModelSummary? _editingModel;
 
+  void _openEditor([AiModelSummary? model]) {
+    setState(() {
+      _editingModel = model ??
+          const AiModelSummary(
+            id: '',
+            displayName: '',
+            provider: '',
+            modelName: '',
+            kind: AiModelKind.user,
+            enabled: true,
+            participatesInAuto: true,
+            capabilities: AiModelCapabilities(),
+          );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_editingModel != null) {
@@ -36,7 +52,7 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
         onSave: (draft) async {
           await ref.read(aiModelCatalogControllerProvider.notifier).save(
                 draft,
-                id: _editingModel?.id,
+                id: _editingModel?.id.isEmpty == true ? null : _editingModel?.id,
               );
           await widget.onChanged();
           if (mounted) setState(() => _editingModel = null);
@@ -49,22 +65,6 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
       appBar: AppBar(
         title: const Text('AI 模型'),
         leading: BackButton(onPressed: widget.onBack),
-        actions: [
-          IconButton(
-            tooltip: '添加模型',
-            onPressed: () => setState(() => _editingModel = const AiModelSummary(
-              id: '',
-              displayName: '',
-              provider: '',
-              modelName: '',
-              kind: AiModelKind.user,
-              enabled: true,
-              participatesInAuto: true,
-              capabilities: AiModelCapabilities(),
-            )),
-            icon: const Icon(Icons.add),
-          ),
-        ],
       ),
       body: catalog.when(
         loading: () => const AppLoadingView(message: '正在读取 AI 模型'),
@@ -80,17 +80,21 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.page),
             children: [
-              Text('推荐', style: Theme.of(context).textTheme.titleMedium),
-              const Card(
-                child: ListTile(
-                  leading: Icon(Icons.auto_awesome),
-                  title: Text('Auto'),
-                  subtitle: Text('自动为当前任务选择合适模型'),
-                  trailing: Icon(Icons.check),
-                ),
+              _ModelSwitchSection(
+                title: '系统模型',
+                models: items.configuredSystemModels,
+                emptyLabel: '暂无已配置的系统模型',
+                onToggle: (model, enabled) => _toggleEnabled(model, enabled),
               ),
-              _section(context, '系统模型', items.systemModels),
-              _section(context, '我的模型', items.userModels),
+              _ModelSwitchSection(
+                title: '我的模型',
+                models: items.configuredUserModels,
+                emptyLabel: '暂无模型',
+                emptyAction: _AddModelLink(onTap: () => _openEditor()),
+                onToggle: (model, enabled) => _toggleEnabled(model, enabled),
+                onEdit: (model) => _openEditor(model),
+                onDelete: _delete,
+              ),
               const SizedBox(height: AppSpacing.large),
               Text('按功能偏好', style: Theme.of(context).textTheme.titleMedium),
               preferences.when(
@@ -107,10 +111,13 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
                         models: items.selectableModels,
                         onChanged: (value) async {
                           await ref
-                              .read(aiPurposePreferencesControllerProvider.notifier)
+                              .read(
+                                aiPurposePreferencesControllerProvider.notifier,
+                              )
                               .save(value);
                           await widget.onChanged();
-                          if (value.purpose == AiPurpose.tutor && context.mounted) {
+                          if (value.purpose == AiPurpose.tutor &&
+                              context.mounted) {
                             showAppSuccessSnackBar(
                               context,
                               '辅导偏好已更新；新会话将使用新的选择，当前会话保持不变',
@@ -128,46 +135,24 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
     );
   }
 
-  Widget _section(BuildContext context, String title, List<AiModelSummary> models) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: AppSpacing.large),
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-        if (models.isEmpty)
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppSpacing.small),
-            child: Text('暂无模型'),
-          ),
-        for (final model in models)
-          Card(
-            child: ListTile(
-              onTap: model.isSystem ? null : () => setState(() => _editingModel = model),
-              leading: Icon(model.isSystem ? Icons.verified_outlined : Icons.smart_toy_outlined),
-              title: Text(model.displayName),
-              subtitle: Text([
-                if (model.isSystem) '内置',
-                if (!model.enabled) '已停用',
-                if (model.maskedApiKey?.isNotEmpty == true) 'Key：${model.maskedApiKey}',
-              ].join(' · ')),
-              trailing: model.isSystem
-                  ? const Chip(label: Text('内置'))
-                  : IconButton(
-                      tooltip: '删除模型',
-                      onPressed: () => _delete(model),
-                      icon: const Icon(Icons.delete_outline),
-                    ),
-            ),
-          ),
-      ],
-    );
+  Future<void> _toggleEnabled(AiModelSummary model, bool enabled) async {
+    try {
+      await ref
+          .read(aiModelCatalogControllerProvider.notifier)
+          .setEnabled(model, enabled);
+      await widget.onChanged();
+    } catch (error) {
+      if (mounted) {
+        showAppErrorSnackBar(context, appFailureUserMessage(error));
+      }
+    }
   }
 
   Future<void> _delete(AiModelSummary model) async {
     final confirmed = await showAppConfirmDialog(
       context: context,
       title: '删除 AI 模型',
-      message: '确定删除“${model.displayName}”吗？',
+      message: '确定删除“${model.listLabel}”吗？',
       confirmLabel: '删除',
       isDestructive: true,
     );
@@ -179,6 +164,142 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
     } catch (error) {
       if (mounted) showAppErrorSnackBar(context, appFailureUserMessage(error));
     }
+  }
+}
+
+class _ModelSwitchSection extends StatelessWidget {
+  const _ModelSwitchSection({
+    required this.title,
+    required this.models,
+    required this.emptyLabel,
+    required this.onToggle,
+    this.emptyAction,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  final String title;
+  final List<AiModelSummary> models;
+  final String emptyLabel;
+  final Widget? emptyAction;
+  final Future<void> Function(AiModelSummary model, bool enabled)? onToggle;
+  final ValueChanged<AiModelSummary>? onEdit;
+  final ValueChanged<AiModelSummary>? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: AppSpacing.large),
+        Text(title, style: Theme.of(context).textTheme.titleMedium),
+        if (models.isEmpty) ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.small),
+            child: Text(
+              emptyLabel,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ),
+          if (emptyAction != null) emptyAction!,
+        ] else ...[
+          Card(
+            clipBehavior: Clip.antiAlias,
+            child: Column(
+              children: [
+                for (var index = 0; index < models.length; index++) ...[
+                  if (index > 0) const Divider(height: 1),
+                  _ModelSwitchTile(
+                    model: models[index],
+                    onToggle: onToggle,
+                    onEdit: onEdit,
+                    onDelete: onDelete,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (emptyAction != null) ...[
+            const SizedBox(height: AppSpacing.small),
+            emptyAction!,
+          ],
+        ],
+      ],
+    );
+  }
+}
+
+class _AddModelLink extends StatelessWidget {
+  const _AddModelLink({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final style = Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: colorScheme.primary,
+          decoration: TextDecoration.underline,
+          decorationColor: colorScheme.primary,
+          fontSize: 12,
+        );
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.xSmall),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: InkWell(
+          onTap: onTap,
+          child: Text('新增模型', style: style),
+        ),
+      ),
+    );
+  }
+}
+
+class _ModelSwitchTile extends StatelessWidget {
+  const _ModelSwitchTile({
+    required this.model,
+    required this.onToggle,
+    this.onEdit,
+    this.onDelete,
+  });
+
+  final AiModelSummary model;
+  final Future<void> Function(AiModelSummary model, bool enabled)? onToggle;
+  final ValueChanged<AiModelSummary>? onEdit;
+  final ValueChanged<AiModelSummary>? onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      onTap: model.isSystem || onEdit == null ? null : () => onEdit!(model),
+      title: Text(model.listLabel),
+      subtitle: model.isSystem
+          ? const Text('系统配置')
+          : (model.maskedApiKey?.isNotEmpty == true
+              ? Text('Key：${model.maskedApiKey}')
+              : null),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!model.isSystem && onDelete != null)
+            IconButton(
+              tooltip: '删除模型',
+              onPressed: () => onDelete!(model),
+              icon: const Icon(Icons.delete_outline),
+            ),
+          Switch.adaptive(
+            value: model.enabled,
+            onChanged: onToggle == null
+                ? null
+                : (value) => onToggle!(model, value),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -197,7 +318,9 @@ class _PreferenceTile extends StatelessWidget {
   Widget build(BuildContext context) => Card(
         child: ExpansionTile(
           title: Text(preference.purpose.label),
-          subtitle: Text(preference.mode == AiSelectionMode.auto ? 'Auto' : '手动模型'),
+          subtitle: Text(
+            preference.mode == AiSelectionMode.auto ? 'Auto' : '手动模型',
+          ),
           children: [
             ListTile(
               title: const Text('Auto'),
@@ -212,7 +335,7 @@ class _PreferenceTile extends StatelessWidget {
             ),
             for (final model in models)
               ListTile(
-                title: Text(model.displayName),
+                title: Text(model.listLabel),
                 trailing: preference.mode == AiSelectionMode.manual &&
                         preference.selectedModelId == model.id
                     ? const Icon(Icons.check)
@@ -224,7 +347,7 @@ class _PreferenceTile extends StatelessWidget {
                   allowUserModelsInAuto: preference.allowUserModelsInAuto,
                   allowFallbackInManual: preference.allowFallbackInManual,
                 )),
-            ),
+              ),
             SwitchListTile(
               title: const Text('允许我的模型参与 Auto'),
               value: preference.allowUserModelsInAuto,

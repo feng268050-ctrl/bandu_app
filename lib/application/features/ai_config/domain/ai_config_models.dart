@@ -101,6 +101,62 @@ class AiModelSummary {
   final String? maskedApiKey;
 
   bool get isSystem => kind == AiModelKind.system;
+
+  /// Station / relay label for UI (not the raw protocol id).
+  String get stationLabel {
+    final display = displayName.trim();
+    final model = modelName.trim();
+    if (display.contains('·')) {
+      final left = display.split('·').first.trim();
+      if (left.isNotEmpty) return left;
+    }
+    if (display.isNotEmpty &&
+        display.toLowerCase() != model.toLowerCase() &&
+        !display.toLowerCase().contains(model.toLowerCase())) {
+      return display;
+    }
+    final host = _relayHost(baseUrl);
+    if (host != null) return host;
+    return _humanizeProvider(provider);
+  }
+
+  /// Prefer "modelName - station"; fall back to displayName.
+  String get listLabel {
+    final model = modelName.trim();
+    final station = stationLabel.trim();
+    if (model.isNotEmpty && station.isNotEmpty) return '$model - $station';
+    if (model.isNotEmpty) return model;
+    if (station.isNotEmpty) return station;
+    return displayName.trim().isEmpty ? '未命名模型' : displayName.trim();
+  }
+
+  bool get isConfigured => modelName.trim().isNotEmpty;
+}
+
+String _humanizeProvider(String provider) {
+  return switch (provider.trim().toLowerCase()) {
+    'openai' => 'OpenAI',
+    'gemini' => 'Gemini',
+    'azure' => 'Azure',
+    final value when value.isNotEmpty => provider.trim(),
+    _ => '',
+  };
+}
+
+String? _relayHost(String? baseUrl) {
+  final raw = baseUrl?.trim();
+  if (raw == null || raw.isEmpty) return null;
+  final host = Uri.tryParse(raw)?.host;
+  if (host == null || host.isEmpty) return null;
+  const builtins = {
+    'api.openai.com',
+    'generativelanguage.googleapis.com',
+    'openai.azure.com',
+  };
+  if (builtins.contains(host) || host.endsWith('.openai.azure.com')) {
+    return null;
+  }
+  return host;
 }
 
 class AiModelCatalog {
@@ -113,9 +169,15 @@ class AiModelCatalog {
   final List<AiModelSummary> userModels;
 
   List<AiModelSummary> get selectableModels => [
-        ...systemModels.where((model) => model.enabled),
-        ...userModels.where((model) => model.enabled),
+        ...systemModels.where((model) => model.enabled && model.isConfigured),
+        ...userModels.where((model) => model.enabled && model.isConfigured),
       ];
+
+  List<AiModelSummary> get configuredSystemModels =>
+      systemModels.where((model) => model.isConfigured).toList(growable: false);
+
+  List<AiModelSummary> get configuredUserModels =>
+      userModels.where((model) => model.isConfigured).toList(growable: false);
 }
 
 class AiModelDraft {

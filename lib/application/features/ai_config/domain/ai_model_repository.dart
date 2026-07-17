@@ -7,6 +7,12 @@ abstract interface class AiModelRepository {
 
   Future<AiModelSummary> updateModel(String id, AiModelDraft draft);
 
+  Future<AiModelSummary> setAvailability(
+    String id, {
+    required bool enabled,
+    bool? participatesInAuto,
+  });
+
   Future<void> deleteModel(String id);
 }
 

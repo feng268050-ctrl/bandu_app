@@ -42,6 +42,22 @@ class RemoteAiModelRepository implements AiModelRepository {
       mapper.modelFromDto(await apiService.updateModel(id, mapper.createRequest(draft)));
 
   @override
+  Future<AiModelSummary> setAvailability(
+    String id, {
+    required bool enabled,
+    bool? participatesInAuto,
+  }) async =>
+      mapper.modelFromDto(
+        await apiService.updateModel(
+          id,
+          mapper.availabilityPatch(
+            enabled: enabled,
+            participatesInAuto: participatesInAuto,
+          ),
+        ),
+      );
+
+  @override
   Future<void> deleteModel(String id) => apiService.deleteModel(id);
 }
 

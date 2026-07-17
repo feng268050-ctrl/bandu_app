@@ -5,32 +5,34 @@ class FakeAiModelRepository implements AiModelRepository {
   FakeAiModelRepository({
     List<AiModelSummary>? systemModels,
     List<AiModelSummary>? userModels,
-  })  : _systemModels = systemModels ??
-            const [
-              AiModelSummary(
-                id: 'system-vision',
-                displayName: '系统视觉模型',
-                provider: '',
-                modelName: 'vision',
-                kind: AiModelKind.system,
-                enabled: true,
-                participatesInAuto: true,
-                capabilities: AiModelCapabilities(
-                  supportsVision: true,
-                  supportsJson: true,
+  })  : _systemModels = List.of(
+          systemModels ??
+              const [
+                AiModelSummary(
+                  id: 'system-vision',
+                  displayName: '系统视觉模型',
+                  provider: '',
+                  modelName: 'vision',
+                  kind: AiModelKind.system,
+                  enabled: true,
+                  participatesInAuto: true,
+                  capabilities: AiModelCapabilities(
+                    supportsVision: true,
+                    supportsJson: true,
+                  ),
                 ),
-              ),
-              AiModelSummary(
-                id: 'system-text',
-                displayName: '系统文本模型',
-                provider: '',
-                modelName: 'text',
-                kind: AiModelKind.system,
-                enabled: true,
-                participatesInAuto: true,
-                capabilities: AiModelCapabilities(supportsJson: true),
-              ),
-            ],
+                AiModelSummary(
+                  id: 'system-text',
+                  displayName: '系统文本模型',
+                  provider: '',
+                  modelName: 'text',
+                  kind: AiModelKind.system,
+                  enabled: true,
+                  participatesInAuto: true,
+                  capabilities: AiModelCapabilities(supportsJson: true),
+                ),
+              ],
+        ),
         _userModels = List.of(userModels ?? const []);
 
   final List<AiModelSummary> _systemModels;
@@ -55,17 +57,53 @@ class FakeAiModelRepository implements AiModelRepository {
 
   @override
   Future<AiModelSummary> updateModel(String id, AiModelDraft draft) async {
-    final index = _userModels.indexWhere((model) => model.id == id);
-    if (index < 0) throw StateError('Only user models can be edited.');
-    final updated = _fromDraft(
-      id,
-      draft,
-      maskedApiKey: draft.apiKey.trim().isEmpty
-          ? _userModels[index].maskedApiKey
-          : null,
-    );
-    _userModels[index] = updated;
-    return updated;
+    final userIndex = _userModels.indexWhere((model) => model.id == id);
+    if (userIndex >= 0) {
+      final updated = _fromDraft(
+        id,
+        draft,
+        maskedApiKey: draft.apiKey.trim().isEmpty
+            ? _userModels[userIndex].maskedApiKey
+            : null,
+      );
+      _userModels[userIndex] = updated;
+      return updated;
+    }
+    throw StateError('Only user models can be fully edited.');
+  }
+
+  @override
+  Future<AiModelSummary> setAvailability(
+    String id, {
+    required bool enabled,
+    bool? participatesInAuto,
+  }) async {
+    AiModelSummary patch(AiModelSummary model) => AiModelSummary(
+          id: model.id,
+          displayName: model.displayName,
+          provider: model.provider,
+          modelName: model.modelName,
+          kind: model.kind,
+          enabled: enabled,
+          participatesInAuto: participatesInAuto ?? model.participatesInAuto,
+          capabilities: model.capabilities,
+          baseUrl: model.baseUrl,
+          maskedApiKey: model.maskedApiKey,
+        );
+
+    final systemIndex = _systemModels.indexWhere((model) => model.id == id);
+    if (systemIndex >= 0) {
+      final updated = patch(_systemModels[systemIndex]);
+      _systemModels[systemIndex] = updated;
+      return updated;
+    }
+    final userIndex = _userModels.indexWhere((model) => model.id == id);
+    if (userIndex >= 0) {
+      final updated = patch(_userModels[userIndex]);
+      _userModels[userIndex] = updated;
+      return updated;
+    }
+    throw StateError('Model not found.');
   }
 
   @override
