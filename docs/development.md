@@ -76,6 +76,22 @@ make sync
 | `EMULATOR_NO_AUDIO` | `0` | 设为 `1` 关闭模拟器音频 |
 | `EMULATOR_HEADLESS` | `0` | 设为 `1` 无窗口模式（仅 CI/脚本） |
 
+## 版本管理
+
+发布或合并一批可见功能后，同步更新下列位置（保持一致）：
+
+| 位置 | 含义 |
+|------|------|
+| `VERSION` | 展示用版本，形如 `v0.2.0`；`make` / 构建脚本读取此文件注入 `APP_VERSION` |
+| `pubspec.yaml` 的 `version` | Flutter / Android 正式版本，形如 `0.2.0+1002`（`+` 后为 `versionCode`，每次发布必须递增） |
+
+约定：
+
+- **主版本 / 次版本 / 修订**：`0.x.y` 阶段，功能增量升次版本（如 `0.1.1` → `0.2.0`），仅修 bug 升修订号。
+- **versionCode（`+N`）**：只增不减；商店/覆盖安装依赖它。
+- 硬编码兜底（`app_config.dart`、构建脚本默认值等）与 `VERSION` 保持同号，避免未注入 `APP_VERSION` 时显示旧号。
+- 改完后可用 `make version` 核对当前号。
+
 ## AI 模型设置
 
 “设置 > AI 模型”使用 `/ai/models` 和 `/ai/preferences` 管理模型目录与按用途偏好。

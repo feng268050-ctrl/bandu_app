@@ -8,7 +8,7 @@ EMULATOR_API_BASE_URL ?= http://10.0.2.2:3000/api/mobile/v1
 DEVICE_API_BASE_URL ?= http://100.69.41.14:3000/api/mobile/v1
 PROD_API_BASE_URL := https://aibandu.dpdns.org/api/mobile/v1
 RELEASE_API_BASE_URL ?= $(PROD_API_BASE_URL)
-APP_VERSION ?= $(shell tr -d ' \n\r' < VERSION 2>/dev/null || echo v0.1.1)
+APP_VERSION ?= $(shell tr -d ' \n\r' < VERSION 2>/dev/null || echo v0.2.0)
 BYPASS_AUTH ?= false
 
 ADB_SERIAL_OVERRIDE := $(if $(filter environment command line override,$(origin ADB_SERIAL)),$(ADB_SERIAL),)

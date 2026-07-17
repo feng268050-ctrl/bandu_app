@@ -26,7 +26,7 @@ AppConfig loadAppConfig({bool releaseMode = kReleaseMode}) {
   const bypassAuth = bool.fromEnvironment('BYPASS_AUTH');
   const appVersion = String.fromEnvironment(
     'APP_VERSION',
-    defaultValue: 'v0.1.1',
+    defaultValue: 'v0.2.0',
   );
 
   final environment = resolveAppEnvironment(
@@ -94,7 +94,7 @@ class AppConfig {
     required this.apiBaseUrl,
     required this.releaseMode,
     this.bypassAuth = false,
-    this.appVersion = 'v0.1.1',
+    this.appVersion = 'v0.2.0',
   });
 
   final AppEnvironment environment;

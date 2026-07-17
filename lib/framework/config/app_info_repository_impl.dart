@@ -12,7 +12,7 @@ class EnvironmentAppInfoRepository implements AppInfoRepository {
   Future<String> readVersion() async {
     return const String.fromEnvironment(
       'APP_VERSION',
-      defaultValue: 'v0.1.1',
+      defaultValue: 'v0.2.0',
     );
   }
 }

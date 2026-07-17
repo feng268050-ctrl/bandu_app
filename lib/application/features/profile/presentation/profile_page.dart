@@ -77,7 +77,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       return ProfileSectionPage(
         section: widget.section!,
         overview: overview,
-        version: ref.watch(packageVersionProvider).valueOrNull ?? 'v0.1.1',
+        version: ref.watch(packageVersionProvider).valueOrNull ?? 'v0.2.0',
         onBack: () => context.pop(),
         onClearLocalData: _clearLocalData,
       );

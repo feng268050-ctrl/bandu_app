@@ -62,7 +62,7 @@ class _FakeNetworkDiagnosticsRepository
       healthCheckUrl: 'https://aibandu.dpdns.org/api/health',
       isHttps: true,
       lastRequestAt: DateTime.utc(2026, 7, 16),
-      appVersion: 'v0.1.1',
+      appVersion: 'v0.2.0',
       buildMode: 'Release',
       environment: 'production',
     );
