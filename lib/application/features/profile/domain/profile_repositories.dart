@@ -11,6 +11,12 @@ abstract interface class AvatarRepository {
     required String sourcePath,
     required int fallbackColorValue,
   });
+
+  Future<String?> pickWallpaper();
+
+  Future<AvatarSettings> saveWallpaper(String sourcePath);
+
+  Future<AvatarSettings> removeWallpaper();
 }
 
 abstract interface class DeviceInfoRepository {

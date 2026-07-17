@@ -17,7 +17,7 @@ extension ProfileSectionUi on ProfileSection {
         ProfileSection.student => '昵称、教育阶段和入学年份',
         ProfileSection.ai => '统一管理 API 地址、密钥和模型',
         ProfileSection.device => '附近设备和配对时显示的名称',
-        ProfileSection.settings => '字体大小和深色模式',
+        ProfileSection.settings => '显示、AI、设备和数据管理',
         ProfileSection.pendingTasks => '查看、重试或删除离线保存的题目',
         ProfileSection.network => '公网 API、HTTPS 和服务健康状态',
         ProfileSection.data => '本地缓存和应用偏好',

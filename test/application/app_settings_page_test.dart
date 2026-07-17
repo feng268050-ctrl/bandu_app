@@ -12,6 +12,9 @@ void main() {
     tester,
   ) async {
     final repository = _FakeAppPreferencesRepository();
+    var openedAiConfig = false;
+    var openedDevice = false;
+    var openedData = false;
 
     await tester.pumpWidget(
       ProviderScope(
@@ -20,7 +23,14 @@ void main() {
         ],
         child: MaterialApp(
           theme: buildAppTheme(Brightness.light),
-          home: AppSettingsPage(onBack: () {}),
+          home: AppSettingsPage(
+            onBack: () {},
+            onOpenAiConfig: () => openedAiConfig = true,
+            onOpenDevice: () => openedDevice = true,
+            onOpenData: () => openedData = true,
+            modelConfigLabel: '已配置 2 个模型',
+            deviceNameLabel: 'OPPO PKT110',
+          ),
         ),
       ),
     );
@@ -28,6 +38,9 @@ void main() {
 
     expect(find.text('深色模式'), findsOneWidget);
     expect(find.text('字体大小'), findsOneWidget);
+    expect(find.text('AI 配置'), findsOneWidget);
+    expect(find.text('设备名称'), findsOneWidget);
+    expect(find.text('数据管理'), findsOneWidget);
 
     await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
@@ -38,6 +51,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(repository.value.fontScale, AppFontScale.extraLarge);
     expect(find.text('特大'), findsWidgets);
+
+    await tester.tap(find.text('AI 配置'));
+    await tester.tap(find.text('设备名称'));
+    await tester.tap(find.text('数据管理'));
+    expect(openedAiConfig, isTrue);
+    expect(openedDevice, isTrue);
+    expect(openedData, isTrue);
   });
 }
 

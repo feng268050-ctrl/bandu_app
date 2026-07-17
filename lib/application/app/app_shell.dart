@@ -5,9 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 class AppShell extends StatelessWidget {
-  const AppShell({required this.navigationShell, super.key});
+  const AppShell({
+    required this.navigationShell,
+    required this.showPrimaryNavigation,
+    super.key,
+  });
 
   final StatefulNavigationShell navigationShell;
+  final bool showPrimaryNavigation;
 
   void _goToBranch(int index) {
     navigationShell.goBranch(
@@ -21,15 +26,31 @@ class AppShell extends StatelessWidget {
     return Scaffold(
       body: SafeArea(child: navigationShell),
       floatingActionButtonLocation: appCaptureNavigationButtonLocation,
-      floatingActionButton: AppCaptureNavigationButton(
-        onPressed: () => _goToBranch(_captureDestinationIndex),
-      ),
-      bottomNavigationBar: AppBottomNavigationBar(
-        selectedIndex: navigationShell.currentIndex,
-        onDestinationSelected: _goToBranch,
-      ),
+      floatingActionButton: showPrimaryNavigation
+          ? AppCaptureNavigationButton(
+              onPressed: () => _goToBranch(_captureDestinationIndex),
+            )
+          : null,
+      bottomNavigationBar: showPrimaryNavigation
+          ? AppBottomNavigationBar(
+              selectedIndex: navigationShell.currentIndex,
+              onDestinationSelected: _goToBranch,
+            )
+          : null,
     );
   }
+}
+
+const primaryNavigationLocations = {
+  '/home',
+  '/tutor',
+  '/capture',
+  '/practice',
+  '/profile',
+};
+
+bool shouldShowPrimaryNavigation(String location) {
+  return primaryNavigationLocations.contains(Uri.parse(location).path);
 }
 
 const _captureDestinationIndex = 2;

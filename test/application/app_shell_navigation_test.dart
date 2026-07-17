@@ -4,6 +4,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('primary navigation is visible only on root destinations', () {
+    for (final location in [
+      '/home',
+      '/tutor',
+      '/capture',
+      '/practice',
+      '/profile',
+      '/home?period=today',
+    ]) {
+      expect(shouldShowPrimaryNavigation(location), isTrue, reason: location);
+    }
+
+    for (final location in [
+      '/home/library',
+      '/home/library/error-1',
+      '/home/stats/errors',
+      '/capture/pdf-import',
+      '/profile/student',
+      '/profile/settings',
+      '/profile/settings/ai',
+      '/profile/settings/device',
+      '/profile/settings/data',
+      '/profile/about',
+    ]) {
+      expect(shouldShowPrimaryNavigation(location), isFalse, reason: location);
+    }
+  });
+
   testWidgets('main navigation reserves the middle slot for the capture action',
       (tester) async {
     var selectedIndex = -1;

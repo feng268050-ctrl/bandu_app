@@ -13,10 +13,7 @@ enum ProfileSection {
 
 const visibleProfileSections = [
   ProfileSection.student,
-  ProfileSection.ai,
-  ProfileSection.device,
   ProfileSection.settings,
-  ProfileSection.data,
   ProfileSection.about,
 ];
 

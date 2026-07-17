@@ -65,6 +65,22 @@ class AvatarSettingsController extends AsyncNotifier<AvatarSettings> {
     );
   }
 
+  Future<String?> pickWallpaper() {
+    return ref.read(avatarRepositoryProvider).pickWallpaper();
+  }
+
+  Future<void> saveWallpaper(String sourcePath) async {
+    await _save(
+      () => ref.read(avatarRepositoryProvider).saveWallpaper(sourcePath),
+    );
+  }
+
+  Future<void> removeWallpaper() async {
+    await _save(
+      () => ref.read(avatarRepositoryProvider).removeWallpaper(),
+    );
+  }
+
   Future<void> _save(Future<AvatarSettings> Function() operation) async {
     state = const AsyncLoading();
     try {

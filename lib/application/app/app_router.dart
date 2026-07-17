@@ -7,6 +7,7 @@ import 'package:bandu_wrong_notebook/application/features/home/presentation/home
 import 'package:bandu_wrong_notebook/application/features/library/presentation/error_item_detail_page.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_page.dart';
 import 'package:bandu_wrong_notebook/application/features/practice/presentation/practice_page.dart';
+import 'package:bandu_wrong_notebook/application/features/profile/domain/profile_models.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/presentation/profile_page.dart';
 import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/pdf_question_bank_page.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_metric.dart';
@@ -48,7 +49,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/login', builder: (context, state) => const LoginPage()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {
-          return AppShell(navigationShell: navigationShell);
+          return AppShell(
+            navigationShell: navigationShell,
+            showPrimaryNavigation: shouldShowPrimaryNavigation(
+              state.uri.path,
+            ),
+          );
         },
         branches: [
           StatefulShellBranch(
@@ -119,6 +125,46 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/profile',
                 builder: (context, state) => const ProfilePage(),
+                routes: [
+                  GoRoute(
+                    path: 'student',
+                    builder: (context, state) => const ProfilePage(
+                      section: ProfileSection.student,
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'settings',
+                    builder: (context, state) => const ProfilePage(
+                      section: ProfileSection.settings,
+                    ),
+                    routes: [
+                      GoRoute(
+                        path: 'ai',
+                        builder: (context, state) => const ProfilePage(
+                          section: ProfileSection.ai,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'device',
+                        builder: (context, state) => const ProfilePage(
+                          section: ProfileSection.device,
+                        ),
+                      ),
+                      GoRoute(
+                        path: 'data',
+                        builder: (context, state) => const ProfilePage(
+                          section: ProfileSection.data,
+                        ),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'about',
+                    builder: (context, state) => const ProfilePage(
+                      section: ProfileSection.about,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

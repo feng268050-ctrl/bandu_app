@@ -66,7 +66,7 @@ class ProfileSectionPage extends StatelessWidget {
       ProfileSection.network => const [],
       ProfileSection.pendingTasks => const [],
       ProfileSection.data => const [
-          _InfoRow('本地缓存', '错题摘要、错题详情、统计摘要和头像配置'),
+          _InfoRow('本地缓存', '错题、统计、题库、头像和壁纸'),
           _InfoRow('服务端数据', '清理本地缓存不会删除服务端数据'),
         ],
       ProfileSection.about => [

@@ -6,9 +6,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class AppSettingsPage extends ConsumerWidget {
-  const AppSettingsPage({required this.onBack, super.key});
+  const AppSettingsPage({
+    required this.onBack,
+    required this.onOpenAiConfig,
+    required this.onOpenDevice,
+    required this.onOpenData,
+    required this.modelConfigLabel,
+    required this.deviceNameLabel,
+    super.key,
+  });
 
   final VoidCallback onBack;
+  final VoidCallback onOpenAiConfig;
+  final VoidCallback onOpenDevice;
+  final VoidCallback onOpenData;
+  final String modelConfigLabel;
+  final String deviceNameLabel;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -32,6 +45,8 @@ class AppSettingsPage extends ConsumerWidget {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.page),
         children: [
+          Text('显示', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.small),
           SwitchListTile(
             contentPadding: EdgeInsets.zero,
             secondary: const Icon(Icons.dark_mode_outlined),
@@ -82,6 +97,35 @@ class AppSettingsPage extends ConsumerWidget {
                 Text('特大'),
               ],
             ),
+          ),
+          const SizedBox(height: AppSpacing.xLarge),
+          Text('应用', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: AppSpacing.small),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.auto_awesome_outlined),
+            title: const Text('AI 配置'),
+            subtitle: Text(modelConfigLabel),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: onOpenAiConfig,
+          ),
+          const Divider(),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.devices_outlined),
+            title: const Text('设备名称'),
+            subtitle: Text(deviceNameLabel),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: onOpenDevice,
+          ),
+          const Divider(),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.storage_outlined),
+            title: const Text('数据管理'),
+            subtitle: const Text('本地缓存和应用数据'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: onOpenData,
           ),
         ],
       ),
