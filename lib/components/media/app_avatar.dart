@@ -41,15 +41,17 @@ class AppAvatar extends StatelessWidget {
       backgroundColor: backgroundColor ?? colorScheme.primaryContainer,
       foregroundImage: imageProvider,
       onForegroundImageError: imageProvider == null ? null : (_, __) {},
-      child: Text(
-        initial,
-        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: fallbackTextColor,
-              fontSize: size * 0.5,
-              fontWeight: FontWeight.w700,
-              height: 1,
+      child: initial.trim().isEmpty
+          ? null
+          : Text(
+              initial,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    color: fallbackTextColor,
+                    fontSize: size * 0.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
             ),
-      ),
     );
   }
 }

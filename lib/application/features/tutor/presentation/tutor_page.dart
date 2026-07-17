@@ -1,3 +1,5 @@
+import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_config_models.dart';
+import 'package:bandu_wrong_notebook/application/features/ai_config/presentation/ai_model_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/library/library_providers.dart';
 import 'package:bandu_wrong_notebook/application/features/library/domain/error_item.dart';
 import 'package:bandu_wrong_notebook/application/features/library/presentation/library_controller.dart';
@@ -12,6 +14,10 @@ import 'package:bandu_wrong_notebook/components/media/local_file_image.dart';
 import 'package:bandu_wrong_notebook/components/surfaces/app_message_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
+const _tutorComposerBottomPadding =
+    AppSizes.primaryNavigationBodyOverlap + AppSpacing.small;
 
 class TutorPage extends ConsumerStatefulWidget {
   const TutorPage({super.key});
@@ -24,12 +30,61 @@ class _TutorPageState extends ConsumerState<TutorPage> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  GoRouter? _router;
+
+  static const _openHistorySwipeVelocity = 280.0;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final router = GoRouter.of(context);
+    if (!identical(_router, router)) {
+      _router?.routerDelegate.removeListener(_onRouteChanged);
+      _router = router;
+      _router!.routerDelegate.addListener(_onRouteChanged);
+    }
+  }
 
   @override
   void dispose() {
+    _router?.routerDelegate.removeListener(_onRouteChanged);
     _textController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _onRouteChanged() {
+    if (!mounted) return;
+    final path = _router?.state.uri.path ?? '';
+    if (path == '/tutor' || path.startsWith('/tutor/')) return;
+    _closeOpenDrawers();
+  }
+
+  void _closeOpenDrawers() {
+    final scaffold = _scaffoldKey.currentState;
+    if (scaffold == null) return;
+    if (scaffold.isDrawerOpen) {
+      scaffold.closeDrawer();
+    }
+    if (scaffold.isEndDrawerOpen) {
+      scaffold.closeEndDrawer();
+    }
+  }
+
+  void _openHistoryDrawer() {
+    final scaffold = _scaffoldKey.currentState;
+    if (scaffold == null || scaffold.isDrawerOpen || scaffold.isEndDrawerOpen) {
+      return;
+    }
+    scaffold.openDrawer();
+  }
+
+  void _handleBodyHorizontalDragEnd(DragEndDetails details) {
+    final velocity = details.primaryVelocity ?? 0;
+    // Rightward swipe opens the left history drawer (same as menu tap).
+    if (velocity > _openHistorySwipeVelocity) {
+      _openHistoryDrawer();
+    }
   }
 
   @override
@@ -55,6 +110,7 @@ class _TutorPageState extends ConsumerState<TutorPage> {
     return Scaffold(
       key: _scaffoldKey,
       drawer: const _HistoryDrawer(),
+      drawerEdgeDragWidth: MediaQuery.sizeOf(context).width * 0.35,
       endDrawer: _QuestionPickerDrawer(
         onSelected: (selection) => _applyQuestionSelection(
           selection,
@@ -64,7 +120,7 @@ class _TutorPageState extends ConsumerState<TutorPage> {
       appBar: AppBar(
         leading: IconButton(
           tooltip: '历史对话',
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+          onPressed: _openHistoryDrawer,
           icon: const Icon(Icons.menu),
         ),
         title: _ModelSelector(state: state, controller: controller),
@@ -76,47 +132,51 @@ class _TutorPageState extends ConsumerState<TutorPage> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          if (state.activeSession != null)
-            _TutorSessionModelBanner(
-              modelName: state.resolvedModel?.displayName ??
-                  state.selectedModel?.name ??
-                  state.activeSession!.modelId ??
-                  'Auto',
-              fallbackOccurred: state.resolvedModel?.fallbackOccurred ?? false,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: _handleBodyHorizontalDragEnd,
+        child: Column(
+          children: [
+            if (state.activeSession != null)
+              _TutorSessionModelBanner(
+                modelName: state.resolvedModel?.displayName ??
+                    state.selectedModel?.name ??
+                    state.activeSession!.modelId ??
+                    'Auto',
+                fallbackOccurred: state.resolvedModel?.fallbackOccurred ?? false,
+              ),
+            Expanded(
+              child: _ConversationView(
+                controller: _scrollController,
+                messages: state.activeSession?.messages ?? const [],
+                isSending: state.isSending,
+                onChooseQuestion: () =>
+                    _scaffoldKey.currentState?.openEndDrawer(),
+              ),
             ),
-          Expanded(
-            child: _ConversationView(
-              controller: _scrollController,
-              messages: state.activeSession?.messages ?? const [],
-              isSending: state.isSending,
-              onChooseQuestion: () =>
-                  _scaffoldKey.currentState?.openEndDrawer(),
+            if (state.errorMessage != null)
+              _InlineError(
+                message: state.errorMessage!,
+                onRetry: state.models.isEmpty ? controller.refreshModels : null,
+              ),
+            _TutorComposer(
+              textController: _textController,
+              state: state,
+              onPickImage: controller.pickImage,
+              onRemoveImage: controller.clearImage,
+              onRemoveQuestion: controller.clearQuestion,
+              onToggleSpeech: () => controller.startListening(
+                _textController.text,
+              ),
+              onSend: () async {
+                final text = _textController.text;
+                _textController.clear();
+                await controller.stopListening();
+                await controller.sendMessage(text);
+              },
             ),
-          ),
-          if (state.errorMessage != null)
-            _InlineError(
-              message: state.errorMessage!,
-              onRetry: state.models.isEmpty ? controller.refreshModels : null,
-            ),
-          _TutorComposer(
-            textController: _textController,
-            state: state,
-            onPickImage: controller.pickImage,
-            onRemoveImage: controller.clearImage,
-            onRemoveQuestion: controller.clearQuestion,
-            onToggleSpeech: () => controller.startListening(
-              _textController.text,
-            ),
-            onSend: () async {
-              final text = _textController.text;
-              _textController.clear();
-              await controller.stopListening();
-              await controller.sendMessage(text);
-            },
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -197,45 +257,152 @@ class _TutorSessionModelBanner extends StatelessWidget {
       );
 }
 
-class _ModelSelector extends StatelessWidget {
+class _ModelSelector extends ConsumerWidget {
   const _ModelSelector({required this.state, required this.controller});
+
+  static const _autoValue = '__auto__';
 
   final TutorUiState state;
   final TutorController controller;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final preferences = ref.watch(aiPurposePreferencesControllerProvider);
+    final tutorPreference = preferences.maybeWhen(
+      data: (values) =>
+          values.where((item) => item.purpose == AiPurpose.tutor).firstOrNull,
+      orElse: () => null,
+    );
+    final isAuto = tutorPreference?.mode != AiSelectionMode.manual;
     final selected = state.selectedModel;
+    final label = isAuto
+        ? 'Auto'
+        : (selected?.listLabel ??
+            (state.isLoading ? '正在读取模型' : '未配置模型'));
+    final colorScheme = Theme.of(context).colorScheme;
+
+    Future<void> savePreference(AiPurposePreference preference) async {
+      await ref
+          .read(aiPurposePreferencesControllerProvider.notifier)
+          .save(preference);
+    }
+
+    Future<void> setAuto(bool enabled) async {
+      final current =
+          tutorPreference ?? const AiPurposePreference(purpose: AiPurpose.tutor);
+      if (enabled) {
+        await savePreference(
+          AiPurposePreference(
+            purpose: AiPurpose.tutor,
+            allowUserModelsInAuto: current.allowUserModelsInAuto,
+            allowFallbackInManual: current.allowFallbackInManual,
+          ),
+        );
+        return;
+      }
+      final modelId = state.selectedModelId ?? state.models.firstOrNull?.id;
+      if (modelId == null) return;
+      await savePreference(
+        AiPurposePreference(
+          purpose: AiPurpose.tutor,
+          mode: AiSelectionMode.manual,
+          selectedModelId: modelId,
+          allowUserModelsInAuto: current.allowUserModelsInAuto,
+          allowFallbackInManual: current.allowFallbackInManual,
+        ),
+      );
+      controller.selectModel(modelId);
+    }
+
+    Future<void> selectModel(String modelId) async {
+      final current =
+          tutorPreference ?? const AiPurposePreference(purpose: AiPurpose.tutor);
+      await savePreference(
+        AiPurposePreference(
+          purpose: AiPurpose.tutor,
+          mode: AiSelectionMode.manual,
+          selectedModelId: modelId,
+          allowUserModelsInAuto: current.allowUserModelsInAuto,
+          allowFallbackInManual: current.allowFallbackInManual,
+        ),
+      );
+      controller.selectModel(modelId);
+    }
+
     return PopupMenuButton<String>(
       tooltip: '切换 AI 模型',
-      initialValue: state.selectedModelId,
-      enabled: state.models.isNotEmpty && !state.isSending,
-      onSelected: controller.selectModel,
-      itemBuilder: (context) => state.models
-          .map(
-            (model) => PopupMenuItem(
+      enabled: !state.isSending,
+      onSelected: (value) async {
+        if (value == _autoValue) {
+          await setAuto(true);
+          return;
+        }
+        await selectModel(value);
+      },
+      itemBuilder: (context) => [
+        PopupMenuItem<String>(
+          value: _autoValue,
+          child: Row(
+            children: [
+              Icon(
+                Icons.auto_awesome,
+                size: 20,
+                color: isAuto ? colorScheme.primary : null,
+              ),
+              const SizedBox(width: AppSpacing.small),
+              const Expanded(
+                child: Text(
+                  'Auto',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+              // Absorb pointer so toggling the switch doesn't also select Auto.
+              GestureDetector(
+                onTap: () {},
+                child: Switch.adaptive(
+                  value: isAuto,
+                  onChanged: state.isSending
+                      ? null
+                      : (value) async {
+                          Navigator.of(context).pop();
+                          await setAuto(value);
+                        },
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (!isAuto) ...[
+          const PopupMenuDivider(),
+          ...state.models.map(
+            (model) => PopupMenuItem<String>(
               value: model.id,
               child: Row(
                 children: [
                   if (model.id == state.selectedModelId)
-                    const Icon(Icons.check, size: 20)
+                    Icon(Icons.check, size: 20, color: colorScheme.primary)
                   else
                     const SizedBox(width: 20),
                   const SizedBox(width: AppSpacing.small),
-                  Expanded(child: Text(model.name)),
+                  Expanded(child: Text(model.listLabel)),
                 ],
               ),
             ),
-          )
-          .toList(),
+          ),
+        ],
+      ],
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 210),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
+            if (isAuto) ...[
+              Icon(Icons.auto_awesome, size: 18, color: colorScheme.primary),
+              const SizedBox(width: AppSpacing.xSmall),
+            ],
             Flexible(
               child: Text(
-                selected?.name ?? (state.isLoading ? '正在读取模型' : '未配置模型'),
+                label,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -384,7 +551,7 @@ class _TutorComposer extends StatelessWidget {
           AppSpacing.medium,
           AppSpacing.small,
           AppSpacing.medium,
-          AppSizes.primaryNavigationBodyOverlap + AppSpacing.small,
+          _tutorComposerBottomPadding,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -480,67 +647,219 @@ class _InlineError extends StatelessWidget {
   }
 }
 
-class _HistoryDrawer extends ConsumerWidget {
+class _HistoryDrawer extends ConsumerStatefulWidget {
   const _HistoryDrawer();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_HistoryDrawer> createState() => _HistoryDrawerState();
+}
+
+class _HistoryDrawerState extends ConsumerState<_HistoryDrawer> {
+  final _searchController = TextEditingController();
+  final _searchFocus = FocusNode();
+  var _searching = false;
+  var _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  void _toggleSearch({required bool enabled}) {
+    setState(() {
+      _searching = enabled;
+      if (!enabled) {
+        _query = '';
+        _searchController.clear();
+      }
+    });
+    if (enabled) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _searchFocus.requestFocus();
+      });
+    } else {
+      _searchFocus.unfocus();
+    }
+  }
+
+  List<TutorSession> _filteredSessions(List<TutorSession> sessions) {
+    final query = _query.trim().toLowerCase();
+    if (query.isEmpty) return sessions;
+    return sessions
+        .where((session) => session.title.toLowerCase().contains(query))
+        .toList(growable: false);
+  }
+
+  Future<void> _confirmDelete(
+    TutorController controller,
+    TutorSession session,
+  ) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除对话'),
+        content: Text('确定删除「${session.title}」？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+    if (shouldDelete == true) {
+      await controller.deleteSession(session.id);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final state = ref.watch(tutorControllerProvider);
     final controller = ref.read(tutorControllerProvider.notifier);
+    final colorScheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final sessions = _filteredSessions(state.sessions);
+
     return Drawer(
       width: _drawerWidth(context),
       semanticLabel: '历史对话',
       child: SafeArea(
+        bottom: false,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ListTile(
-              title:
-                  Text('历史对话', style: Theme.of(context).textTheme.titleLarge),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton.filledTonal(
-                    tooltip: '新建对话',
-                    onPressed: () {
-                      controller.newConversation();
-                      Navigator.of(context).pop();
-                    },
-                    icon: const Icon(Icons.add),
-                  ),
-                  IconButton(
-                    tooltip: '关闭历史对话',
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.page,
+                AppSpacing.small,
+                AppSpacing.small,
+                AppSpacing.small,
               ),
-            ),
-            const Divider(height: 1),
-            Expanded(
-              child: state.sessions.isEmpty
-                  ? const Center(child: Text('暂无历史对话'))
-                  : ListView.builder(
-                      itemCount: state.sessions.length,
-                      itemBuilder: (context, index) {
-                        final session = state.sessions[index];
-                        return ListTile(
-                          selected: session.id == state.activeSessionId,
-                          leading: const Icon(Icons.chat_bubble_outline),
-                          title: Text(session.title),
-                          subtitle: Text('${session.messages.length} 条消息'),
-                          onTap: () {
-                            controller.openSession(session.id);
-                            Navigator.of(context).pop();
-                          },
-                          trailing: IconButton(
-                            tooltip: '删除对话',
-                            onPressed: () =>
-                                controller.deleteSession(session.id),
-                            icon: const Icon(Icons.delete_outline),
+              child: _searching
+                  ? TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocus,
+                      onChanged: (value) => setState(() => _query = value),
+                      textInputAction: TextInputAction.search,
+                      decoration: InputDecoration(
+                        hintText: '搜索对话',
+                        prefixIcon: const Icon(Icons.search),
+                        suffixIcon: IconButton(
+                          tooltip: '取消搜索',
+                          onPressed: () => _toggleSearch(enabled: false),
+                          icon: const Icon(Icons.close),
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.large,
+                          vertical: AppSpacing.medium,
+                        ),
+                      ),
+                    )
+                  : Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '历史对话',
+                            style: textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        );
-                      },
+                        ),
+                        IconButton.filledTonal(
+                          tooltip: '搜索对话',
+                          onPressed: () => _toggleSearch(enabled: true),
+                          style: IconButton.styleFrom(
+                            shape: const CircleBorder(),
+                          ),
+                          icon: const Icon(Icons.search),
+                        ),
+                      ],
                     ),
+            ),
+            Expanded(
+              child: sessions.isEmpty
+                  ? Center(
+                      child: Text(
+                        state.sessions.isEmpty
+                            ? '暂无历史对话'
+                            : '没有匹配的对话',
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    )
+                  : ListView(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.small,
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.medium,
+                            AppSpacing.medium,
+                            AppSpacing.medium,
+                            AppSpacing.small,
+                          ),
+                          child: Text(
+                            '最近',
+                            style: textTheme.labelLarge?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        for (final session in sessions)
+                          ListTile(
+                            selected: session.id == state.activeSessionId,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            title: Text(
+                              session.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () {
+                              controller.openSession(session.id);
+                              Navigator.of(context).pop();
+                            },
+                            onLongPress: () =>
+                                _confirmDelete(controller, session),
+                          ),
+                      ],
+                    ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                AppSpacing.medium,
+                AppSpacing.small,
+                AppSpacing.medium,
+                _tutorComposerBottomPadding,
+              ),
+              child: FilledButton.icon(
+                onPressed: () {
+                  controller.newConversation();
+                  Navigator.of(context).pop();
+                },
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size.fromHeight(
+                    AppSizes.minTouchTarget,
+                  ),
+                  shape: const StadiumBorder(),
+                ),
+                icon: const Icon(Icons.edit_square),
+                label: const Text('聊天'),
+              ),
             ),
           ],
         ),

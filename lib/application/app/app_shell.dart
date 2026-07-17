@@ -158,7 +158,7 @@ const _destinations = [
     index: 1,
     icon: Icons.forum_outlined,
     selectedIcon: Icons.forum,
-    label: 'AI 辅导',
+    label: '辅导',
   ),
   _AppDestination(
     index: 3,

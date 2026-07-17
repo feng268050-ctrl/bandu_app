@@ -16,6 +16,34 @@ class TutorModel {
   final String provider;
   final String model;
   final bool isDefault;
+
+  /// Prefer "model - station" using display [name] when it encodes the station.
+  String get listLabel {
+    final modelName = model.trim();
+    final display = name.trim();
+    var station = '';
+    if (display.contains('·')) {
+      station = display.split('·').first.trim();
+    } else if (display.isNotEmpty &&
+        display.toLowerCase() != modelName.toLowerCase() &&
+        !display.toLowerCase().contains(modelName.toLowerCase())) {
+      station = display;
+    } else {
+      station = switch (provider.trim().toLowerCase()) {
+        'openai' => 'OpenAI',
+        'gemini' => 'Gemini',
+        'azure' => 'Azure',
+        final value when value.isNotEmpty => provider.trim(),
+        _ => '',
+      };
+    }
+    if (modelName.isNotEmpty && station.isNotEmpty) {
+      return '$modelName - $station';
+    }
+    if (modelName.isNotEmpty) return modelName;
+    if (station.isNotEmpty) return station;
+    return display.isEmpty ? '未命名模型' : display;
+  }
 }
 
 class TutorQuestionContext {
