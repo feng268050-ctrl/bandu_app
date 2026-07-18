@@ -67,10 +67,13 @@ class _AiConfigPageState extends ConsumerState<AiConfigPage> {
         leading: BackButton(onPressed: widget.onBack),
       ),
       body: catalog.when(
+        skipLoadingOnReload: true,
         loading: () => const AppLoadingView(message: '正在读取 AI 模型'),
         error: (error, _) => AppErrorView(
           message: appFailureUserMessage(error),
-          onRetry: ref.read(aiModelCatalogControllerProvider.notifier).refresh,
+          onRetry: () => ref
+              .read(aiModelCatalogControllerProvider.notifier)
+              .refresh(forceLoading: true),
         ),
         data: (items) => RefreshIndicator(
           onRefresh: () async {

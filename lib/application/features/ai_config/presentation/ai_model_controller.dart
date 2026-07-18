@@ -12,8 +12,10 @@ class AiModelCatalogController extends AsyncNotifier<AiModelCatalog> {
   Future<AiModelCatalog> build() =>
       ref.read(aiModelRepositoryProvider).fetchCatalog();
 
-  Future<void> refresh() async {
-    state = const AsyncLoading();
+  Future<void> refresh({bool forceLoading = false}) async {
+    if (forceLoading || !state.hasValue) {
+      state = const AsyncLoading();
+    }
     state = await AsyncValue.guard(
       () => ref.read(aiModelRepositoryProvider).fetchCatalog(),
     );
@@ -30,11 +32,23 @@ class AiModelCatalogController extends AsyncNotifier<AiModelCatalog> {
   }
 
   Future<void> setEnabled(AiModelSummary model, bool enabled) async {
-    await ref.read(aiModelRepositoryProvider).setAvailability(
-          model.id,
-          enabled: enabled,
-        );
-    await refresh();
+    final previous = state.valueOrNull;
+    if (previous != null) {
+      state = AsyncData(_catalogWithEnabled(previous, model.id, enabled));
+    }
+    try {
+      await ref.read(aiModelRepositoryProvider).setAvailability(
+            model.id,
+            enabled: enabled,
+          );
+      final catalog = await ref.read(aiModelRepositoryProvider).fetchCatalog();
+      state = AsyncData(catalog);
+    } catch (error) {
+      if (previous != null) {
+        state = AsyncData(previous);
+      }
+      rethrow;
+    }
   }
 
   Future<void> delete(AiModelSummary model) async {
@@ -42,6 +56,32 @@ class AiModelCatalogController extends AsyncNotifier<AiModelCatalog> {
     await ref.read(aiModelRepositoryProvider).deleteModel(model.id);
     await refresh();
   }
+}
+
+AiModelCatalog _catalogWithEnabled(
+  AiModelCatalog catalog,
+  String modelId,
+  bool enabled,
+) {
+  AiModelSummary patch(AiModelSummary model) => model.id == modelId
+      ? AiModelSummary(
+          id: model.id,
+          displayName: model.displayName,
+          provider: model.provider,
+          modelName: model.modelName,
+          kind: model.kind,
+          enabled: enabled,
+          participatesInAuto: model.participatesInAuto,
+          capabilities: model.capabilities,
+          baseUrl: model.baseUrl,
+          maskedApiKey: model.maskedApiKey,
+        )
+      : model;
+
+  return AiModelCatalog(
+    systemModels: catalog.systemModels.map(patch).toList(growable: false),
+    userModels: catalog.userModels.map(patch).toList(growable: false),
+  );
 }
 
 final aiPurposePreferencesControllerProvider =
