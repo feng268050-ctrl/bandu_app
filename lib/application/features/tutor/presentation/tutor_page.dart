@@ -8,8 +8,10 @@ import 'package:bandu_wrong_notebook/application/features/question_bank/presenta
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_models.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/presentation/tutor_controller.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_sizes.dart';
+import 'package:bandu_wrong_notebook/components/design_system/tokens/app_shapes.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
 import 'package:bandu_wrong_notebook/components/feedback/app_empty_view.dart';
+import 'package:bandu_wrong_notebook/components/interaction/app_horizontal_swipe_region.dart';
 import 'package:bandu_wrong_notebook/components/media/local_file_image.dart';
 import 'package:bandu_wrong_notebook/components/surfaces/app_message_surface.dart';
 import 'package:flutter/material.dart';
@@ -79,14 +81,6 @@ class _TutorPageState extends ConsumerState<TutorPage> {
     scaffold.openDrawer();
   }
 
-  void _handleBodyHorizontalDragEnd(DragEndDetails details) {
-    final velocity = details.primaryVelocity ?? 0;
-    // Rightward swipe opens the left history drawer (same as menu tap).
-    if (velocity > _openHistorySwipeVelocity) {
-      _openHistoryDrawer();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(tutorControllerProvider);
@@ -132,9 +126,9 @@ class _TutorPageState extends ConsumerState<TutorPage> {
           ),
         ],
       ),
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onHorizontalDragEnd: _handleBodyHorizontalDragEnd,
+      body: AppHorizontalSwipeRegion(
+        minimumVelocity: _openHistorySwipeVelocity,
+        onSwipeRight: _openHistoryDrawer,
         child: Column(
           children: [
             if (state.activeSession != null)
@@ -143,7 +137,8 @@ class _TutorPageState extends ConsumerState<TutorPage> {
                     state.selectedModel?.name ??
                     state.activeSession!.modelId ??
                     'Auto',
-                fallbackOccurred: state.resolvedModel?.fallbackOccurred ?? false,
+                fallbackOccurred:
+                    state.resolvedModel?.fallbackOccurred ?? false,
               ),
             Expanded(
               child: _ConversationView(
@@ -277,8 +272,7 @@ class _ModelSelector extends ConsumerWidget {
     final selected = state.selectedModel;
     final label = isAuto
         ? 'Auto'
-        : (selected?.listLabel ??
-            (state.isLoading ? '正在读取模型' : '未配置模型'));
+        : (selected?.listLabel ?? (state.isLoading ? '正在读取模型' : '未配置模型'));
     final colorScheme = Theme.of(context).colorScheme;
 
     Future<void> savePreference(AiPurposePreference preference) async {
@@ -288,8 +282,8 @@ class _ModelSelector extends ConsumerWidget {
     }
 
     Future<void> setAuto(bool enabled) async {
-      final current =
-          tutorPreference ?? const AiPurposePreference(purpose: AiPurpose.tutor);
+      final current = tutorPreference ??
+          const AiPurposePreference(purpose: AiPurpose.tutor);
       if (enabled) {
         await savePreference(
           AiPurposePreference(
@@ -315,8 +309,8 @@ class _ModelSelector extends ConsumerWidget {
     }
 
     Future<void> selectModel(String modelId) async {
-      final current =
-          tutorPreference ?? const AiPurposePreference(purpose: AiPurpose.tutor);
+      final current = tutorPreference ??
+          const AiPurposePreference(purpose: AiPurpose.tutor);
       await savePreference(
         AiPurposePreference(
           purpose: AiPurpose.tutor,
@@ -357,7 +351,7 @@ class _ModelSelector extends ConsumerWidget {
                 ),
               ),
               // Absorb pointer so toggling the switch doesn't also select Auto.
-              GestureDetector(
+              InkWell(
                 onTap: () {},
                 child: Switch.adaptive(
                   value: isAuto,
@@ -756,7 +750,7 @@ class _HistoryDrawerState extends ConsumerState<_HistoryDrawer> {
                           icon: const Icon(Icons.close),
                         ),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(24),
+                          borderRadius: AppShapes.searchFieldBorderRadius,
                         ),
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(
@@ -790,9 +784,7 @@ class _HistoryDrawerState extends ConsumerState<_HistoryDrawer> {
               child: sessions.isEmpty
                   ? Center(
                       child: Text(
-                        state.sessions.isEmpty
-                            ? '暂无历史对话'
-                            : '没有匹配的对话',
+                        state.sessions.isEmpty ? '暂无历史对话' : '没有匹配的对话',
                         style: textTheme.bodyMedium?.copyWith(
                           color: colorScheme.onSurfaceVariant,
                         ),
@@ -821,9 +813,7 @@ class _HistoryDrawerState extends ConsumerState<_HistoryDrawer> {
                         for (final session in sessions)
                           ListTile(
                             selected: session.id == state.activeSessionId,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                            shape: AppShapes.roundedListTile,
                             title: Text(
                               session.title,
                               maxLines: 1,
