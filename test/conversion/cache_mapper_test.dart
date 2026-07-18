@@ -5,6 +5,7 @@ import 'package:bandu_wrong_notebook/application/features/question_bank/domain/q
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_models.dart';
 import 'package:bandu_wrong_notebook/conversion/persistence/cache_records.dart';
 import 'package:bandu_wrong_notebook/conversion/persistence/error_item_cache_mapper.dart';
+import 'package:bandu_wrong_notebook/conversion/persistence/exam_session_cache_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/persistence/question_bank_cache_mapper.dart';
 import 'package:bandu_wrong_notebook/conversion/persistence/tutor_session_cache_mapper.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -85,6 +86,52 @@ void main() {
     expect(restored.questions.single.answer, 'B');
     expect(
         restored.questions.single.questionType, BankQuestionType.singleChoice);
+  });
+
+  test('exam session keeps random order and grading state', () {
+    const mapper = ExamSessionCacheMapper();
+    final now = DateTime.utc(2026, 7, 18);
+    final session = ExamSession(
+      id: 'exam-1',
+      questionSetId: 'bank-1',
+      title: '数学随机考卷',
+      seed: 42,
+      status: ExamSessionStatus.completed,
+      createdAt: now,
+      completedAt: now,
+      attempts: [
+        ExamAttempt(
+          id: 'attempt-1',
+          question: const BankQuestion(
+            id: 'q1',
+            stem: '1 + 1 = ?',
+            options: ['A. 1', 'B. 2'],
+            answer: 'B',
+            questionType: BankQuestionType.singleChoice,
+            difficulty: BankQuestionDifficulty.easy,
+            tags: ['加法'],
+            needsReview: false,
+          ),
+          orderIndex: 0,
+          userAnswer: 'B',
+          answerRevealed: true,
+          gradingResult: ExamGradingResult.correct,
+          gradingSource: ExamGradingSource.local,
+          gradingFeedback: '答案匹配标准答案。',
+          submittedAt: now,
+        ),
+      ],
+    );
+
+    final record = mapper.toRecord(session);
+    final restored =
+        mapper.fromRecord(ExamSessionRecord.fromJson(record.toJson()));
+
+    expect(restored.title, '数学随机考卷');
+    expect(restored.status, ExamSessionStatus.completed);
+    expect(restored.attempts.single.question.id, 'q1');
+    expect(restored.attempts.single.gradingResult, ExamGradingResult.correct);
+    expect(restored.completedAt, now);
   });
 
   test('tutor session keeps attachments and selected question context', () {

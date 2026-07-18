@@ -110,7 +110,7 @@ class QuestionBankCacheMapper {
       sourceFileName: record.sourceFileName,
       localPdfPath: record.localPdfPath,
       importedAt: record.importedAt,
-      questions: record.questions.map(_questionFromRecord).toList(),
+      questions: record.questions.map(questionFromRecord).toList(),
     );
   }
 
@@ -121,11 +121,11 @@ class QuestionBankCacheMapper {
       sourceFileName: set.sourceFileName,
       localPdfPath: set.localPdfPath,
       importedAt: set.importedAt,
-      questions: set.questions.map(_questionToRecord).toList(),
+      questions: set.questions.map(questionToRecord).toList(),
     );
   }
 
-  BankQuestion _questionFromRecord(BankQuestionRecord record) {
+  BankQuestion questionFromRecord(BankQuestionRecord record) {
     return BankQuestion(
       id: record.id,
       stem: record.stem,
@@ -146,7 +146,7 @@ class QuestionBankCacheMapper {
     );
   }
 
-  BankQuestionRecord _questionToRecord(BankQuestion question) {
+  BankQuestionRecord questionToRecord(BankQuestion question) {
     return BankQuestionRecord(
       id: question.id,
       stem: question.stem,

@@ -11,6 +11,8 @@ enum QuestionBankPhase {
   analyzing,
   preview,
   saving,
+  creatingExam,
+  managingExam,
   saved,
   failed
 }
@@ -19,6 +21,9 @@ class QuestionBankUiState {
   const QuestionBankUiState({
     this.phase = QuestionBankPhase.idle,
     this.sets = const [],
+    this.sessions = const [],
+    this.setsLoaded = false,
+    this.sessionsLoaded = false,
     this.preview,
     this.excludedQuestionIds = const {},
     this.errorMessage,
@@ -26,6 +31,9 @@ class QuestionBankUiState {
 
   final QuestionBankPhase phase;
   final List<PdfQuestionSet> sets;
+  final List<ExamSession> sessions;
+  final bool setsLoaded;
+  final bool sessionsLoaded;
   final PdfImportPreview? preview;
   final Set<String> excludedQuestionIds;
   final String? errorMessage;
@@ -33,7 +41,9 @@ class QuestionBankUiState {
   bool get isBusy =>
       phase == QuestionBankPhase.selecting ||
       phase == QuestionBankPhase.analyzing ||
-      phase == QuestionBankPhase.saving;
+      phase == QuestionBankPhase.saving ||
+      phase == QuestionBankPhase.creatingExam ||
+      phase == QuestionBankPhase.managingExam;
 
   List<BankQuestion> get includedQuestions =>
       preview?.questions
@@ -44,6 +54,9 @@ class QuestionBankUiState {
   QuestionBankUiState copyWith({
     QuestionBankPhase? phase,
     List<PdfQuestionSet>? sets,
+    List<ExamSession>? sessions,
+    bool? setsLoaded,
+    bool? sessionsLoaded,
     PdfImportPreview? preview,
     bool clearPreview = false,
     Set<String>? excludedQuestionIds,
@@ -53,6 +66,9 @@ class QuestionBankUiState {
     return QuestionBankUiState(
       phase: phase ?? this.phase,
       sets: sets ?? this.sets,
+      sessions: sessions ?? this.sessions,
+      setsLoaded: setsLoaded ?? this.setsLoaded,
+      sessionsLoaded: sessionsLoaded ?? this.sessionsLoaded,
       preview: clearPreview ? null : preview ?? this.preview,
       excludedQuestionIds: excludedQuestionIds ?? this.excludedQuestionIds,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
@@ -69,6 +85,7 @@ class QuestionBankController extends Notifier<QuestionBankUiState> {
   @override
   QuestionBankUiState build() {
     unawaited(_loadSets());
+    unawaited(_loadExamSessions());
     return const QuestionBankUiState();
   }
 
@@ -127,6 +144,7 @@ class QuestionBankController extends Notifier<QuestionBankUiState> {
       state = state.copyWith(
         phase: QuestionBankPhase.saved,
         sets: [saved, ...state.sets.where((item) => item.id != saved.id)],
+        setsLoaded: true,
         clearPreview: true,
         excludedQuestionIds: const {},
       );
@@ -135,6 +153,39 @@ class QuestionBankController extends Notifier<QuestionBankUiState> {
         phase: QuestionBankPhase.failed,
         errorMessage: appFailureUserMessage(error),
       );
+    }
+  }
+
+  Future<ExamSession?> createExam(
+    PdfQuestionSet questionSet,
+    Map<BankQuestionType, int> questionCounts,
+  ) async {
+    if (state.isBusy) return null;
+    state = state.copyWith(
+      phase: QuestionBankPhase.creatingExam,
+      clearError: true,
+    );
+    try {
+      final session = await ref.read(createRandomExamUseCaseProvider).call(
+            questionSetId: questionSet.id,
+            questionCounts: questionCounts,
+          );
+      state = state.copyWith(
+        phase: QuestionBankPhase.idle,
+        sessions: [
+          session,
+          ...state.sessions.where((item) => item.id != session.id),
+        ],
+        sessionsLoaded: true,
+        clearError: true,
+      );
+      return session;
+    } catch (error) {
+      state = state.copyWith(
+        phase: QuestionBankPhase.failed,
+        errorMessage: _examErrorMessage(error),
+      );
+      return null;
     }
   }
 
@@ -147,12 +198,157 @@ class QuestionBankController extends Notifier<QuestionBankUiState> {
     );
   }
 
+  void upsertExamSession(ExamSession session) {
+    state = state.copyWith(
+      sessions: [
+        session,
+        ...state.sessions.where((item) => item.id != session.id),
+      ],
+      sessionsLoaded: true,
+    );
+  }
+
+  Future<bool> renameExamSession(String sessionId, String title) async {
+    final normalizedTitle = title.trim();
+    if (state.isBusy || normalizedTitle.isEmpty) return false;
+    state = state.copyWith(
+      phase: QuestionBankPhase.managingExam,
+      clearError: true,
+    );
+    try {
+      final updated = await ref.read(renameExamSessionUseCaseProvider).call(
+            sessionId: sessionId,
+            title: normalizedTitle,
+          );
+      state = state.copyWith(
+        phase: QuestionBankPhase.idle,
+        sessions: [
+          for (final session in state.sessions)
+            if (session.id == updated.id) updated else session,
+        ],
+        clearError: true,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        phase: QuestionBankPhase.failed,
+        errorMessage: _examErrorMessage(error),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> deleteExamSession(String sessionId) async {
+    if (state.isBusy) return false;
+    state = state.copyWith(
+      phase: QuestionBankPhase.managingExam,
+      clearError: true,
+    );
+    try {
+      await ref.read(deleteExamSessionUseCaseProvider).call(sessionId);
+      state = state.copyWith(
+        phase: QuestionBankPhase.idle,
+        sessions:
+            state.sessions.where((session) => session.id != sessionId).toList(),
+        clearError: true,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        phase: QuestionBankPhase.failed,
+        errorMessage: _examErrorMessage(error),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> renameQuestionSet(String questionSetId, String name) async {
+    final normalizedName = name.trim();
+    if (state.isBusy || normalizedName.isEmpty) return false;
+    state = state.copyWith(
+      phase: QuestionBankPhase.managingExam,
+      clearError: true,
+    );
+    try {
+      final updated = await ref.read(renamePdfQuestionSetUseCaseProvider).call(
+            questionSetId: questionSetId,
+            name: normalizedName,
+          );
+      state = state.copyWith(
+        phase: QuestionBankPhase.idle,
+        sets: [
+          for (final set in state.sets)
+            if (set.id == updated.id) updated else set,
+        ],
+        clearError: true,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        phase: QuestionBankPhase.failed,
+        errorMessage: _examErrorMessage(error),
+      );
+      return false;
+    }
+  }
+
+  Future<bool> deleteQuestionSet(String questionSetId) async {
+    if (state.isBusy) return false;
+    state = state.copyWith(
+      phase: QuestionBankPhase.managingExam,
+      clearError: true,
+    );
+    try {
+      await ref.read(deletePdfQuestionSetUseCaseProvider).call(questionSetId);
+      state = state.copyWith(
+        phase: QuestionBankPhase.idle,
+        sets: state.sets.where((set) => set.id != questionSetId).toList(),
+        sessions: state.sessions
+            .where((session) => session.questionSetId != questionSetId)
+            .toList(),
+        clearError: true,
+      );
+      return true;
+    } catch (error) {
+      state = state.copyWith(
+        phase: QuestionBankPhase.failed,
+        errorMessage: _examErrorMessage(error),
+      );
+      return false;
+    }
+  }
+
   Future<void> _loadSets() async {
     try {
       final sets = await ref.read(loadPdfQuestionSetsUseCaseProvider).call();
-      state = state.copyWith(sets: sets);
+      state = state.copyWith(sets: sets, setsLoaded: true);
     } catch (_) {
       // Existing imports are optional context; a damaged cache must not block import.
+      state = state.copyWith(setsLoaded: true);
     }
   }
+
+  Future<void> _loadExamSessions() async {
+    try {
+      final sessions = await ref.read(loadExamSessionsUseCaseProvider).call();
+      state = state.copyWith(sessions: sessions, sessionsLoaded: true);
+    } catch (_) {
+      // A damaged exam cache must not block importing or viewing question sets.
+      state = state.copyWith(sessionsLoaded: true);
+    }
+  }
+}
+
+String _examErrorMessage(Object error) {
+  final message = error.toString();
+  if (message.contains('question_type_count_not_enough')) {
+    return '某题型的题数不足，请调整各题型数量';
+  }
+  if (message.contains('question_bank_not_found')) {
+    return '题库不存在，请返回后重试';
+  }
+  if (message.contains('exam_session_not_found')) {
+    return '考卷不存在或已被删除';
+  }
+  return appFailureUserMessage(error);
 }

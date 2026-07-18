@@ -71,4 +71,51 @@ class FrameworkQuestionBankRepository implements QuestionBankRepository {
   Future<PdfQuestionSet> saveQuestionSet(PdfImportPreview preview) {
     return store.save(preview);
   }
+
+  @override
+  Future<PdfQuestionSet> renameQuestionSet(String questionSetId, String name) {
+    return store.rename(questionSetId, name);
+  }
+
+  @override
+  Future<void> deleteQuestionSet(String questionSetId) {
+    return store.delete(questionSetId);
+  }
+
+  @override
+  Future<ExamSession> createExam(
+    String questionSetId,
+    Map<BankQuestionType, int> questionCounts,
+  ) {
+    return store.createExam(questionSetId, questionCounts);
+  }
+
+  @override
+  Future<List<ExamSession>> loadExamSessions() {
+    return store.loadExamSessions();
+  }
+
+  @override
+  Future<ExamSession> renameExamSession(String sessionId, String title) {
+    return store.renameExamSession(sessionId, title);
+  }
+
+  @override
+  Future<void> deleteExamSession(String sessionId) {
+    return store.deleteExamSession(sessionId);
+  }
+
+  @override
+  Future<ExamSession?> loadExamSession(String sessionId) {
+    return store.loadExamSession(sessionId);
+  }
+
+  @override
+  Future<ExamSession> submitExamAnswer(
+    String sessionId,
+    String attemptId,
+    String userAnswer,
+  ) {
+    return store.submitExamAnswer(sessionId, attemptId, userAnswer);
+  }
 }

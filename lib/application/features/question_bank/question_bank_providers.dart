@@ -26,3 +26,39 @@ final loadPdfQuestionSetsUseCaseProvider = Provider<LoadPdfQuestionSetsUseCase>(
 final savePdfQuestionSetUseCaseProvider = Provider<SavePdfQuestionSetUseCase>(
   (ref) => SavePdfQuestionSetUseCase(ref.watch(questionBankRepositoryProvider)),
 );
+
+final renamePdfQuestionSetUseCaseProvider =
+    Provider<RenamePdfQuestionSetUseCase>(
+  (ref) =>
+      RenamePdfQuestionSetUseCase(ref.watch(questionBankRepositoryProvider)),
+);
+
+final deletePdfQuestionSetUseCaseProvider =
+    Provider<DeletePdfQuestionSetUseCase>(
+  (ref) =>
+      DeletePdfQuestionSetUseCase(ref.watch(questionBankRepositoryProvider)),
+);
+
+final createRandomExamUseCaseProvider = Provider<CreateRandomExamUseCase>(
+  (ref) => CreateRandomExamUseCase(ref.watch(questionBankRepositoryProvider)),
+);
+
+final loadExamSessionUseCaseProvider = Provider<LoadExamSessionUseCase>(
+  (ref) => LoadExamSessionUseCase(ref.watch(questionBankRepositoryProvider)),
+);
+
+final loadExamSessionsUseCaseProvider = Provider<LoadExamSessionsUseCase>(
+  (ref) => LoadExamSessionsUseCase(ref.watch(questionBankRepositoryProvider)),
+);
+
+final renameExamSessionUseCaseProvider = Provider<RenameExamSessionUseCase>(
+  (ref) => RenameExamSessionUseCase(ref.watch(questionBankRepositoryProvider)),
+);
+
+final deleteExamSessionUseCaseProvider = Provider<DeleteExamSessionUseCase>(
+  (ref) => DeleteExamSessionUseCase(ref.watch(questionBankRepositoryProvider)),
+);
+
+final submitExamAnswerUseCaseProvider = Provider<SubmitExamAnswerUseCase>(
+  (ref) => SubmitExamAnswerUseCase(ref.watch(questionBankRepositoryProvider)),
+);

@@ -9,7 +9,11 @@ import 'package:bandu_wrong_notebook/application/features/library/presentation/l
 import 'package:bandu_wrong_notebook/application/features/practice/presentation/practice_page.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/domain/profile_models.dart';
 import 'package:bandu_wrong_notebook/application/features/profile/presentation/profile_page.dart';
+import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/exam_management_page.dart';
+import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/exam_session_page.dart';
 import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/pdf_question_bank_page.dart';
+import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/question_set_detail_page.dart';
+import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/question_set_management_page.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_metric.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/domain/stats_period.dart';
 import 'package:bandu_wrong_notebook/application/features/stats/presentation/stats_page.dart';
@@ -103,12 +107,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
               GoRoute(
                 path: '/capture',
                 builder: (context, state) => const CapturePage(),
-                routes: [
-                  GoRoute(
-                    path: 'pdf-import',
-                    builder: (context, state) => const PdfQuestionBankPage(),
-                  ),
-                ],
+                routes: buildQuestionBankRoutes(),
               ),
             ],
           ),
@@ -173,3 +172,34 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+List<RouteBase> buildQuestionBankRoutes() {
+  return [
+    GoRoute(
+      path: 'pdf-import',
+      builder: (context, state) => const PdfQuestionBankPage(),
+      routes: [
+        GoRoute(
+          path: 'exams',
+          builder: (context, state) => const ExamManagementPage(),
+        ),
+        GoRoute(
+          path: 'banks',
+          builder: (context, state) => const QuestionSetManagementPage(),
+        ),
+        GoRoute(
+          path: 'bank/:questionSetId',
+          builder: (context, state) => QuestionSetDetailPage(
+            questionSetId: state.pathParameters['questionSetId']!,
+          ),
+        ),
+        GoRoute(
+          path: 'exam/:sessionId',
+          builder: (context, state) => ExamSessionPage(
+            sessionId: state.pathParameters['sessionId']!,
+          ),
+        ),
+      ],
+    ),
+  ];
+}
