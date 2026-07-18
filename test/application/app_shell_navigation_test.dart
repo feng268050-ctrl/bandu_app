@@ -21,6 +21,10 @@ void main() {
       '/home/library/error-1',
       '/home/stats/errors',
       '/capture/pdf-import',
+      '/capture/pdf-import/exams',
+      '/capture/pdf-import/banks',
+      '/capture/pdf-import/bank/bank-1',
+      '/capture/pdf-import/exam/exam-1',
       '/profile/student',
       '/profile/settings',
       '/profile/settings/ai',
@@ -30,6 +34,30 @@ void main() {
     ]) {
       expect(shouldShowPrimaryNavigation(location), isFalse, reason: location);
     }
+  });
+
+  test('primary navigation and capture action hide while keyboard is open', () {
+    expect(
+      shouldDisplayPrimaryNavigation(
+        routeAllowsNavigation: true,
+        keyboardInset: 320,
+      ),
+      isFalse,
+    );
+    expect(
+      shouldDisplayPrimaryNavigation(
+        routeAllowsNavigation: true,
+        keyboardInset: 0,
+      ),
+      isTrue,
+    );
+    expect(
+      shouldDisplayPrimaryNavigation(
+        routeAllowsNavigation: false,
+        keyboardInset: 0,
+      ),
+      isFalse,
+    );
   });
 
   testWidgets('main navigation reserves the middle slot for the capture action',

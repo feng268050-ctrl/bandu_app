@@ -24,10 +24,12 @@ class _AppShellState extends State<AppShell>
   late final CurvedAnimation _fabCurved;
   late final Animation<double> _fabScale;
   late final Animation<double> _fabRotation;
+  late bool _fabShouldBeVisible;
 
   @override
   void initState() {
     super.initState();
+    _fabShouldBeVisible = widget.showPrimaryNavigation;
     _fabVisibility = AnimationController(
       vsync: this,
       duration: AppDuration.navigationFab,
@@ -51,12 +53,25 @@ class _AppShellState extends State<AppShell>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncFabVisibility();
+  }
+
+  @override
   void didUpdateWidget(AppShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.showPrimaryNavigation == oldWidget.showPrimaryNavigation) {
-      return;
-    }
-    if (widget.showPrimaryNavigation) {
+    _syncFabVisibility();
+  }
+
+  void _syncFabVisibility() {
+    final shouldBeVisible = shouldDisplayPrimaryNavigation(
+      routeAllowsNavigation: widget.showPrimaryNavigation,
+      keyboardInset: MediaQuery.viewInsetsOf(context).bottom,
+    );
+    if (_fabShouldBeVisible == shouldBeVisible) return;
+    _fabShouldBeVisible = shouldBeVisible;
+    if (shouldBeVisible) {
       _fabVisibility.forward();
     } else {
       _fabVisibility.reverse();
@@ -98,12 +113,16 @@ class _AppShellState extends State<AppShell>
 
   @override
   Widget build(BuildContext context) {
+    final showNavigation = shouldDisplayPrimaryNavigation(
+      routeAllowsNavigation: widget.showPrimaryNavigation,
+      keyboardInset: MediaQuery.viewInsetsOf(context).bottom,
+    );
     return Scaffold(
       body: SafeArea(child: widget.navigationShell),
       floatingActionButtonLocation: appCaptureNavigationButtonLocation,
       floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
       floatingActionButton: _buildCaptureFab(),
-      bottomNavigationBar: widget.showPrimaryNavigation
+      bottomNavigationBar: showNavigation
           ? AppBottomNavigationBar(
               selectedIndex: widget.navigationShell.currentIndex,
               onDestinationSelected: _goToBranch,
@@ -123,6 +142,13 @@ const primaryNavigationLocations = {
 
 bool shouldShowPrimaryNavigation(String location) {
   return primaryNavigationLocations.contains(Uri.parse(location).path);
+}
+
+bool shouldDisplayPrimaryNavigation({
+  required bool routeAllowsNavigation,
+  required double keyboardInset,
+}) {
+  return routeAllowsNavigation && keyboardInset <= 0;
 }
 
 const _captureDestinationIndex = 2;
@@ -158,7 +184,7 @@ const _destinations = [
     index: 1,
     icon: Icons.forum_outlined,
     selectedIcon: Icons.forum,
-    label: '辅导',
+    label: 'AI 辅导',
   ),
   _AppDestination(
     index: 3,
