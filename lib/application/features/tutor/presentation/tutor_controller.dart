@@ -371,6 +371,10 @@ class TutorController extends Notifier<TutorUiState> {
   }
 
   String _message(Object error) {
+    if (error is StateError) {
+      final message = error.message.trim();
+      if (message.isNotEmpty) return message;
+    }
     return appFailureUserMessage(error);
   }
 }

@@ -59,7 +59,9 @@ class StartSpeechInputUseCase {
   Future<Stream<String>> call() async {
     final available = await _repository.initialize();
     if (!available) {
-      throw StateError('当前设备无法使用语音输入');
+      throw StateError(
+        '当前设备无法使用语音输入。请确认已安装语音识别服务，并允许麦克风权限。',
+      );
     }
     return _repository.startListening();
   }
