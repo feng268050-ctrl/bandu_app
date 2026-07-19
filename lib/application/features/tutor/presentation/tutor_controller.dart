@@ -174,15 +174,21 @@ class TutorController extends Notifier<TutorUiState> {
     state = state.copyWith(clearQuestionContext: true);
   }
 
-  Future<void> pickImage() async {
+  Future<String?> pickImage(TutorImageSource source) async {
     try {
-      final path = await ref.read(pickTutorImageUseCaseProvider).call();
+      final path = await ref.read(pickTutorImageUseCaseProvider).call(source);
       if (path != null) {
         state = state.copyWith(imagePath: path, clearError: true);
       }
+      return path;
     } catch (error) {
       state = state.copyWith(errorMessage: _message(error));
+      return null;
     }
+  }
+
+  void setImagePath(String path) {
+    state = state.copyWith(imagePath: path, clearError: true);
   }
 
   void clearImage() {

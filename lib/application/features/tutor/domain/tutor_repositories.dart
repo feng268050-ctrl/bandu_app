@@ -9,7 +9,7 @@ abstract interface class TutorRepository {
 
   Future<void> deleteSession(String sessionId);
 
-  Future<String?> pickImage();
+  Future<String?> pickImage(TutorImageSource source);
 
   Future<TutorReply> sendMessage({
     required String message,

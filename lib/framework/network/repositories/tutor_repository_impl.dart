@@ -56,11 +56,14 @@ class FrameworkTutorRepository implements TutorRepository {
   Future<void> deleteSession(String sessionId) => store.delete(sessionId);
 
   @override
-  Future<String?> pickImage() async {
+  Future<String?> pickImage(TutorImageSource source) async {
     final image = await imagePicker.pickImage(
-      source: ImageSource.gallery,
+      source: source == TutorImageSource.camera
+          ? ImageSource.camera
+          : ImageSource.gallery,
       imageQuality: 90,
       maxWidth: 2000,
+      preferredCameraDevice: CameraDevice.rear,
     );
     if (image == null) return null;
     return store.persistAttachment(image.path);

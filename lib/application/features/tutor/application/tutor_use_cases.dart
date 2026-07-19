@@ -28,7 +28,8 @@ class DeleteTutorSessionUseCase {
 class PickTutorImageUseCase {
   const PickTutorImageUseCase(this._repository);
   final TutorRepository _repository;
-  Future<String?> call() => _repository.pickImage();
+  Future<String?> call(TutorImageSource source) =>
+      _repository.pickImage(source);
 }
 
 class SendTutorMessageUseCase {

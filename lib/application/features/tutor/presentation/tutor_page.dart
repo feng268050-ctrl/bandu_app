@@ -7,12 +7,14 @@ import 'package:bandu_wrong_notebook/application/features/question_bank/domain/q
 import 'package:bandu_wrong_notebook/application/features/question_bank/presentation/question_bank_controller.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/domain/tutor_models.dart';
 import 'package:bandu_wrong_notebook/application/features/tutor/presentation/tutor_controller.dart';
+import 'package:bandu_wrong_notebook/components/design_system/tokens/app_radius.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_sizes.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_shapes.dart';
 import 'package:bandu_wrong_notebook/components/design_system/tokens/app_spacing.dart';
 import 'package:bandu_wrong_notebook/components/feedback/app_empty_view.dart';
 import 'package:bandu_wrong_notebook/components/interaction/app_horizontal_swipe_region.dart';
 import 'package:bandu_wrong_notebook/components/media/local_file_image.dart';
+import 'package:bandu_wrong_notebook/components/media/tutor_image_editor_page.dart';
 import 'package:bandu_wrong_notebook/components/surfaces/app_message_surface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -157,7 +159,14 @@ class _TutorPageState extends ConsumerState<TutorPage> {
             _TutorComposer(
               textController: _textController,
               state: state,
-              onPickImage: controller.pickImage,
+              onPickImage: () => _pickTutorImage(context, controller),
+              onEditImage: state.imagePath == null
+                  ? null
+                  : () => _editTutorImage(
+                        context,
+                        controller,
+                        state.imagePath!,
+                      ),
               onRemoveImage: controller.clearImage,
               onRemoveQuestion: controller.clearQuestion,
               onToggleSpeech: () => controller.startListening(
@@ -174,6 +183,57 @@ class _TutorPageState extends ConsumerState<TutorPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _pickTutorImage(
+    BuildContext context,
+    TutorController controller,
+  ) async {
+    final source = await showModalBottomSheet<TutorImageSource>(
+      context: context,
+      useRootNavigator: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined),
+              title: const Text('拍照'),
+              onTap: () => Navigator.of(context).pop(TutorImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('从相册选择'),
+              onTap: () => Navigator.of(context).pop(TutorImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !context.mounted) return;
+    final path = await controller.pickImage(source);
+    if (path == null || !context.mounted) return;
+    await _editTutorImage(context, controller, path, required: false);
+  }
+
+  Future<void> _editTutorImage(
+    BuildContext context,
+    TutorController controller,
+    String imagePath, {
+    bool required = false,
+  }) async {
+    final edited = await Navigator.of(context, rootNavigator: true).push<String>(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => TutorImageEditorPage(imagePath: imagePath),
+      ),
+    );
+    if (!context.mounted) return;
+    if (edited != null) {
+      controller.setImagePath(edited);
+    } else if (required) {
+      controller.clearImage();
+    }
   }
 
   Future<void> _applyQuestionSelection(
@@ -521,6 +581,7 @@ class _TutorComposer extends StatelessWidget {
     required this.textController,
     required this.state,
     required this.onPickImage,
+    required this.onEditImage,
     required this.onRemoveImage,
     required this.onRemoveQuestion,
     required this.onToggleSpeech,
@@ -530,6 +591,7 @@ class _TutorComposer extends StatelessWidget {
   final TextEditingController textController;
   final TutorUiState state;
   final VoidCallback onPickImage;
+  final VoidCallback? onEditImage;
   final VoidCallback onRemoveImage;
   final VoidCallback onRemoveQuestion;
   final VoidCallback onToggleSpeech;
@@ -555,6 +617,8 @@ class _TutorComposer extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Wrap(
                   spacing: AppSpacing.small,
+                  runSpacing: AppSpacing.small,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     if (state.questionContext != null)
                       InputChip(
@@ -567,10 +631,10 @@ class _TutorComposer extends StatelessWidget {
                         onDeleted: onRemoveQuestion,
                       ),
                     if (state.imagePath != null)
-                      InputChip(
-                        avatar: const Icon(Icons.image_outlined, size: 18),
-                        label: const Text('图片'),
-                        onDeleted: onRemoveImage,
+                      _ComposerImagePreview(
+                        path: state.imagePath!,
+                        onTap: onEditImage,
+                        onRemove: onRemoveImage,
                       ),
                   ],
                 ),
@@ -579,7 +643,7 @@ class _TutorComposer extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 IconButton(
-                  tooltip: '导入图片',
+                  tooltip: '拍照或选图',
                   onPressed: state.isSending ? null : onPickImage,
                   icon: const Icon(Icons.add),
                 ),
@@ -612,6 +676,84 @@ class _TutorComposer extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ComposerImagePreview extends StatelessWidget {
+  const _ComposerImagePreview({
+    required this.path,
+    required this.onRemove,
+    this.onTap,
+  });
+
+  final String path;
+  final VoidCallback? onTap;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: colorScheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(AppRadius.small),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: onTap,
+            child: Stack(
+              children: [
+                LocalFileImage(
+                  path: path,
+                  width: 72,
+                  height: 72,
+                  borderRadius: AppRadius.small,
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: ColoredBox(
+                    color: Colors.black54,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 2,
+                        horizontal: 4,
+                      ),
+                      child: Text(
+                        onTap == null ? '图片' : '编辑',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: Colors.white,
+                            ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Positioned(
+          top: -8,
+          right: -8,
+          child: Material(
+            color: colorScheme.surface,
+            shape: const CircleBorder(),
+            elevation: 1,
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: onRemove,
+              child: const Padding(
+                padding: EdgeInsets.all(4),
+                child: Icon(Icons.close, size: 16),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -2,6 +2,8 @@ import 'package:bandu_wrong_notebook/application/features/ai_config/domain/ai_co
 
 enum TutorMessageRole { user, assistant }
 
+enum TutorImageSource { camera, gallery }
+
 class TutorModel {
   const TutorModel({
     required this.id,
